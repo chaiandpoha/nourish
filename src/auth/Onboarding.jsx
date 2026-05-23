@@ -175,6 +175,7 @@ function StepCreateProfile({ data, update, next, error, setError }) {
 // ─── Step 4 — Set PIN ─────────────────────────────────────────────────────────
 function StepSetPin({ data, update, next, back, error, setError }) {
   function validate() {
+    if (data.skipPin) { next(); return }
     if (data.pin.length < AUTH.pinMinLength) {
       setError(`PIN must be at least ${AUTH.pinMinLength} digits`); return
     }
@@ -186,32 +187,59 @@ function StepSetPin({ data, update, next, back, error, setError }) {
   return (
     <div style={styles.step}>
       <div style={styles.emoji}>🔢</div>
-      <h2 style={styles.title}>Set Your PIN</h2>
-      <p style={styles.body}>{AUTH.pinMinLength}–{AUTH.pinMaxLength} digits. Used to unlock the app.</p>
+      <h2 style={styles.title}>Set a PIN</h2>
+      <p style={styles.body}>Adds a lock screen when you open the app. You can skip this and enable it later in Settings.</p>
 
-      <label style={styles.label}>PIN</label>
-      <input
-        style={styles.input}
-        type="password"
-        inputMode="numeric"
-        placeholder="Enter PIN"
-        value={data.pin}
-        onChange={e => update({ pin: e.target.value.replace(/\D/g, '').slice(0, AUTH.pinMaxLength) })}
-      />
+      {/* Skip toggle */}
+      <button
+        style={{
+          ...styles.optionRow,
+          background: data.skipPin ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+          border: data.skipPin ? '1px solid var(--accent)' : '1px solid var(--border-default)',
+        }}
+        onClick={() => update({ skipPin: !data.skipPin })}
+      >
+        <div style={styles.optionText}>
+          <span style={styles.optionLabel}>Skip PIN for now</span>
+          <span style={styles.optionSub}>Open app without a lock screen</span>
+        </div>
+        <div style={{
+          width: '22px', height: '22px', borderRadius: '50%',
+          background: data.skipPin ? 'var(--accent)' : 'transparent',
+          border: data.skipPin ? 'none' : '2px solid var(--border-strong)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          {data.skipPin && <span style={{ color: '#fff', fontSize: '13px', fontWeight: '700' }}>✓</span>}
+        </div>
+      </button>
 
-      <label style={styles.label}>Confirm PIN</label>
-      <input
-        style={styles.input}
-        type="password"
-        inputMode="numeric"
-        placeholder="Confirm PIN"
-        value={data.pinConfirm}
-        onChange={e => update({ pinConfirm: e.target.value.replace(/\D/g, '').slice(0, AUTH.pinMaxLength) })}
-      />
+      {!data.skipPin && (
+        <>
+          <label style={styles.label}>PIN</label>
+          <input
+            style={styles.input}
+            type="password"
+            inputMode="numeric"
+            placeholder="Enter PIN"
+            value={data.pin}
+            onChange={e => update({ pin: e.target.value.replace(/\D/g, '').slice(0, AUTH.pinMaxLength) })}
+          />
+          <label style={styles.label}>Confirm PIN</label>
+          <input
+            style={styles.input}
+            type="password"
+            inputMode="numeric"
+            placeholder="Confirm PIN"
+            value={data.pinConfirm}
+            onChange={e => update({ pinConfirm: e.target.value.replace(/\D/g, '').slice(0, AUTH.pinMaxLength) })}
+          />
+        </>
+      )}
 
       {error && <p style={styles.error}>{error}</p>}
       <button style={styles.primaryBtn} onClick={validate}>Continue</button>
-      <button style={styles.ghostBtn}   onClick={back}>Back</button>
+      <button style={styles.ghostBtn} onClick={back}>Back</button>
     </div>
   )
 }
@@ -295,15 +323,42 @@ function StepRecoveryKey({ data, update, next, back, onGenerateKey, error, setEr
           </div>
           <p style={styles.note}>📋 Screenshot this or write it down now.</p>
 
-          <label style={styles.checkRow}>
-            <input
-              type="checkbox"
-              checked={data.recoveryConfirmed}
-              onChange={e => update({ recoveryConfirmed: e.target.checked })}
-              style={{ marginRight: '8px' }}
-            />
-            I have saved my recovery key
-          </label>
+          <button
+  style={{
+    display:       'flex',
+    alignItems:    'center',
+    gap:           '12px',
+    width:         '100%',
+    padding:       '13px 16px',
+    background:    data.recoveryConfirmed ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+    border:        data.recoveryConfirmed ? '1px solid var(--accent)' : '1px solid var(--border-default)',
+    borderRadius:  'var(--r-lg)',
+    cursor:        'pointer',
+    textAlign:     'left',
+    marginTop:     '4px',
+  }}
+  onClick={() => update({ recoveryConfirmed: !data.recoveryConfirmed })}
+>
+  <div style={{
+    width:           '24px',
+    height:          '24px',
+    borderRadius:    '6px',
+    background:      data.recoveryConfirmed ? 'var(--accent)' : 'transparent',
+    border:          data.recoveryConfirmed ? 'none' : '2px solid var(--border-strong)',
+    display:         'flex',
+    alignItems:      'center',
+    justifyContent:  'center',
+    flexShrink:      0,
+    transition:      'all 0.15s',
+  }}>
+    {data.recoveryConfirmed && (
+      <span style={{ color: '#fff', fontSize: '14px', fontWeight: '700' }}>✓</span>
+    )}
+  </div>
+  <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '500' }}>
+    I have saved my recovery key
+  </span>
+</button>
         </>
       )}
 
@@ -770,4 +825,30 @@ const styles = {
     lineHeight:    '1.6',
     margin:        '0 0 8px',
   },
+optionRow: {
+  display:       'flex',
+  alignItems:    'center',
+  gap:           '12px',
+  width:         '100%',
+  padding:       '13px 16px',
+  borderRadius:  'var(--r-lg)',
+  cursor:        'pointer',
+  textAlign:     'left',
+  marginBottom:  '8px',
+},
+optionText: {
+  flex:          1,
+  display:       'flex',
+  flexDirection: 'column',
+  gap:           '2px',
+},
+optionLabel: {
+  fontSize:      '14px',
+  fontWeight:    '600',
+  color:         'var(--text-primary)',
+},
+optionSub: {
+  fontSize:      '12px',
+  color:         'var(--text-secondary)',
+},
 }

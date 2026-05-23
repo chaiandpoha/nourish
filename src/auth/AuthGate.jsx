@@ -109,14 +109,13 @@ function PinEntry({ userId, onBack }) {
   const { loginWithPin, loginWithBiometric, lockoutUntil } = useAuth()
 
   useEffect(() => {
-    db.users.get(userId).then(p => {
-      setProfile(p)
-      // Offer biometric if registered and available
-      if (p?.biometricCredentialId && window.PublicKeyCredential) {
-        setShowBiometric(true)
-      }
-    })
-  }, [userId])
+  db.users.get(userId).then(p => {
+    setProfile(p)
+    if (p?.biometricCredentialId && window.PublicKeyCredential) {
+      setShowBiometric(true)
+    }
+  })
+}, [userId])
 
   const isLockedOut = lockoutUntil && Date.now() < lockoutUntil
 
@@ -275,7 +274,7 @@ const styles = {
     alignItems:     'center',
     justifyContent: 'center',
     height:         '100dvh',
-    background:     '#0f0f0f',
+    background:     '#f6f3ee',
     color:          '#fff',
   },
   container: {
@@ -283,7 +282,7 @@ const styles = {
     flexDirection:  'column',
     alignItems:     'center',
     minHeight:      '100dvh',
-    background:     '#0f0f0f',
+    background:     '#f6f3ee',
     color:          '#fff',
     padding:        '24px 16px',
     boxSizing:      'border-box',

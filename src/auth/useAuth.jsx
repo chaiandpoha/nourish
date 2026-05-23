@@ -190,26 +190,38 @@ export function AuthProvider({ children }) {
   }
 
   // ── Create profile ───────────────────────────────────────────────────────
-  async function createProfile({ name, pin, passphrase, avatarInitials, height, startWeight, macroGoals, supplements }) {
-    const id             = generateId()
-    const pinHash        = await sha256(pin)
-    const encryptionSalt = generateId() // random salt per user
+  async function loginWithPin(userId, pin, passphrase) {
+  const profile = await db.users.get(userId)
+  if (!profile) throw new Error('Profile not found')
 
-    const profile = {
-      id,
-      name,
-      email:        '',
-      avatarInitials: avatarInitials || name.slice(0, 2).toUpperCase(),
-      pinHash,
-      encryptionSalt,
-      biometricCredentialId: null,
-      height,
-      startWeight,
-      macroGoals:   macroGoals   || { calories: 2000, protein: 150, carbs: 200, fat: 65, fibre: 30 },
-      supplements:  supplements  || [],
-      settings: {
-        autoLockMinutes:      15,
-        shareFoodNamesWithAI: true,
+  // Skip PIN check if user opted out
+  if (!profile.skipPin && profile.pinHash) {
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const seconds = Math.ceil((lockoutUntil - Date.now()) / 1000)
+      throw new Error(`Locked out. Try again in ${seconds}s`)
+    }
+    const pinHash = await sha256(pin)
+    if (pinHash !== profile.pinHash) {
+      const attempts = pinAttempts + 1
+      setPinAttempts(attempts)
+      if (attempts >= AUTH.maxPinAttempts) {
+        const lockSeconds = AUTH.lockoutBaseSeconds * Math.pow(2, attempts - AUTH.maxPinAttempts)
+        setLockoutUntil(Date.now() + lockSeconds * 1000)
+        setPinAttempts(0)
+        throw new Error(`Too many attempts. Locked for ${lockSeconds}s`)
+      }
+      throw new Error(`Incorrect PIN. ${AUTH.maxPinAttempts - attempts} attempts remaining`)
+    }
+  }
+
+  const key = await deriveKey(passphrase, profile.encryptionSalt)
+  await completeLogin(profile, key)
+  setPinAttempts(0)
+  setLockoutUntil(null)
+  return profile
+}
+
+ shareFoodNamesWithAI: true,
         shareMedNamesWithAI:  false,
         wifiOnlyPhotos:       true,
       },
