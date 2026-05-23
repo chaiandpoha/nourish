@@ -126,13 +126,15 @@ function StepGoogleSignIn({ next }) {
         Nourish stores your data in your own Google Drive — not our servers.
         We only request access to files Nourish creates.
       </p>
-      <button style={styles.googleBtn} onClick={initiateOAuthFlow}>
-        <span style={styles.googleIcon}>G</span>
-        Sign in with Google
-      </button>
-      <button style={styles.ghostBtn} onClick={next}>
-        Skip for now (offline mode)
-      </button>
+     <button style={styles.googleBtn} onClick={() => {
+  const id = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  if (!id) { alert('VITE_GOOGLE_CLIENT_ID is not set'); return }
+  alert('Client ID found: ' + id.slice(0, 20) + '...')
+  initiateOAuthFlow()
+}}>
+  <span style={styles.googleIcon}>G</span>
+  Sign in with Google
+</button>
     </div>
   )
 }
