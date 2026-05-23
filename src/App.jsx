@@ -9,6 +9,7 @@ import { runMigrations } from './db/migrations.js'
 import { db } from './db/indexedDB.js'
 import { DRIVE } from './config.js'
 import HomeScreen from './screens/Home.jsx'
+import BatchList from './batches/BatchList.jsx'
 
 // ─── Lazy loaded screens (added in later phases) ──────────────────────────────
 // import { lazy, Suspense } from 'react'
@@ -222,15 +223,11 @@ function QuotaChecker() {
 
 // ─── Placeholder screens (filled in later phases) ────────────────────────────
 
-
-
 function FoodScreen() {
   return (
     <div style={styles.screen}>
-      <h1 style={styles.screenTitle}>Food Log</h1>
-      <div style={styles.placeholder}>
-        <p style={styles.placeholderText}>Food logging coming in Phase 2</p>
-      </div>
+      <h1 style={styles.screenTitle}>Food & Batches</h1>
+      <BatchList />
     </div>
   )
 }
