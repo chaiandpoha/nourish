@@ -1,0 +1,519 @@
+/* ─── Fonts ────────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap');
+
+/* ─── Design tokens ─────────────────────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --bg-base:        #f6f3ee;
+  --bg-surface:     #ffffff;
+  --bg-elevated:    #f0ebe3;
+  --bg-hover:       #f9f6f2;
+
+  /* Borders */
+  --border-subtle:  #ece7df;
+  --border-default: #e6e1d8;
+  --border-strong:  #d8d0c8;
+
+  /* Text */
+  --text-primary:   #1c1814;
+  --text-secondary: #b0a89e;
+  --text-tertiary:  #c8c0b4;
+  --text-inverse:   #f6f3ee;
+
+  /* Brand — forest green, used sparingly */
+  --accent:         #4a7c6a;
+  --accent-dim:     #edf4f0;
+  --accent-glow:    rgba(74, 124, 106, 0.10);
+
+  /* Macro colours — muted, sophisticated */
+  --macro-cal:      #1c1814;
+  --macro-protein:  #4a7c6a;
+  --macro-carbs:    #b87830;
+  --macro-fat:      #7868b8;
+  --macro-fibre:    #c87050;
+
+  /* Semantic */
+  --red:            #c85040;
+  --amber:          #b87830;
+  --green:          #4a7c6a;
+  --blue:           #4870a8;
+
+  /* Type */
+  --font-sans:      'DM Sans',         system-ui, sans-serif;
+  --font-serif:     'DM Serif Display', Georgia,   serif;
+  --font-mono:      'DM Mono',          monospace;
+
+  /* Radii */
+  --r-sm:   8px;
+  --r-md:   12px;
+  --r-lg:   16px;
+  --r-xl:   20px;
+  --r-2xl:  24px;
+  --r-full: 9999px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:  cubic-bezier(0.4, 0, 1, 1);
+
+  /* Spacing */
+  --sp-xs:  4px;
+  --sp-sm:  8px;
+  --sp-md:  16px;
+  --sp-lg:  24px;
+  --sp-xl:  32px;
+  --sp-2xl: 48px;
+}
+
+/* ─── Reset ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin:     0;
+  padding:    0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  height: -webkit-fill-available;
+}
+
+body {
+  font-family:             var(--font-sans);
+  background:              var(--bg-base);
+  color:                   var(--text-primary);
+  line-height:             1.5;
+  min-height:              100dvh;
+  overflow-x:              hidden;
+  font-feature-settings:   'kern' 1, 'liga' 1;
+  -webkit-font-smoothing:  antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100dvh;
+  isolation:  isolate;
+}
+
+/* ─── Typography ─────────────────────────────────────────────────────────────── */
+
+/* Serif display — greetings, hero labels, batch names */
+.serif {
+  font-family: var(--font-serif);
+  font-style:  italic;
+  font-weight: 400;
+}
+
+h1, h2, h3, h4 {
+  font-family:    var(--font-sans);
+  font-weight:    600;
+  letter-spacing: -0.025em;
+  line-height:    1.2;
+  color:          var(--text-primary);
+}
+
+h1 { font-size: clamp(22px, 6vw, 28px); font-weight: 300; }
+h2 { font-size: clamp(18px, 5vw, 22px); }
+h3 { font-size: 17px; }
+h4 { font-size: 15px; }
+
+/* Section headers — small uppercase labels */
+.section-label {
+  font-size:      10px;
+  font-weight:    600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color:          var(--text-tertiary);
+  font-family:    var(--font-sans);
+}
+
+p {
+  color:       var(--text-secondary);
+  line-height: 1.65;
+}
+
+code, kbd {
+  font-family:   var(--font-mono);
+  font-size:     0.875em;
+  background:    var(--bg-elevated);
+  padding:       2px 6px;
+  border-radius: var(--r-sm);
+  color:         var(--accent);
+}
+
+/* Large number display — calories, weight */
+.num-display {
+  font-family:    var(--font-sans);
+  font-size:      42px;
+  font-weight:    300;
+  letter-spacing: -0.04em;
+  line-height:    1;
+  color:          var(--text-primary);
+}
+
+.num-unit {
+  font-size:   14px;
+  font-weight: 400;
+  color:       var(--text-tertiary);
+  margin-left: 2px;
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────────────────── */
+button {
+  font-family: var(--font-sans);
+  cursor:      pointer;
+  border:      none;
+  outline:     none;
+  transition:  opacity 0.15s,
+               transform 0.12s var(--ease-out),
+               background 0.15s,
+               border-color 0.15s;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor:  not-allowed;
+}
+
+/* Primary */
+.btn-primary {
+  display:         block;
+  width:           100%;
+  padding:         15px 20px;
+  background:      var(--text-primary);
+  color:           var(--text-inverse);
+  font-size:       16px;
+  font-weight:     500;
+  letter-spacing:  -0.01em;
+  border-radius:   var(--r-lg);
+  text-align:      center;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2e2a26;
+}
+
+/* Ghost */
+.btn-ghost {
+  display:        block;
+  width:          100%;
+  padding:        13px 20px;
+  background:     transparent;
+  color:          var(--text-secondary);
+  font-size:      15px;
+  font-weight:    500;
+  border-radius:  var(--r-lg);
+  border:         1px solid var(--border-default);
+  text-align:     center;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background:    var(--bg-elevated);
+  color:         var(--text-primary);
+  border-color:  var(--border-strong);
+}
+
+/* Accent — used sparingly */
+.btn-accent {
+  display:        block;
+  width:          100%;
+  padding:        15px 20px;
+  background:     var(--accent);
+  color:          #fff;
+  font-size:      16px;
+  font-weight:    500;
+  border-radius:  var(--r-lg);
+  text-align:     center;
+}
+
+/* Icon button */
+.btn-icon {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           40px;
+  height:          40px;
+  background:      transparent;
+  color:           var(--text-secondary);
+  border-radius:   var(--r-md);
+  font-size:       20px;
+  flex-shrink:     0;
+}
+
+.btn-icon:hover {
+  background: var(--bg-elevated);
+  color:      var(--text-primary);
+}
+
+/* Chip */
+.chip {
+  display:       inline-flex;
+  align-items:   center;
+  padding:       6px 14px;
+  background:    var(--bg-surface);
+  color:         var(--text-secondary);
+  font-size:     13px;
+  font-weight:   500;
+  border-radius: var(--r-full);
+  border:        1px solid var(--border-default);
+  cursor:        pointer;
+  transition:    all 0.15s;
+}
+
+.chip.active, .chip:hover {
+  background:   var(--accent-dim);
+  color:        var(--accent);
+  border-color: var(--accent);
+}
+
+/* ─── Inputs ─────────────────────────────────────────────────────────────────── */
+input, textarea, select {
+  font-family:    var(--font-sans);
+  font-size:      16px;
+  color:          var(--text-primary);
+  background:     var(--bg-surface);
+  border:         1px solid var(--border-default);
+  border-radius:  var(--r-md);
+  padding:        12px 14px;
+  width:          100%;
+  outline:        none;
+  transition:     border-color 0.15s, box-shadow 0.15s;
+  -webkit-appearance: none;
+  appearance:     none;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent);
+  box-shadow:   0 0 0 3px var(--accent-glow);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.input-row {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  width:       100%;
+}
+
+.input-row input { flex: 1; }
+
+/* ─── Cards ──────────────────────────────────────────────────────────────────── */
+.card {
+  background:    var(--bg-surface);
+  border:        0.5px solid var(--border-subtle);
+  border-radius: var(--r-xl);
+  padding:       var(--sp-md) var(--sp-lg);
+}
+
+.card-base {
+  background:    var(--bg-base);
+  border:        0.5px solid var(--border-subtle);
+  border-radius: var(--r-xl);
+  padding:       var(--sp-md) var(--sp-lg);
+}
+
+/* ─── Section header ─────────────────────────────────────────────────────────── */
+.section-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   var(--sp-sm);
+  padding:         0 2px;
+}
+
+.section-link {
+  font-size:   12px;
+  color:       var(--accent);
+  font-weight: 500;
+  background:  none;
+  border:      none;
+  cursor:      pointer;
+  padding:     0;
+}
+
+/* ─── List rows ──────────────────────────────────────────────────────────────── */
+.list-row {
+  display:       flex;
+  align-items:   center;
+  gap:           var(--sp-md);
+  padding:       13px 0;
+  border-bottom: 0.5px solid var(--border-subtle);
+}
+
+.list-row:last-child { border-bottom: none; }
+
+/* ─── Progress bars ──────────────────────────────────────────────────────────── */
+.progress-track {
+  width:         100%;
+  height:        3px;
+  background:    var(--bg-elevated);
+  border-radius: var(--r-full);
+  overflow:      hidden;
+}
+
+.progress-fill {
+  height:        100%;
+  border-radius: var(--r-full);
+  transition:    width 0.5s var(--ease-out);
+}
+
+/* ─── Avatar ─────────────────────────────────────────────────────────────────── */
+.avatar {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  border-radius:   50%;
+  background:      var(--text-primary);
+  color:           var(--text-inverse);
+  font-weight:     600;
+  letter-spacing:  0.04em;
+  flex-shrink:     0;
+  font-family:     var(--font-sans);
+}
+
+.avatar-sm { width: 34px; height: 34px; font-size: 11px; }
+.avatar-md { width: 44px; height: 44px; font-size: 14px; }
+.avatar-lg { width: 58px; height: 58px; font-size: 18px; }
+
+/* ─── Badge ──────────────────────────────────────────────────────────────────── */
+.badge {
+  display:        inline-flex;
+  align-items:    center;
+  padding:        3px 10px;
+  font-size:      10px;
+  font-weight:    600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius:  var(--r-full);
+  font-family:    var(--font-sans);
+}
+
+.badge-accent { background: var(--accent-dim);             color: var(--accent); }
+.badge-red    { background: rgba(200, 80,  64, 0.08);      color: var(--red);    }
+.badge-amber  { background: rgba(184, 120, 48, 0.10);      color: var(--amber);  }
+.badge-green  { background: rgba(74,  124, 106, 0.10);     color: var(--green);  }
+
+/* ─── Bottom sheet ───────────────────────────────────────────────────────────── */
+.sheet-overlay {
+  position:   fixed;
+  inset:      0;
+  background: rgba(28, 24, 20, 0.4);
+  z-index:    150;
+  animation:  fadeIn 0.2s ease both;
+}
+
+.sheet {
+  position:      fixed;
+  bottom:        0;
+  left:          0;
+  right:         0;
+  background:    var(--bg-surface);
+  border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  border-top:    0.5px solid var(--border-subtle);
+  padding:       12px var(--sp-md) calc(var(--sp-lg) + env(safe-area-inset-bottom));
+  z-index:       151;
+  max-height:    92dvh;
+  overflow-y:    auto;
+  animation:     sheetUp 0.32s var(--ease-out) both;
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.sheet-handle {
+  width:         32px;
+  height:        3px;
+  background:    var(--border-strong);
+  border-radius: var(--r-full);
+  margin:        0 auto var(--sp-lg);
+}
+
+/* ─── Divider ────────────────────────────────────────────────────────────────── */
+hr, .divider {
+  border:     none;
+  border-top: 0.5px solid var(--border-subtle);
+  margin:     var(--sp-md) 0;
+}
+
+/* ─── Scrollbars ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background:    var(--border-default);
+  border-radius: var(--r-full);
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-up    { animation: fadeSlideUp 0.35s var(--ease-out) both; }
+.animate-in    { animation: fadeIn      0.2s  ease             both; }
+.animate-scale { animation: scaleIn     0.28s var(--ease-out)  both; }
+
+.stagger > *:nth-child(1) { animation-delay: 0ms;   }
+.stagger > *:nth-child(2) { animation-delay: 60ms;  }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+
+/* ─── Error + helper text ────────────────────────────────────────────────────── */
+.error-text  { font-size: 13px; color: var(--red);          margin-top: var(--sp-xs); }
+.helper-text { font-size: 13px; color: var(--text-tertiary); margin-top: var(--sp-xs); }
+
+/* ─── Utility ────────────────────────────────────────────────────────────────── */
+.sr-only {
+  position:    absolute;
+  width:       1px;
+  height:      1px;
+  padding:     0;
+  margin:      -1px;
+  overflow:    hidden;
+  clip:        rect(0,0,0,0);
+  white-space: nowrap;
+  border:      0;
+}
+
+.truncate      { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flex-center   { display: flex; align-items: center; justify-content: center; }
+.flex-between  { display: flex; align-items: center; justify-content: space-between; }
+.gap-xs        { gap: var(--sp-xs); }
+.gap-sm        { gap: var(--sp-sm); }
+.gap-md        { gap: var(--sp-md); }
+.gap-lg        { gap: var(--sp-lg); }
+.text-accent   { color: var(--accent); }
+.text-muted    { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.text-danger   { color: var(--red); }
+.mono          { font-family: var(--font-mono); }
+.full-width    { width: 100%; }
