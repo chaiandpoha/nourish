@@ -450,7 +450,6 @@ const st = {
   },
   reviewNote: {
     fontSize:        '13px',
-    color:           'var(--text-secondary)',
     margin:          0,
     padding:         '10px 14px',
     background:      'var(--accent-dim)',
