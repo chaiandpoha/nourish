@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import LabelScanner from '../food/LabelScanner.jsx'
 import { searchFoods, getRecentFoods, getActiveBatches, detectMealSlot } from '../food/FoodDB.js'
 import { useAuth } from '../auth/useAuth.jsx'
 import FoodEntry from '../food/FoodEntry.jsx'
@@ -10,7 +11,7 @@ import { addFoodLogEntry } from '../db/db.js'
 
 export default function MealEntry({ date, onLogged }) {
   const [open,        setOpen]        = useState(false)
-  const [screen,      setScreen]      = useState('list') // list | entry
+  const [screen, setScreen] = useState('list') // list | entry | scan
   const [selected,    setSelected]    = useState(null)   // { food } or { batch }
   const [query,       setQuery]       = useState('')
   const [results,     setResults]     = useState([])
@@ -106,19 +107,27 @@ export default function MealEntry({ date, onLogged }) {
                 ))}
               </div>
 
-              {/* Search */}
-              <div style={styles.searchRow}>
-                <input
-                  style={styles.searchInput}
-                  placeholder="Search foods…"
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  autoComplete="off"
-                />
-                {query.length > 0 && (
-                  <button style={styles.clearBtn} onClick={() => setQuery('')}>✕</button>
-                )}
-              </div>
+            {/* Search */}
+<div style={styles.searchRow}>
+  <input
+    style={styles.searchInput}
+    placeholder="Search foods…"
+    value={query}
+    onChange={e => setQuery(e.target.value)}
+    autoComplete="off"
+  />
+  {query.length > 0 && (
+    <button style={styles.clearBtn} onClick={() => setQuery('')}>✕</button>
+  )}
+</div>
+
+{/* Scan label button */}
+<button
+  style={styles.scanBtn}
+  onClick={() => setScreen('scan')}
+>
+  📷 Scan a label
+</button>
 
               {/* Active batches — shown when not searching */}
               {!query.trim() && batches.length > 0 && (
@@ -187,14 +196,15 @@ export default function MealEntry({ date, onLogged }) {
             </>
           )}
 
-          {screen === 'entry' && selected && (
-            <FoodEntry
-              food={selected.food}
-              batch={selected.batch}
-              onAdd={handleAdd}
-              onCancel={() => setScreen('list')}
-            />
-          )}
+         {screen === 'entry' && selected && (
+  <FoodEntry
+    food={selected.food}
+    batch={selected.batch}
+    onAdd={handleAdd}
+    onCancel={() => setScreen('list')}
+  />
+)}
+
         </div>
       )}
     </>
@@ -359,4 +369,17 @@ const styles = {
     textAlign:       'center',
     padding:         '24px 0',
   },
+scanBtn: {
+  width:           '100%',
+  padding:         '11px 14px',
+  background:      'var(--bg-elevated)',
+  border:          '1px dashed var(--border-strong)',
+  borderRadius:    'var(--r-md)',
+  color:           'var(--text-secondary)',
+  fontSize:        '14px',
+  fontWeight:      '500',
+  cursor:          'pointer',
+  textAlign:       'left',
+  marginBottom:    '4px',
+},
 }
