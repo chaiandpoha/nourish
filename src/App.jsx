@@ -8,6 +8,7 @@ import BottomNav from './shared/BottomNav.jsx'
 import { runMigrations } from './db/migrations.js'
 import { db } from './db/indexedDB.js'
 import { DRIVE } from './config.js'
+import HomeScreen from './screens/Home.jsx'
 
 // ─── Lazy loaded screens (added in later phases) ──────────────────────────────
 // import { lazy, Suspense } from 'react'
@@ -221,21 +222,7 @@ function QuotaChecker() {
 
 // ─── Placeholder screens (filled in later phases) ────────────────────────────
 
-function HomeScreen() {
-  const { user, lock } = useAuth()
-  return (
-    <div style={styles.screen}>
-      <div style={styles.screenHeader}>
-        <h1 style={styles.screenTitle}>Good {getGreeting()}, {user?.name} 👋</h1>
-        <button style={styles.lockBtn} onClick={lock}>🔒</button>
-      </div>
-      <div style={styles.placeholder}>
-        <p style={styles.placeholderText}>Dashboard coming in Phase 2</p>
-        <p style={styles.placeholderSub}>Auth ✅ · Storage ✅ · PWA ✅</p>
-      </div>
-    </div>
-  )
-}
+
 
 function FoodScreen() {
   return (
@@ -400,7 +387,6 @@ function getGreeting() {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = {
   splash: {
     display:        'flex',
@@ -408,80 +394,81 @@ const styles = {
     alignItems:     'center',
     justifyContent: 'center',
     height:         '100dvh',
-    background:     '#0f0f0f',
-    color:          '#fff',
+    background:     'var(--bg-base)',
+    color:          'var(--text-primary)',
     gap:            '12px',
   },
   splashLogo: {
-    fontSize:       '64px',
+    fontSize: '64px',
   },
   splashText: {
-    fontSize:       '18px',
-    color:          '#aaa',
-    margin:         0,
+    fontSize: '18px',
+    color:    'var(--text-secondary)',
+    margin:   0,
   },
   splashSub: {
-    fontSize:       '13px',
-    color:          '#555',
-    margin:         0,
-    textAlign:      'center',
-    padding:        '0 32px',
+    fontSize:  '13px',
+    color:     'var(--text-tertiary)',
+    margin:    0,
+    textAlign: 'center',
+    padding:   '0 32px',
   },
   retryBtn: {
-    marginTop:      '16px',
-    padding:        '12px 24px',
-    background:     '#4ecdc4',
-    border:         'none',
-    borderRadius:   '12px',
-    color:          '#0f0f0f',
-    fontSize:       '16px',
-    fontWeight:     '700',
-    cursor:         'pointer',
+    marginTop:    '16px',
+    padding:      '12px 24px',
+    background:   'var(--accent)',
+    border:       'none',
+    borderRadius: 'var(--r-lg)',
+    color:        '#fff',
+    fontSize:     '16px',
+    fontWeight:   '700',
+    cursor:       'pointer',
   },
   appShell: {
-    display:        'flex',
-    flexDirection:  'column',
-    minHeight:      '100dvh',
-    background:     '#0f0f0f',
-    color:          '#fff',
+    display:       'flex',
+    flexDirection: 'column',
+    minHeight:     '100dvh',
+    background:    'var(--bg-base)',
+    color:         'var(--text-primary)',
   },
   main: {
-    flex:           1,
-    overflowY:      'auto',
+    flex:      1,
+    overflowY: 'auto',
   },
   screen: {
-    padding:        '24px 16px 16px',
-    minHeight:      '100%',
+    padding:   '24px 16px 16px',
+    minHeight: '100%',
   },
   screenHeader: {
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'space-between',
-    marginBottom:   '24px',
+    display:         'flex',
+    alignItems:      'center',
+    justifyContent:  'space-between',
+    marginBottom:    '24px',
   },
   screenTitle: {
-    fontSize:       '26px',
-    fontWeight:     '700',
-    margin:         '0 0 20px',
-    letterSpacing:  '-0.3px',
+    fontSize:      '26px',
+    fontWeight:    '600',
+    margin:        '0 0 20px',
+    letterSpacing: '-0.03em',
+    color:         'var(--text-primary)',
   },
   lockBtn: {
-    background:     'none',
-    border:         'none',
-    fontSize:       '22px',
-    cursor:         'pointer',
+    background: 'none',
+    border:     'none',
+    fontSize:   '22px',
+    cursor:     'pointer',
   },
   lockBtnFull: {
-    width:          '100%',
-    padding:        '14px',
-    background:     '#1a1a1a',
-    border:         '1px solid #2a2a2a',
-    borderRadius:   '14px',
-    color:          '#ff6b6b',
-    fontSize:       '16px',
-    fontWeight:     '600',
-    cursor:         'pointer',
-    marginTop:      '16px',
+    width:        '100%',
+    padding:      '14px',
+    background:   'var(--bg-elevated)',
+    border:       '1px solid var(--border-default)',
+    borderRadius: 'var(--r-lg)',
+    color:        'var(--red)',
+    fontSize:     '16px',
+    fontWeight:   '600',
+    cursor:       'pointer',
+    marginTop:    '16px',
   },
   placeholder: {
     display:        'flex',
@@ -489,82 +476,82 @@ const styles = {
     alignItems:     'center',
     justifyContent: 'center',
     minHeight:      '300px',
-    background:     '#1a1a1a',
-    borderRadius:   '16px',
-    border:         '1px dashed #2a2a2a',
+    background:     'var(--bg-elevated)',
+    borderRadius:   'var(--r-xl)',
+    border:         '1px dashed var(--border-default)',
   },
   placeholderText: {
-    fontSize:       '16px',
-    color:          '#555',
-    margin:         '0 0 8px',
+    fontSize: '16px',
+    color:    'var(--text-secondary)',
+    margin:   '0 0 8px',
   },
   placeholderSub: {
-    fontSize:       '13px',
-    color:          '#333',
-    margin:         0,
+    fontSize: '13px',
+    color:    'var(--text-tertiary)',
+    margin:   0,
   },
   settingsCard: {
-    background:     '#1a1a1a',
-    border:         '1px solid #2a2a2a',
-    borderRadius:   '14px',
-    padding:        '16px 20px',
-    marginBottom:   '16px',
+    background:    'var(--bg-surface)',
+    border:        '1px solid var(--border-subtle)',
+    borderRadius:  'var(--r-lg)',
+    padding:       '16px 20px',
+    marginBottom:  '16px',
   },
   settingsRow: {
-    fontSize:       '15px',
-    color:          '#ccc',
-    margin:         '6px 0',
+    fontSize: '15px',
+    color:    'var(--text-primary)',
+    margin:   '6px 0',
   },
   recoverContainer: {
-    display:        'flex',
-    flexDirection:  'column',
-    padding:        '24px 20px',
-    minHeight:      '100dvh',
-    background:     '#0f0f0f',
-    color:          '#fff',
-    boxSizing:      'border-box',
+    display:       'flex',
+    flexDirection: 'column',
+    padding:       '24px 20px',
+    minHeight:     '100dvh',
+    background:    'var(--bg-base)',
+    color:         'var(--text-primary)',
+    boxSizing:     'border-box',
   },
   backBtn: {
-    background:     'none',
-    border:         'none',
-    color:          '#4ecdc4',
-    fontSize:       '16px',
-    cursor:         'pointer',
-    padding:        '0 0 16px',
-    alignSelf:      'flex-start',
+    background:   'none',
+    border:       'none',
+    color:        'var(--accent)',
+    fontSize:     '16px',
+    cursor:       'pointer',
+    padding:      '0 0 16px',
+    alignSelf:    'flex-start',
   },
   label: {
-    fontSize:       '13px',
-    color:          '#888',
-    marginBottom:   '4px',
-    marginTop:      '12px',
+    fontSize:     '13px',
+    color:        'var(--text-secondary)',
+    marginBottom: '4px',
+    marginTop:    '12px',
   },
   input: {
-    width:          '100%',
-    padding:        '13px 14px',
-    background:     '#1a1a1a',
-    border:         '1px solid #2a2a2a',
-    borderRadius:   '12px',
-    color:          '#fff',
-    fontSize:       '16px',
-    outline:        'none',
-    boxSizing:      'border-box',
+    width:        '100%',
+    padding:      '13px 14px',
+    background:   'var(--bg-surface)',
+    border:       '1px solid var(--border-default)',
+    borderRadius: 'var(--r-md)',
+    color:        'var(--text-primary)',
+    fontSize:     '16px',
+    outline:      'none',
+    boxSizing:    'border-box',
   },
   error: {
-    color:          '#ff6b6b',
-    fontSize:       '14px',
-    margin:         '8px 0',
+    color:     'var(--red)',
+    fontSize:  '14px',
+    margin:    '8px 0',
   },
   primaryBtn: {
-    width:          '100%',
-    padding:        '15px',
-    background:     '#4ecdc4',
-    border:         'none',
-    borderRadius:   '14px',
-    color:          '#0f0f0f',
-    fontSize:       '17px',
-    fontWeight:     '700',
-    cursor:         'pointer',
-    marginTop:      '16px',
+    width:        '100%',
+    padding:      '15px',
+    background:   'var(--text-primary)',
+    border:       'none',
+    borderRadius: 'var(--r-lg)',
+    color:        'var(--text-inverse)',
+    fontSize:     '17px',
+    fontWeight:   '700',
+    cursor:       'pointer',
+    marginTop:    '16px',
   },
 }
