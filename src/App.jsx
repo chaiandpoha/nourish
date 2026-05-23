@@ -71,19 +71,31 @@ function AppRoutes() {
 
   // Handle OAuth callback — parse token from URL hash
   useEffect(() => {
-    if (window.location.hash.startsWith('#access_token') ||
-        window.location.search.includes('access_token')) {
-      import('./db/driveApi.js').then(({ parseOAuthCallback }) => {
-        try {
-          parseOAuthCallback()
-          // After OAuth, redirect to onboarding or home
-          window.location.hash = '#/'
-        } catch (e) {
-          console.error('OAuth callback error:', e)
-        }
-      })
-    }
-  }, [])
+  const hash = window.location.hash
+  const search = window.location.search
+
+  // Google returns token in URL hash as #access_token=...
+  if (hash.includes('access_token') || search.includes('access_token')) {
+    import('./db/driveApi.js').then(({ parseOAuthCallback }) => {
+      try {
+        parseOAuthCallback()
+        // Check if any profiles exist — if not, go to onboarding
+        import('./db/indexedDB.js').then(({ db }) => {
+          db.users.count().then(count => {
+            if (count === 0) {
+              window.location.hash = '#/onboarding'
+            } else {
+              window.location.hash = '#/'
+            }
+          })
+        })
+      } catch (e) {
+        console.error('OAuth callback error:', e)
+        window.location.hash = '#/onboarding'
+      }
+    })
+  }
+}, [])
 
   if (isLoading) {
     return (
