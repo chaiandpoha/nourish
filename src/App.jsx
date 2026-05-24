@@ -77,6 +77,24 @@ export default function App() {
   )
 }
 
+function OnboardingGate() {
+  const [hasProfile, setHasProfile] = useState(null)
+
+  useEffect(() => {
+    db.users.count().then(count => setHasProfile(count > 0))
+  }, [])
+
+  if (hasProfile === null) return null
+
+  if (hasProfile) {
+    // Already has a profile — redirect to home
+    window.location.hash = '#/'
+    return null
+  }
+
+  return <Onboarding onComplete={() => { window.location.hash = '#/' }} />
+}
+
 function AppRoutes() {
   const { isLoading } = useAuth()
 
@@ -104,7 +122,7 @@ function AppRoutes() {
       <ReminderChecker />
       <QuotaChecker />
       <Routes>
-        <Route path="/onboarding" element={<Onboarding onComplete={() => { window.location.hash = '#/' }} />} />
+        <Route path="/onboarding" element={<OnboardingGate />} />
         <Route path="/auth/callback" element={<AuthCallbackScreen />} />
         <Route path="/recover" element={<RecoverScreen />} />
         <Route path="/*" element={<AuthGate><ProtectedApp /></AuthGate>} />
@@ -289,7 +307,9 @@ function SettingsScreen() {
             <p style={styles.settingsRow}>💊 {user?.supplements?.length || 0} supplements</p>
             <p style={styles.settingsRow}>📏 {user?.height ? Math.round(user.height) + 'cm' : 'Height not set'}</p>
           </div>
-          <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
+          {user?.pinHash && (
+            <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
+          )}
 
 
         </>
