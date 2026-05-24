@@ -7,6 +7,7 @@ import DayLog from '../log/DayLog.jsx'
 import { getDayMacros } from '../db/db.js'
 import { db } from '../db/indexedDB.js'
 import { seedFoodDatabase } from '../food/FoodDB.js'
+import MealChat from '../chat/MealChat.jsx'
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
 // Main dashboard screen
@@ -19,6 +20,7 @@ export default function Home() {
   const [suppDone,    setSuppDone]    = useState({})
   const [batches,     setBatches]     = useState([])
   const [refreshKey,  setRefreshKey]  = useState(0)
+  const [showChat,    setShowChat]    = useState(false)
   const [greeting,    setGreeting]    = useState('')
   const [dateLabel,   setDateLabel]   = useState('')
 
@@ -101,6 +103,8 @@ export default function Home() {
 
   const suppCount    = supplements.filter(s => suppDone[s]).length
   const goals        = user?.macroGoals || {}
+
+  if (showChat) return <MealChat onClose={() => setShowChat(false)} />
 
   return (
     <div style={styles.screen}>
@@ -203,6 +207,15 @@ export default function Home() {
         date={today}
         onTotalsChange={setTotals}
       />
+
+      {/* AI Chat button */}
+      <button style={styles.chatBtn} onClick={() => setShowChat(true)}>
+        <span style={{ fontSize:'22px' }}>✨</span>
+        <div style={{ display:'flex', flexDirection:'column', gap:'2px', textAlign:'left' }}>
+          <span style={{ fontSize:'15px', fontWeight:'600', color:'var(--text-primary)' }}>Ask AI about your meals</span>
+          <span style={{ fontSize:'12px', color:'var(--text-tertiary)' }}>Get suggestions based on remaining macros</span>
+        </div>
+      </button>
 
       {/* Bottom padding */}
       <div style={{ height: '24px' }} />
@@ -447,6 +460,17 @@ const styles = {
   suppCheckDone: {
     background:      'var(--accent-dim)',
     color:           'var(--accent)',
+  },
+  chatBtn: {
+    display:      'flex',
+    alignItems:   'center',
+    gap:          '12px',
+    width:        '100%',
+    padding:      '14px 16px',
+    background:   'var(--bg-surface)',
+    border:       '0.5px solid var(--border-subtle)',
+    borderRadius: 'var(--r-xl)',
+    cursor:       'pointer',
   },
   suppCheckTodo: {
     border:          '1.5px solid var(--border-default)',
