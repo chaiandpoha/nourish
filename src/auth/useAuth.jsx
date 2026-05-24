@@ -143,6 +143,18 @@ export function AuthProvider({ children }) {
     }
   }
 
+  function logout() {
+    if (user && encryptionKey) {
+      flushDirtyRecords(user.id, encryptionKey).catch(() => {})
+    }
+    setUser(null)
+    setEncryptionKey(null)
+    setIsLocked(true)
+    teardownStorage()
+    if (autoLockTimer.current) clearTimeout(autoLockTimer.current)
+    window.location.reload()
+  }
+
   function lock() {
     if (user && encryptionKey) {
       flushDirtyRecords(user.id, encryptionKey).catch(() => {})
@@ -201,7 +213,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user, isLocked, isLoading, encryptionKey, pinAttempts, lockoutUntil,
-    loginWithPin, loginWithBiometric, registerBiometric, createProfile, resetPin, lock,
+    loginWithPin, loginWithBiometric, registerBiometric, createProfile, resetPin, lock, logout,
   }
 
   return (
