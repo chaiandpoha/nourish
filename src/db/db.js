@@ -11,6 +11,7 @@ import {
   checkQuota,
 } from './driveApi.js'
 import { DRIVE, MACRO_KEYS } from '../config.js'
+import { shouldBackup, markBackupDone } from './syncManager.js'
 
 // ─── Sync state ───────────────────────────────────────────────────────────────
 let _syncInterval = null
@@ -54,6 +55,17 @@ export async function initStorage(userId, encryptionKey) {
     console.warn('Could not sync shared data:', e)
   }
 
+  // Check if this is a new device — restore from Drive if so
+  try {
+    const localCount = await db.foodLogs.where('userId').equals(userId).count()
+    if (localCount === 0) {
+      console.log('No local data — restoring from Drive')
+      await restoreFromDrive(userId, encryptionKey, _folderIds)
+    }
+  } catch (e) {
+    console.warn('Restore check failed:', e)
+  }
+
   // Immediately flush any dirty records (including new profile)
   try {
     await flushDirtyRecords(userId, encryptionKey)
@@ -65,14 +77,87 @@ export async function initStorage(userId, encryptionKey) {
   // Start background sync — flush dirty records every 30s
   startSyncInterval(userId, encryptionKey)
 
+  // Daily backup check
+  setTimeout(() => runDailyBackup(userId, encryptionKey), 5000)
+
   // Flush on visibility change (app backgrounded)
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
       flushDirtyRecords(userId, encryptionKey)
+      runDailyBackup(userId, encryptionKey)
     }
   })
 
   return { quotaWarning: false }
+}
+
+/** Full daily backup to Drive */
+export async function runDailyBackup(userId, encryptionKey) {
+  if (!isTokenValid()) return
+  if (!await shouldBackup()) return
+
+  console.log('Running daily Drive backup...')
+  try {
+    await flushDirtyRecords(userId, encryptionKey)
+    // Mark all records as dirty to force full backup
+    const tables = ['foodLogs','workoutLogs','workoutSets','weightLog','bloodWork','supplementLog','moodLog','programmes']
+    for (const table of tables) {
+      const records = await db[table].where('userId').equals(userId).toArray()
+      if (records.length === 0) continue
+      await db[table].bulkUpdate(records.map(r => ({ key: r.id || r.date, changes: { dirty: 1 } })))
+    }
+    await flushDirtyRecords(userId, encryptionKey)
+    markBackupDone()
+    console.log('Daily backup complete')
+  } catch (e) {
+    console.error('Daily backup failed:', e)
+  }
+}
+
+/** Restore all user data from Drive to IndexedDB */
+export async function restoreFromDrive(userId, encryptionKey, folderIds) {
+  if (!isTokenValid()) return false
+  console.log('Restoring from Drive...')
+
+  try {
+    const fIds = folderIds || await ensureFolderStructure(userId)
+
+    // Restore profile
+    const profileFile = await findFile('profile.json', fIds.userDir)
+    if (profileFile) {
+      const data = await readFile(profileFile.id)
+      if (data) {
+        const profile = typeof data === 'string' ? JSON.parse(data) : data
+        await db.users.put({ ...profile, dirty: 0 })
+        console.log('Profile restored')
+      }
+    }
+
+    // Restore shared foods
+    const foodsFile = await findFile('foods.json', fIds.shared)
+    if (foodsFile) {
+      const data = await readFile(foodsFile.id)
+      if (Array.isArray(data)) {
+        await db.foods.bulkPut(data)
+        console.log('Foods restored:', data.length)
+      }
+    }
+
+    // Restore batches
+    const batchesFile = await findFile('batches.json', fIds.shared)
+    if (batchesFile) {
+      const data = await readFile(batchesFile.id)
+      if (Array.isArray(data)) {
+        await db.batches.bulkPut(data)
+        console.log('Batches restored:', data.length)
+      }
+    }
+
+    return true
+  } catch (e) {
+    console.error('Restore failed:', e)
+    return false
+  }
 }
 
 /** Stop sync interval — called on logout */

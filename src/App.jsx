@@ -77,6 +77,48 @@ export default function App() {
   )
 }
 
+function BackupStatus() {
+  const [lastBackup, setLastBackup] = useState(null)
+  const [backing,    setBacking]    = useState(false)
+  const { user, encryptionKey } = useAuth()
+
+  useEffect(() => {
+    const { getLastBackupTime } = require('./db/syncManager.js')
+    setLastBackup(getLastBackupTime())
+  }, [])
+
+  async function handleBackup() {
+    if (!user || !encryptionKey) return
+    setBacking(true)
+    try {
+      const { runDailyBackup } = await import('./db/db.js')
+      // Force backup by clearing last backup time
+      localStorage.removeItem('nourish_last_backup')
+      await runDailyBackup(user.id, encryptionKey)
+      setLastBackup(new Date())
+    } catch (e) {
+      console.error('Manual backup failed:', e)
+    } finally {
+      setBacking(false)
+    }
+  }
+
+  return (
+    <div style={{ marginTop:'8px', paddingTop:'8px', borderTop:'0.5px solid var(--border-subtle)' }}>
+      <p style={{ ...styles.settingsRow, fontSize:'12px', color:'var(--text-tertiary)' }}>
+        ☁️ Last backup: {lastBackup ? lastBackup.toLocaleString() : 'Never'}
+      </p>
+      <button
+        style={{ marginTop:'6px', padding:'8px 14px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer', opacity: backing ? 0.6 : 1 }}
+        onClick={handleBackup}
+        disabled={backing}
+      >
+        {backing ? '☁️ Backing up…' : '☁️ Backup Now'}
+      </button>
+    </div>
+  )
+}
+
 function OnboardingGate() {
   return <Onboarding onComplete={() => { window.location.hash = '#/' }} />
 }
