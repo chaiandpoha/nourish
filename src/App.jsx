@@ -15,6 +15,7 @@ import WeeklySummary from './progress/WeeklySummary.jsx'
 import BloodWork from './progress/BloodWork.jsx'
 import MoodLog from './progress/MoodLog.jsx'
 import CalendarView from './calendar/CalendarView.jsx'
+import AdminPanel from './admin/AdminPanel.jsx'
 import ProgramManager from './workout/ProgramManager.jsx'
 import WorkoutLog from './workout/WorkoutLog.jsx'
 
@@ -243,6 +244,7 @@ function SettingsScreen() {
     { id:'mood',     label:'Mood'     },
     { id:'blood',    label:'Blood'    },
     { id:'ai',       label:'AI'       },
+    { id:'admin',    label:'Admin'    },
   ]
 
   return (
@@ -271,6 +273,19 @@ function SettingsScreen() {
             <p style={styles.settingsRow}>📏 {user?.height ? Math.round(user.height) + 'cm' : 'Height not set'}</p>
           </div>
           <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
+
+      {!user?.isAdmin && (
+        <button
+          style={{ ...styles.lockBtnFull, color:'var(--accent)', marginTop:'8px' }}
+          onClick={async () => {
+            const { db } = await import('./db/indexedDB.js')
+            await db.users.update(user.id, { isAdmin: true, dirty:1, updatedAt: new Date().toISOString() })
+            alert('You are now admin — refresh the app')
+          }}
+        >
+          ⚡ Make Me Admin
+        </button>
+      )}
         </>
       )}
 
@@ -284,6 +299,21 @@ function SettingsScreen() {
 
       {tab === 'blood' && (
         <BloodWork />
+      )}
+
+      {tab === 'admin' && user?.isAdmin && (
+        <AdminPanel />
+      )}
+
+      {tab === 'admin' && !user?.isAdmin && (
+        <div style={{ textAlign:'center', padding:'48px 0' }}>
+          <p style={{ fontSize:'16px', color:'var(--text-tertiary)' }}>
+            Admin access required
+          </p>
+          <p style={{ fontSize:'13px', color:'var(--text-tertiary)', marginTop:'8px' }}>
+            Ask your household admin to grant you access
+          </p>
+        </div>
       )}
 
       {tab === 'ai' && (
