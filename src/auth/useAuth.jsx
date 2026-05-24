@@ -152,6 +152,8 @@ export function AuthProvider({ children }) {
     setIsLocked(true)
     teardownStorage()
     if (autoLockTimer.current) clearTimeout(autoLockTimer.current)
+    // Force route to profile selector
+    window.location.hash = '#/'
   }
 
   async function createProfile({ name, pin, passphrase, avatarInitials, height, startWeight, macroGoals, supplements, skipPin }) {
