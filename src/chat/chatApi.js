@@ -1,0 +1,110 @@
+// AI meal chat — builds context from user's day and calls Claude Haiku
+
+import { FIBRE_LOW_THRESHOLD, EVENING_HOUR, AI } from '../config.js'
+
+// ─── System prompt ────────────────────────────────────────────────────────────
+
+function buildSystemPrompt(user) {
+  return `You are a knowledgeable nutrition assistant built into Nourish, a personal health tracking app.
+
+Your role:
+- Help the user hit their daily macro targets with practical meal suggestions
+- Suggest Indian and international foods based on what they have remaining
+- Be concise and direct — this is a mobile app, not a blog
+- When suggesting foods, include approximate macros in brackets e.g. "Paneer (100g) — 18g protein, 265 kcal"
+- If the user asks to log something, respond with the food name and macros clearly so they can log it
+
+User profile:
+- Name: ${user?.name || 'User'}
+- Daily goals: ${user?.macroGoals?.calories || 2000} kcal, ${user?.macroGoals?.protein || 150}g protein, ${user?.macroGoals?.carbs || 200}g carbs, ${user?.macroGoals?.fat || 65}g fat, ${user?.macroGoals?.fibre || 30}g fibre
+- Height: ${user?.height ? Math.round(user.height) + 'cm' : 'not set'}
+
+Keep responses under 200 words unless asked for more detail. Be warm but efficient.`
+}
+
+// ─── Dynamic context ──────────────────────────────────────────────────────────
+
+function buildContext(totals, goals, meal, settings) {
+  const remaining = {
+    calories: Math.max(0, (goals?.calories || 2000) - (totals?.calories || 0)),
+    protein:  Math.max(0, (goals?.protein  || 150)  - (totals?.protein  || 0)),
+    carbs:    Math.max(0, (goals?.carbs    || 200)   - (totals?.carbs    || 0)),
+    fat:      Math.max(0, (goals?.fat      || 65)    - (totals?.fat      || 0)),
+    fibre:    Math.max(0, (goals?.fibre    || 30)    - (totals?.fibre    || 0)),
+  }
+
+  const hour = new Date().getHours()
+  const timeOfDay = hour < 10 ? 'morning' : hour < 15 ? 'afternoon' : hour < 19 ? 'evening' : 'night'
+  const fibreLow  = hour >= EVENING_HOUR && (totals?.fibre || 0) < (goals?.fibre || 30) * FIBRE_LOW_THRESHOLD
+
+  return `Current time: ${timeOfDay} (${hour}:00)
+Current meal context: ${meal || 'general'}
+
+Macros logged today:
+- Calories: ${Math.round(totals?.calories || 0)} / ${goals?.calories || 2000} kcal
+- Protein:  ${Math.round(totals?.protein  || 0)} / ${goals?.protein  || 150}g
+- Carbs:    ${Math.round(totals?.carbs    || 0)} / ${goals?.carbs    || 200}g
+- Fat:      ${Math.round(totals?.fat      || 0)} / ${goals?.fat      || 65}g
+- Fibre:    ${Math.round(totals?.fibre    || 0)} / ${goals?.fibre    || 30}g
+
+Remaining:
+- Calories: ${Math.round(remaining.calories)} kcal
+- Protein:  ${Math.round(remaining.protein)}g
+- Carbs:    ${Math.round(remaining.carbs)}g
+- Fat:      ${Math.round(remaining.fat)}g
+- Fibre:    ${Math.round(remaining.fibre)}g
+${fibreLow ? '\n⚠️ Fibre intake is low for this time of day — suggest high-fibre options.' : ''}
+
+Privacy: ${settings?.shareFoodNamesWithAI !== false ? 'Food names may be shared' : 'Do not reference specific food names'}`
+}
+
+// ─── Send message ─────────────────────────────────────────────────────────────
+
+export async function sendChatMessage({
+  messages,
+  user,
+  totals,
+  goals,
+  meal,
+  settings,
+  userId,
+}) {
+  const system  = buildSystemPrompt(user)
+  const context = buildContext(totals, goals, meal, settings)
+
+  // Prepend context as first user message if this is the start of conversation
+  const contextMessage = {
+    role:    'user',
+    content: `[Context — not shown to user]\n${context}`,
+  }
+
+  const contextReply = {
+    role:    'assistant',
+    content: 'Got it — I can see your macro progress for today. How can I help?',
+  }
+
+  const fullMessages = messages.length === 1
+    ? [contextMessage, contextReply, ...messages]
+    : messages
+
+  const res = await fetch('/api/ai', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId:    userId || 'anonymous',
+      type:      'chat',
+      model:     AI.chatModel,
+      maxTokens: AI.maxTokens,
+      system,
+      messages:  fullMessages,
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'AI request failed')
+  }
+
+  const data = await res.json()
+  return data.content?.[0]?.text || ''
+}
