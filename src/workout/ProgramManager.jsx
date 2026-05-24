@@ -374,6 +374,7 @@ const s = {
   resultName:  { fontSize:'14px', color:'var(--text-primary)' },
   resultMeta:  { fontSize:'12px', color:'var(--text-tertiary)', textTransform:'capitalize' },
   addDayBtn:   { padding:'12px', background:'var(--bg-elevated)', border:'1px dashed var(--border-strong)', borderRadius:'var(--r-lg)', color:'var(--text-secondary)', fontSize:'14px', fontWeight:'500', cursor:'pointer' },
+  addExBtn:    { padding:'10px 14px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer', margin:'8px 14px 4px' },
   saveBtn:     { width:'100%', padding:'15px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'16px', fontWeight:'600', cursor:'pointer' },
   startBtn:    { padding:'7px 14px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-md)', color:'var(--text-inverse)', fontSize:'13px', fontWeight:'600', cursor:'pointer' },
   error:       { fontSize:'13px', color:'var(--red)', margin:0 },

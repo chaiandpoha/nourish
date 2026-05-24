@@ -361,28 +361,17 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
       })}
 
       {/* Add exercise */}
-      {addingEx ? (
-        <div style={st.addExCard}>
-          <input
-            style={st.searchInput}
-            placeholder="Search exercise…"
-            value={exQuery}
-            onChange={e => setExQuery(e.target.value)}
-            autoFocus
+      {addingEx && (
+        <div style={{ position:"fixed", inset:0, background:"var(--bg-base)", zIndex:200, display:"flex", flexDirection:"column" }}>
+          <ExercisePicker
+            onSelect={ex => { addExercise(ex); setAddingEx(false) }}
+            onCancel={() => setAddingEx(false)}
           />
-          {exResults.map(ex => (
-            <button key={ex.id} style={st.swapRow} onClick={() => addExercise(ex)}>
-              <span style={st.swapName}>{ex.name}</span>
-              <span style={st.swapMeta}>{ex.muscle} · {ex.movement}</span>
-            </button>
-          ))}
-          <button style={st.cancelAddBtn} onClick={() => setAddingEx(false)}>Cancel</button>
         </div>
-      ) : (
-        <button style={st.addExBtn} onClick={() => setAddingEx(true)}>
-          + Add Exercise
-        </button>
       )}
+      <button style={st.addExBtn} onClick={() => setAddingEx(true)}>
+        + Add Exercise
+      </button>
 
       {/* Cancel */}
       <button style={st.cancelBtn} onClick={onCancel}>Cancel Workout</button>
