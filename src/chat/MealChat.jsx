@@ -214,7 +214,7 @@ export default function MealChat({ onClose }) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = {
-  container:    { display:'flex', flexDirection:'column', height:'100dvh', background:'var(--bg-base)' },
+ container: { display:'flex', flexDirection:'column', height:'calc(100dvh - 80px)', background:'var(--bg-base)' },
   header:       { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 16px 12px', borderBottom:'0.5px solid var(--border-subtle)', background:'var(--bg-surface)', flexShrink:0 },
   backBtn:      { background:'none', border:'none', color:'var(--accent)', fontSize:'15px', cursor:'pointer', padding:0, width:60 },
   headerCenter: { display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' },
