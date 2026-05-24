@@ -13,6 +13,42 @@ import WeeklySummary from '../progress/WeeklySummary.jsx'
 // ─── Home ─────────────────────────────────────────────────────────────────────
 // Main dashboard screen
 
+function AvatarMenu({ user, logout }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ position:'relative', flexShrink:0 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width:'42px', height:'42px', borderRadius:'50%', background:'var(--text-primary)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', fontWeight:'600', color:'var(--text-inverse)', marginTop:'4px' }}
+      >
+        {user?.avatarInitials || user?.name?.slice(0,2).toUpperCase()}
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position:'fixed', inset:0, zIndex:50 }} />
+          <div style={{ position:'absolute', right:0, top:'48px', background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', padding:'8px', zIndex:51, minWidth:'180px', boxShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
+            <div style={{ padding:'8px 12px', fontSize:'13px', color:'var(--text-tertiary)', borderBottom:'0.5px solid var(--border-subtle)', marginBottom:'4px' }}>
+              {user?.name}
+            </div>
+            <button
+              style={{ width:'100%', padding:'10px 12px', background:'none', border:'none', textAlign:'left', fontSize:'14px', color:'var(--text-primary)', cursor:'pointer', borderRadius:'var(--r-md)' }}
+              onClick={() => { setOpen(false); window.location.hash='#/onboarding' }}
+            >
+              👤 New Profile
+            </button>
+            <button
+              style={{ width:'100%', padding:'10px 12px', background:'none', border:'none', textAlign:'left', fontSize:'14px', color:'var(--red)', cursor:'pointer', borderRadius:'var(--r-md)' }}
+              onClick={() => { setOpen(false); sessionStorage.setItem('nourish_logged_out','true'); logout() }}
+            >
+              👋 Log Out
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function Home() {
   const { user, lock, logout } = useAuth()
   const [totals,      setTotals]      = useState({ calories:0, protein:0, carbs:0, fat:0, fibre:0 })
@@ -116,12 +152,7 @@ export default function Home() {
           <div style={styles.dateLabel}>{dateLabel}</div>
           <div style={styles.greeting}>{greeting}, <span style={styles.greetingName}>{user?.name}</span></div>
         </div>
-        <button
-          onClick={() => { sessionStorage.setItem('nourish_logged_out', 'true'); logout() }}
-          style={{ width:'42px', height:'42px', borderRadius:'50%', background:'var(--text-primary)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', fontWeight:'600', color:'var(--text-inverse)', flexShrink:0, marginTop:'4px' }}
-        >
-          {user?.avatarInitials || user?.name?.slice(0,2).toUpperCase()}
-        </button>
+        <AvatarMenu user={user} logout={logout} />
       </div>
 
       {/* Calorie ring + macros */}
