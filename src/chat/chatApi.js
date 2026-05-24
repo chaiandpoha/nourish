@@ -69,6 +69,12 @@ export async function sendChatMessage({
   settings,
   userId,
 }) {
+  // Load fresh user data to get latest aiInstructions
+  try {
+    const { db } = await import('../db/indexedDB.js')
+    const freshUser = await db.users.get(userId)
+    if (freshUser) user = { ...user, ...freshUser }
+  } catch {}
   const system  = buildSystemPrompt(user)
   const context = buildContext(totals, goals, meal, settings)
 
