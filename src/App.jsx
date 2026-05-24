@@ -16,6 +16,7 @@ import BloodWork from './progress/BloodWork.jsx'
 import MoodLog from './progress/MoodLog.jsx'
 import CalendarView from './calendar/CalendarView.jsx'
 import AdminPanel from './admin/AdminPanel.jsx'
+import HouseholdSetup, { getHouseholdCode } from './auth/HouseholdSetup.jsx'
 import ProgramManager from './workout/ProgramManager.jsx'
 import WorkoutLog from './workout/WorkoutLog.jsx'
 
@@ -79,6 +80,17 @@ function AppRoutes() {
       <div style={styles.splash}>
         <div style={styles.splashLogo}>🥗</div>
       </div>
+    )
+  }
+
+  // Check household code
+  const hasHousehold = !!localStorage.getItem('nourish_household_code')
+
+  if (!hasHousehold && !window.location.hash.includes('onboarding')) {
+    return (
+      <HouseholdSetup
+        onJoined={() => window.location.reload()}
+      />
     )
   }
 
@@ -274,18 +286,7 @@ function SettingsScreen() {
           </div>
           <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
 
-      {!user?.isAdmin && (
-        <button
-          style={{ ...styles.lockBtnFull, color:'var(--accent)', marginTop:'8px' }}
-          onClick={async () => {
-            const { db } = await import('./db/indexedDB.js')
-            await db.users.update(user.id, { isAdmin: true, dirty:1, updatedAt: new Date().toISOString() })
-            alert('You are now admin — refresh the app')
-          }}
-        >
-          ⚡ Make Me Admin
-        </button>
-      )}
+
         </>
       )}
 
