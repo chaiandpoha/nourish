@@ -78,20 +78,6 @@ export default function App() {
 }
 
 function OnboardingGate() {
-  const [hasProfile, setHasProfile] = useState(null)
-
-  useEffect(() => {
-    db.users.count().then(count => setHasProfile(count > 0))
-  }, [])
-
-  if (hasProfile === null) return null
-
-  if (hasProfile) {
-    // Already has a profile — redirect to home
-    window.location.hash = '#/'
-    return null
-  }
-
   return <Onboarding onComplete={() => { window.location.hash = '#/' }} />
 }
 

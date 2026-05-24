@@ -38,7 +38,7 @@ function AvatarMenu({ user, logout }) {
             </button>
             <button
               style={{ width:'100%', padding:'10px 12px', background:'none', border:'none', textAlign:'left', fontSize:'14px', color:'var(--red)', cursor:'pointer', borderRadius:'var(--r-md)' }}
-              onClick={() => { setOpen(false); sessionStorage.setItem('nourish_logged_out','true'); logout() }}
+              onClick={() => { setOpen(false); logout() }}
             >
               👋 Log Out
             </button>

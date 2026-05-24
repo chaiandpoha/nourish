@@ -152,6 +152,7 @@ export function AuthProvider({ children }) {
     setIsLocked(true)
     teardownStorage()
     if (autoLockTimer.current) clearTimeout(autoLockTimer.current)
+    sessionStorage.setItem('nourish_logged_out', 'true')
     window.location.reload()
   }
 
