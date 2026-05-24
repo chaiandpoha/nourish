@@ -49,7 +49,7 @@ export default function App() {
   if (!migrationsRun && !migrationsError) {
     return (
       <div style={styles.splash}>
-        <div style={styles.splashLogo}>🥗</div>
+        <img src='/icons/icon-192.png' style={{ width:'80px', height:'80px', borderRadius:'20px' }} alt='Nourish' />
         <p style={styles.splashText}>Starting up…</p>
       </div>
     )
@@ -58,7 +58,7 @@ export default function App() {
   if (migrationsError) {
     return (
       <div style={styles.splash}>
-        <div style={styles.splashLogo}>⚠️</div>
+        <div style={{ fontSize:'64px' }}>⚠️</div>
         <p style={styles.splashText}>Startup error</p>
         <p style={styles.splashSub}>{migrationsError}</p>
         <button style={styles.retryBtn} onClick={() => window.location.reload()}>Retry</button>
@@ -101,7 +101,7 @@ function AppRoutes() {
   if (isLoading) {
     return (
       <div style={styles.splash}>
-        <div style={styles.splashLogo}>🥗</div>
+        <img src='/icons/icon-192.png' style={{ width:'80px', height:'80px', borderRadius:'20px' }} alt='Nourish' />
       </div>
     )
   }
@@ -370,7 +370,7 @@ function SettingsScreen() {
 function AuthCallbackScreen() {
   return (
     <div style={styles.splash}>
-      <div style={styles.splashLogo}>🥗</div>
+      <img src='/icons/icon-192.png' style={{ width:'80px', height:'80px', borderRadius:'20px' }} alt='Nourish' />
       <p style={styles.splashText}>Connecting to Google Drive…</p>
     </div>
   )

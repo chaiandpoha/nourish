@@ -12,7 +12,7 @@ export default function AuthGate({ children }) {
 function SplashScreen() {
   return (
     <div style={s.center}>
-      <div style={s.logo}>🥗</div>
+      <img src='/icons/icon-192.png' style={{ width:'64px', height:'64px', borderRadius:'16px', marginBottom:'8px' }} alt='Nourish' />
       <h1 style={s.appName}>Nourish</h1>
     </div>
   )
@@ -53,7 +53,7 @@ function ProfileSelector() {
   return (
     <div style={s.container}>
       <div style={s.header}>
-        <div style={s.logo}>🥗</div>
+        <img src='/icons/icon-192.png' style={{ width:'64px', height:'64px', borderRadius:'16px', marginBottom:'8px' }} alt='Nourish' />
         <h1 style={s.appName}>Nourish</h1>
       </div>
 
@@ -84,7 +84,7 @@ const s = {
   center:      { display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100dvh", background:"var(--bg-base)", color:"var(--text-primary)" },
   container:   { display:"flex", flexDirection:"column", alignItems:"center", minHeight:"100dvh", background:"var(--bg-base)", color:"var(--text-primary)", padding:"24px 16px", boxSizing:"border-box" },
   header:      { display:"flex", flexDirection:"column", alignItems:"center", marginBottom:"32px", marginTop:"16px" },
-  logo:        { fontSize:"52px", marginBottom:"8px" },
+  logo:        { marginBottom:'8px' },
   appName:     { fontSize:"28px", fontWeight:"300", margin:"0 0 4px", letterSpacing:"-0.03em", fontFamily:"Georgia, serif", fontStyle:"italic", color:"var(--text-primary)" },
   profileGrid: { display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:"12px", width:"100%", maxWidth:"320px" },
   profileCard: { display:"flex", flexDirection:"column", alignItems:"center", gap:"10px", padding:"20px 16px", background:"var(--bg-surface)", border:"0.5px solid var(--border-subtle)", borderRadius:"var(--r-xl)", cursor:"pointer", color:"var(--text-primary)" },

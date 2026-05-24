@@ -1,44 +1,18 @@
 {
   "name": "Nourish",
   "short_name": "Nourish",
-  "description": "Your private health tracker — food, workouts, and progress in your own Google Drive.",
+  "description": "Your private health tracker \u2014 food, workouts, and progress in your own Google Drive.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f0f0f",
   "theme_color": "#0f0f0f",
-  "categories": ["health", "fitness", "food"],
+  "categories": [
+    "health",
+    "fitness",
+    "food"
+  ],
   "icons": [
-    {
-      "src": "/icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
@@ -46,22 +20,10 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-512-maskable.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
   "screenshots": [
@@ -79,14 +41,24 @@
       "short_name": "Log",
       "description": "Jump straight to food logging",
       "url": "/#/food",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "/icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "Start Workout",
       "short_name": "Workout",
       "description": "Start a workout session",
       "url": "/#/workout",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "/icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ],
   "related_applications": [],

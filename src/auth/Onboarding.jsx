@@ -116,7 +116,7 @@ export default function Onboarding({ onComplete }) {
 function StepWelcome({ next }) {
   return (
     <div style={styles.step}>
-      <div style={styles.emoji}>🥗</div>
+      <img src='/icons/icon-192.png' style={{ width:'80px', height:'80px', borderRadius:'20px', marginBottom:'8px' }} alt='Nourish' />
       <h1 style={styles.title}>Welcome to Nourish</h1>
       <p style={styles.body}>
         Your private health tracker. Track food, workouts, and progress —
