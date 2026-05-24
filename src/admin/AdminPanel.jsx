@@ -427,6 +427,85 @@ function ProfileCard({ profile, isCurrentUser, usage, onResetPin, onDelete, onUp
   )
 }
 
+// ─── InviteManager ───────────────────────────────────────────────────────────
+
+function MakeAdminButton() {
+  const [done, setDone] = useState(false)
+  const { user } = useAuth()
+
+  if (user?.isAdmin || done) return null
+
+  return (
+    <button
+      style={{ padding:'10px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer' }}
+      onClick={async () => {
+        await db.users.update(user.id, { isAdmin: true, dirty:1, updatedAt: new Date().toISOString() })
+        setDone(true)
+        alert('You are now admin — go back and reopen Settings')
+      }}
+    >
+      ⚡ Make Me Admin (first time only)
+    </button>
+  )
+}
+
+function InviteManager() {
+  const code     = localStorage.getItem('nourish_household_code') || 'Not set'
+  const isAdmin  = localStorage.getItem('nourish_household_admin') === 'true'
+  const [copied, setCopied] = useState(false)
+
+  function generateNew() {
+    const chars  = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    const rand   = crypto.getRandomValues(new Uint8Array(12))
+    const raw    = Array.from(rand).map(b => chars[b % chars.length]).join('')
+    const newCode = 'NOURISH-' + raw.slice(0,4) + '-' + raw.slice(4,8) + '-' + raw.slice(8,12)
+    localStorage.setItem('nourish_household_code', newCode)
+    window.location.reload()
+  }
+
+  function copyCode() {
+    navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div style={s.section}>
+      <div style={s.card}>
+        <div style={{ padding:'16px', display:'flex', flexDirection:'column', gap:'12px' }}>
+          <div style={s.subsectionTitle}>Household Invite Code</div>
+          <p style={{ fontSize:'13px', color:'var(--text-secondary)', margin:0 }}>
+            Share this code with family members. They enter it when setting up the app on their phone.
+          </p>
+          <div style={{ padding:'16px', background:'var(--bg-elevated)', borderRadius:'var(--r-lg)', textAlign:'center' }}>
+            <code style={{ fontSize:'18px', letterSpacing:'2px', color:'var(--accent)', fontFamily:'var(--font-mono)' }}>
+              {code}
+            </code>
+          </div>
+          <button
+            style={{ ...s.saveBtn, background: copied ? 'var(--accent)' : 'var(--text-primary)' }}
+            onClick={copyCode}
+          >
+            {copied ? '✓ Copied' : 'Copy Code'}
+          </button>
+          {isAdmin && (
+            <button
+              style={{ ...s.saveBtn, background:'var(--bg-elevated)', color:'var(--text-secondary)' }}
+              onClick={generateNew}
+            >
+              Generate New Code
+            </button>
+          )}
+          <MakeAdminButton />
+          <p style={{ fontSize:'11px', color:'var(--text-tertiary)', margin:0, textAlign:'center' }}>
+            Generating a new code does not invalidate old ones yet
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = {
   container:      { display:'flex', flexDirection:'column', gap:'12px', paddingBottom:'24px' },
