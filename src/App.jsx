@@ -218,14 +218,52 @@ function CalendarScreen() {
 
 function SettingsScreen() {
   const { user, lock } = useAuth()
+  const [instructions, setInstructions] = useState(
+    user?.aiInstructions || 'Suggest vegetarian Indian meals. Prioritise high protein foods like paneer, dal, curd, sprouts and eggs.'
+  )
+  const [saved, setSaved] = useState(false)
+
+  async function saveInstructions() {
+    const { db } = await import('./db/indexedDB.js')
+    await db.users.update(user.id, {
+      aiInstructions: instructions,
+      dirty: 1,
+      updatedAt: new Date().toISOString(),
+    })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
   return (
     <div style={styles.screen}>
       <h1 style={styles.screenTitle}>Settings</h1>
+
       <div style={styles.settingsCard}>
         <p style={styles.settingsRow}>👤 {user?.name}</p>
         <p style={styles.settingsRow}>🎯 {user?.macroGoals?.calories} kcal goal</p>
         <p style={styles.settingsRow}>💊 {user?.supplements?.length || 0} supplements</p>
       </div>
+
+      <div style={styles.settingsSection}>
+        <div style={styles.settingsSectionHeader}>
+          <span style={styles.settingsSectionTitle}>AI Instructions</span>
+          <span style={styles.settingsSectionSub}>Tell the AI your food preferences</span>
+        </div>
+        <textarea
+          style={styles.instructionsInput}
+          value={instructions}
+          onChange={e => { setInstructions(e.target.value); setSaved(false) }}
+          rows={5}
+          placeholder="e.g. I am vegetarian. Suggest Indian meals. I prefer high protein foods..."
+        />
+        <button
+          style={{ ...styles.saveInstructionsBtn, background: saved ? 'var(--accent)' : 'var(--text-primary)' }}
+          onClick={saveInstructions}
+        >
+          {saved ? '✓ Saved' : 'Save Instructions'}
+        </button>
+      </div>
+
       <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
     </div>
   )
@@ -298,6 +336,54 @@ const styles = {
   main:        { flex: 1, overflowY: 'auto' },
   screen:      { padding: '24px 16px 16px', minHeight: '100%' },
   screenTitle: { fontSize: '26px', fontWeight: '600', margin: '0 0 20px', letterSpacing: '-0.03em', color: 'var(--text-primary)' },
+  settingsSection: {
+    background:    'var(--bg-surface)',
+    border:        '0.5px solid var(--border-subtle)',
+    borderRadius:  'var(--r-xl)',
+    padding:       '16px',
+    display:       'flex',
+    flexDirection: 'column',
+    gap:           '10px',
+  },
+  settingsSectionHeader: {
+    display:       'flex',
+    flexDirection: 'column',
+    gap:           '2px',
+  },
+  settingsSectionTitle: {
+    fontSize:      '15px',
+    fontWeight:    '600',
+    color:         'var(--text-primary)',
+    letterSpacing: '-0.01em',
+  },
+  settingsSectionSub: {
+    fontSize:      '12px',
+    color:         'var(--text-tertiary)',
+  },
+  instructionsInput: {
+    width:         '100%',
+    padding:       '12px 14px',
+    background:    'var(--bg-elevated)',
+    border:        '1px solid var(--border-default)',
+    borderRadius:  'var(--r-md)',
+    fontSize:      '14px',
+    color:         'var(--text-primary)',
+    outline:       'none',
+    resize:        'vertical',
+    fontFamily:    'var(--font-sans)',
+    lineHeight:    '1.5',
+    boxSizing:     'border-box',
+  },
+  saveInstructionsBtn: {
+    padding:       '12px',
+    border:        'none',
+    borderRadius:  'var(--r-lg)',
+    color:         'var(--text-inverse)',
+    fontSize:      '15px',
+    fontWeight:    '600',
+    cursor:        'pointer',
+    transition:    'background 0.2s',
+  },
   lockBtnFull: { width: '100%', padding: '14px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', color: 'var(--red)', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginTop: '16px' },
   placeholder: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-xl)', border: '1px dashed var(--border-default)' },
   placeholderText: { fontSize: '16px', color: 'var(--text-secondary)', margin: '0 0 8px' },

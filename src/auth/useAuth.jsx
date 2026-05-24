@@ -165,6 +165,7 @@ export function AuthProvider({ children }) {
       startWeight,
       macroGoals: macroGoals || { calories: 2000, protein: 150, carbs: 200, fat: 65, fibre: 30 },
       supplements: supplements || [],
+      aiInstructions: 'Suggest vegetarian Indian meals. Prioritise high protein foods like paneer, dal, curd, sprouts and eggs. Keep suggestions practical and easy to make.',
       settings: {
         autoLockMinutes:      skipPin ? 0 : 15,
         shareFoodNamesWithAI: true,
