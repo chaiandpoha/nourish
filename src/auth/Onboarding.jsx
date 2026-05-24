@@ -4,7 +4,7 @@ import { generateRecoveryKey, sha256 } from './crypto.js'
 import { initiateOAuthFlow } from '../db/driveApi.js'
 import { AUTH } from '../config.js'
 
-const TOTAL_STEPS = 10
+const TOTAL_STEPS = 8
 
 export default function Onboarding({ onComplete }) {
   const fromGoogle = window.location.hash.includes('googled=1')
@@ -90,10 +90,10 @@ export default function Onboarding({ onComplete }) {
       {false && <StepRecoveryKey   {...stepProps} onGenerateKey={() => {
         update({ recoveryKey: generateRecoveryKey() })
       }} />}
-      {step === 7  && <StepBodyStats     {...stepProps} />}
-      {step === 8  && <StepMacroGoals    {...stepProps} />}
-      {step === 9  && <StepSupplements   {...stepProps} />}
-      {step === 10 && <StepFinish        {...stepProps} onFinish={handleFinish} />}
+      
+      
+      {step === 7  && <StepSupplements   {...stepProps} />}
+      {step === 8  && <StepFinish        {...stepProps} onFinish={handleFinish} />}
     </div>
   )
 }
@@ -369,8 +369,8 @@ function StepRecoveryKey({ data, update, next, back, onGenerateKey, error, setEr
 // ─── Step 7 — Body Stats ──────────────────────────────────────────────────────
 function StepBodyStats({ data, update, next, back, error, setError }) {
   function validate() {
-    if (!data.height || isNaN(parseFloat(data.height))) {
-      setError('Enter your height in cm'); return
+    if (!data.heightFt || isNaN(parseFloat(data.heightFt))) {
+      setError('Enter your height'); return
     }
     if (!data.startWeight || isNaN(parseFloat(data.startWeight))) {
       setError('Enter your starting weight in kg'); return
@@ -383,15 +383,38 @@ function StepBodyStats({ data, update, next, back, error, setError }) {
       <h2 style={styles.title}>Body Stats</h2>
       <p style={styles.body}>Used to calculate your macro recommendations.</p>
 
-      <label style={styles.label}>Height (cm)</label>
-      <input
-        style={styles.input}
-        type="number"
-        inputMode="decimal"
-        placeholder="e.g. 175"
-        value={data.height}
-        onChange={e => update({ height: e.target.value })}
-      />
+      <div style={{ display:'flex', gap:'8px', width:'100%' }}>
+        <div style={{ flex:1 }}>
+          <label style={styles.label}>Feet</label>
+          <input
+            style={styles.input}
+            type="number"
+            inputMode="numeric"
+            placeholder="5"
+            value={data.heightFt || ''}
+            onChange={e => {
+              const ft = e.target.value
+              const inches = data.heightIn || 0
+              update({ heightFt: ft, height: (parseFloat(ft)||0) * 30.48 + (parseFloat(inches)||0) * 2.54 })
+            }}
+          />
+        </div>
+        <div style={{ flex:1 }}>
+          <label style={styles.label}>Inches</label>
+          <input
+            style={styles.input}
+            type="number"
+            inputMode="numeric"
+            placeholder="10"
+            value={data.heightIn || ''}
+            onChange={e => {
+              const inches = e.target.value
+              const ft = data.heightFt || 0
+              update({ heightIn: inches, height: (parseFloat(ft)||0) * 30.48 + (parseFloat(inches)||0) * 2.54 })
+            }}
+          />
+        </div>
+      </div>
 
       <label style={styles.label}>Starting weight (kg)</label>
       <input
