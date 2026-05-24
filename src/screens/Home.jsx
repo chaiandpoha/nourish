@@ -14,7 +14,7 @@ import WeeklySummary from '../progress/WeeklySummary.jsx'
 // Main dashboard screen
 
 export default function Home() {
-  const { user, lock } = useAuth()
+  const { user, lock, logout } = useAuth()
   const [totals,      setTotals]      = useState({ calories:0, protein:0, carbs:0, fat:0, fibre:0 })
   const [weight,      setWeight]      = useState(null)
   const [supplements, setSupplements] = useState([])
@@ -117,9 +117,18 @@ export default function Home() {
           <div style={styles.greeting}>{greeting}, <span style={styles.greetingName}>{user?.name}</span></div>
         </div>
         <div style={styles.headerRight}>
-          <div style={styles.avatar}>
-            {user?.avatarInitials || user?.name?.slice(0,2).toUpperCase()}
-          </div>
+          <button
+            style={styles.avatarBtn}
+            onClick={() => {
+              sessionStorage.setItem('nourish_logged_out', 'true')
+              logout()
+            }}
+            title="Switch profile"
+          >
+            <div style={styles.avatar}>
+              {user?.avatarInitials || user?.name?.slice(0,2).toUpperCase()}
+            </div>
+          </button>
         </div>
       </div>
 
@@ -322,6 +331,13 @@ const styles = {
     alignItems:      'center',
     gap:             '10px',
     marginTop:       '4px',
+  },
+  avatarBtn: {
+    background:  'none',
+    border:      'none',
+    cursor:      'pointer',
+    padding:     0,
+    borderRadius:'50%',
   },
   avatar: {
     width:           '38px',
