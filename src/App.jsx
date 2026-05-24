@@ -10,6 +10,8 @@ import { db } from './db/indexedDB.js'
 import { DRIVE } from './config.js'
 import HomeScreen from './screens/Home.jsx'
 import BatchList from './batches/BatchList.jsx'
+import ProgramManager from './workout/ProgramManager.jsx'
+import WorkoutLog from './workout/WorkoutLog.jsx'
 
 export default function App() {
   const [migrationsRun,   setMigrationsRun]   = useState(false)
@@ -167,12 +169,38 @@ function FoodScreen() {
 }
 
 function WorkoutScreen() {
+  const [screen,    setScreen]    = useState('programmes') // programmes | logging
+  const [activeProg, setActiveProg] = useState(null)
+  const [activeDay,  setActiveDay]  = useState(null)
+
+  function handleStartWorkout(programme, day) {
+    setActiveProg(programme)
+    setActiveDay(day)
+    setScreen('logging')
+  }
+
+  function handleFinish(summary) {
+    setScreen('programmes')
+    setActiveProg(null)
+    setActiveDay(null)
+  }
+
+  if (screen === 'logging') {
+    return (
+      <div style={styles.screen}>
+        <WorkoutLog
+          programme={activeProg}
+          day={activeDay}
+          onFinish={handleFinish}
+          onCancel={() => setScreen('programmes')}
+        />
+      </div>
+    )
+  }
+
   return (
     <div style={styles.screen}>
-      <h1 style={styles.screenTitle}>Workout</h1>
-      <div style={styles.placeholder}>
-        <p style={styles.placeholderText}>Workout tracker coming in Phase 5</p>
-      </div>
+      <ProgramManager onStartWorkout={handleStartWorkout} />
     </div>
   )
 }
