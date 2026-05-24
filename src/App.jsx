@@ -27,8 +27,13 @@ export default function App() {
   useEffect(() => {
     const hash = window.location.hash
     if (hash.includes('access_token')) {
-      import('./db/driveApi.js').then(({ parseOAuthCallback }) => {
-        try { parseOAuthCallback() } catch (e) { console.error('OAuth error:', e) }
+      import('./db/driveApi.js').then(async ({ parseOAuthCallback, ensureFolderStructure, isTokenValid }) => {
+        try {
+          parseOAuthCallback()
+          console.log('OAuth token parsed, valid:', isTokenValid())
+        } catch (e) {
+          console.error('OAuth error:', e)
+        }
         window.location.replace(window.location.origin + '/#/onboarding?googled=1')
       })
       return

@@ -130,9 +130,16 @@ export function AuthProvider({ children }) {
     setUser(profile)
     setIsLocked(false)
     try {
-      await initStorage(profile.id, key)
+      // Check if we have a valid Drive token before init
+      const { isTokenValid } = await import('../db/driveApi.js')
+      if (isTokenValid()) {
+        await initStorage(profile.id, key)
+        console.log('Drive storage initialized')
+      } else {
+        console.warn('No Drive token — running offline')
+      }
     } catch (e) {
-      console.warn('Storage init error (offline?):', e)
+      console.warn('Storage init error:', e.message)
     }
   }
 

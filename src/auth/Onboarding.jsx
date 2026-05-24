@@ -64,6 +64,20 @@ export default function Onboarding({ onComplete }) {
         try { await registerBiometric(profile.id) } catch {}
       }
 
+      // Init Drive storage if token available
+      try {
+        const { isTokenValid } = await import('../db/driveApi.js')
+        const { initStorage }  = await import('../db/db.js')
+        const { deriveKey }    = await import('./crypto.js')
+        if (isTokenValid()) {
+          const key = await deriveKey('nourish-no-encryption', profile.encryptionSalt)
+          await initStorage(profile.id, key)
+          console.log('Profile saved to Drive')
+        }
+      } catch (e) {
+        console.warn('Drive sync after onboarding failed:', e)
+      }
+
       onComplete()
     } catch (e) {
       setError(e.message)

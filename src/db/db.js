@@ -24,8 +24,16 @@ let _folderIds    = {}   // cached folder IDs per user
  * Builds Drive folder structure, loads shared data, starts sync interval.
  */
 export async function initStorage(userId, encryptionKey) {
-  // Build / verify Drive folder structure
-  _folderIds = await ensureFolderStructure(userId)
+  console.log('initStorage called for:', userId)
+
+  try {
+    // Build / verify Drive folder structure
+    _folderIds = await ensureFolderStructure(userId)
+    console.log('Drive folders ready:', Object.keys(_folderIds))
+  } catch (e) {
+    console.error('Failed to create Drive folders:', e)
+    return { quotaWarning: false, error: e.message }
+  }
 
   // Check Drive quota — warn if low
   try {
@@ -33,14 +41,26 @@ export async function initStorage(userId, encryptionKey) {
     const availableMB = quota.available / 1024 / 1024
     if (availableMB < DRIVE.quotaWarningMB) {
       console.warn(`Drive storage low: ${availableMB.toFixed(0)}MB remaining`)
-      return { quotaWarning: true, availableMB: availableMB.toFixed(0) }
     }
   } catch (e) {
     console.warn('Could not check Drive quota:', e)
   }
 
   // Load shared foods + batches from Drive into IndexedDB
-  await syncSharedDataDown()
+  try {
+    await syncSharedDataDown()
+    console.log('Shared data synced from Drive')
+  } catch (e) {
+    console.warn('Could not sync shared data:', e)
+  }
+
+  // Immediately flush any dirty records (including new profile)
+  try {
+    await flushDirtyRecords(userId, encryptionKey)
+    console.log('Initial flush complete')
+  } catch (e) {
+    console.warn('Initial flush failed:', e)
+  }
 
   // Start background sync — flush dirty records every 30s
   startSyncInterval(userId, encryptionKey)
