@@ -11,18 +11,25 @@ import { DRIVE } from './config.js'
 import HomeScreen from './screens/Home.jsx'
 import BatchList from './batches/BatchList.jsx'
 
-// ─── Lazy loaded screens (added in later phases) ──────────────────────────────
-// import { lazy, Suspense } from 'react'
-// const CalendarView = lazy(() => import('./calendar/CalendarView.jsx'))
-// const BloodWork    = lazy(() => import('./progress/BloodWork.jsx'))
-
-// ─── App shell ────────────────────────────────────────────────────────────────
-
 export default function App() {
-  const [migrationsRun, setMigrationsRun] = useState(false)
+  const [migrationsRun,   setMigrationsRun]   = useState(false)
   const [migrationsError, setMigrationsError] = useState(null)
 
   useEffect(() => {
+    // Handle OAuth callback BEFORE migrations and routing
+    const hash = window.location.hash
+    if (hash.includes('access_token')) {
+      import('./db/driveApi.js').then(({ parseOAuthCallback }) => {
+        try {
+          parseOAuthCallback()
+        } catch (e) {
+          console.error('OAuth error:', e)
+        }
+        window.location.replace(window.location.origin + '/#/onboarding')
+      })
+      return
+    }
+
     runMigrations()
       .then(() => setMigrationsRun(true))
       .catch(e => {
@@ -64,38 +71,8 @@ export default function App() {
   )
 }
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
-
 function AppRoutes() {
   const { user, isLocked, isLoading } = useAuth()
-
-  // Handle OAuth callback — parse token from URL hash
-  useEffect(() => {
-  const hash = window.location.hash
-  const search = window.location.search
-
-  // Google returns token in URL hash as #access_token=...
-  if (hash.includes('access_token') || search.includes('access_token')) {
-    import('./db/driveApi.js').then(({ parseOAuthCallback }) => {
-      try {
-        parseOAuthCallback()
-        // Check if any profiles exist — if not, go to onboarding
-        import('./db/indexedDB.js').then(({ db }) => {
-          db.users.count().then(count => {
-            if (count === 0) {
-              window.location.hash = '#/onboarding'
-            } else {
-              window.location.hash = '#/'
-            }
-          })
-        })
-      } catch (e) {
-        console.error('OAuth callback error:', e)
-        window.location.hash = '#/onboarding'
-      }
-    })
-  }
-}, [])
 
   if (isLoading) {
     return (
@@ -110,19 +87,12 @@ function AppRoutes() {
       <ReminderChecker />
       <QuotaChecker />
       <Routes>
-        {/* Onboarding — always accessible */}
         <Route
           path="/onboarding"
           element={<Onboarding onComplete={() => { window.location.hash = '#/' }} />}
         />
-
-        {/* Auth callback — handled by useEffect above */}
         <Route path="/auth/callback" element={<AuthCallbackScreen />} />
-
-        {/* PIN recovery */}
-        <Route path="/recover" element={<RecoverScreen />} />
-
-        {/* Protected routes — require auth */}
+        <Route path="/recover"       element={<RecoverScreen />} />
         <Route
           path="/*"
           element={
@@ -135,8 +105,6 @@ function AppRoutes() {
     </>
   )
 }
-
-// ─── Protected app shell ──────────────────────────────────────────────────────
 
 function ProtectedApp() {
   return (
@@ -156,9 +124,6 @@ function ProtectedApp() {
   )
 }
 
-// ─── Reminder checker ─────────────────────────────────────────────────────────
-// On every app open, check if any reminder time has passed since last open
-
 function ReminderChecker() {
   const { user } = useAuth()
   const { addBanner } = useBanners()
@@ -176,38 +141,25 @@ async function checkReminders(userId, addBanner) {
     const reminders = await db.reminders.where('userId').equals(userId).toArray()
     if (!reminders.length) return
 
-    const now        = new Date()
-    const nowMinutes = now.getHours() * 60 + now.getMinutes()
-    const today      = now.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()
-
+    const now     = new Date()
+    const today   = now.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()
     const lastOpenKey = `lastOpen_${userId}`
     const lastOpen    = parseInt(localStorage.getItem(lastOpenKey) || '0', 10)
     localStorage.setItem(lastOpenKey, String(Date.now()))
 
     for (const reminder of reminders) {
       if (!reminder.days?.includes(today)) continue
-
-      const [h, m]      = (reminder.time || '09:00').split(':').map(Number)
-      const reminderMin = h * 60 + m
-      const reminderMs  = new Date().setHours(h, m, 0, 0)
-
-      // Fire if reminder time passed today and hasn't been seen since last open
+      const [h, m]     = (reminder.time || '09:00').split(':').map(Number)
+      const reminderMs = new Date().setHours(h, m, 0, 0)
       if (reminderMs > lastOpen && reminderMs <= Date.now()) {
-        addBanner({
-          type:        'reminder',
-          message:     reminder.label,
-          autoDismiss: null, // user must dismiss reminders manually
-          onDismiss:   () => {},
-        })
-        break // one banner at a time
+        addBanner({ type: 'reminder', message: reminder.label, autoDismiss: null, onDismiss: () => {} })
+        break
       }
     }
   } catch (e) {
     console.warn('Reminder check error:', e)
   }
 }
-
-// ─── Quota checker ────────────────────────────────────────────────────────────
 
 function QuotaChecker() {
   const { user, encryptionKey } = useAuth()
@@ -220,11 +172,7 @@ function QuotaChecker() {
       checkQuota().then(quota => {
         const availableMB = quota.available / 1024 / 1024
         if (availableMB < DRIVE.quotaWarningMB) {
-          addBanner({
-            type:    'quota',
-            message: `Google Drive storage low — ${availableMB.toFixed(0)}MB remaining`,
-            onDismiss: () => {},
-          })
+          addBanner({ type: 'quota', message: `Google Drive storage low — ${availableMB.toFixed(0)}MB remaining`, onDismiss: () => {} })
         }
       }).catch(() => {})
     })
@@ -232,8 +180,6 @@ function QuotaChecker() {
 
   return null
 }
-
-// ─── Placeholder screens (filled in later phases) ────────────────────────────
 
 function FoodScreen() {
   return (
@@ -276,14 +222,10 @@ function SettingsScreen() {
         <p style={styles.settingsRow}>🎯 {user?.macroGoals?.calories} kcal goal</p>
         <p style={styles.settingsRow}>💊 {user?.supplements?.length || 0} supplements</p>
       </div>
-      <button style={styles.lockBtnFull} onClick={lock}>
-        🔒 Lock App
-      </button>
+      <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
     </div>
   )
 }
-
-// ─── Auth callback screen ─────────────────────────────────────────────────────
 
 function AuthCallbackScreen() {
   return (
@@ -294,15 +236,13 @@ function AuthCallbackScreen() {
   )
 }
 
-// ─── PIN recovery screen ──────────────────────────────────────────────────────
-
 function RecoverScreen() {
-  const [userId,       setUserId]       = useState('')
-  const [recoveryKey,  setRecoveryKey]  = useState('')
-  const [newPin,       setNewPin]       = useState('')
-  const [confirmPin,   setConfirmPin]   = useState('')
-  const [error,        setError]        = useState('')
-  const [success,      setSuccess]      = useState(false)
+  const [userId,      setUserId]      = useState('')
+  const [recoveryKey, setRecoveryKey] = useState('')
+  const [newPin,      setNewPin]      = useState('')
+  const [confirmPin,  setConfirmPin]  = useState('')
+  const [error,       setError]       = useState('')
+  const [success,     setSuccess]     = useState(false)
   const { resetPin } = useAuth()
 
   async function handleReset() {
@@ -321,10 +261,7 @@ function RecoverScreen() {
       <div style={styles.splash}>
         <div style={styles.splashLogo}>✅</div>
         <p style={styles.splashText}>PIN reset successfully</p>
-        <button
-          style={styles.retryBtn}
-          onClick={() => { window.location.hash = '#/' }}
-        >
+        <button style={styles.retryBtn} onClick={() => { window.location.hash = '#/' }}>
           Back to login
         </button>
       </div>
@@ -333,234 +270,77 @@ function RecoverScreen() {
 
   return (
     <div style={styles.recoverContainer}>
-      <button
-        style={styles.backBtn}
-        onClick={() => { window.location.hash = '#/' }}
-      >
-        ← Back
-      </button>
+      <button style={styles.backBtn} onClick={() => { window.location.hash = '#/' }}>← Back</button>
       <h2 style={styles.screenTitle}>Reset PIN</h2>
-
       <label style={styles.label}>User ID</label>
-      <input
-        style={styles.input}
-        placeholder="Your user ID"
-        value={userId}
-        onChange={e => setUserId(e.target.value)}
-      />
-
+      <input style={styles.input} placeholder="Your user ID" value={userId} onChange={e => setUserId(e.target.value)} />
       <label style={styles.label}>Recovery key</label>
-      <input
-        style={styles.input}
-        placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
-        value={recoveryKey}
-        onChange={e => setRecoveryKey(e.target.value.toUpperCase())}
-      />
-
+      <input style={styles.input} placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" value={recoveryKey} onChange={e => setRecoveryKey(e.target.value.toUpperCase())} />
       <label style={styles.label}>New PIN</label>
-      <input
-        style={styles.input}
-        type="password"
-        inputMode="numeric"
-        placeholder="4–8 digits"
-        value={newPin}
-        onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
-      />
-
+      <input style={styles.input} type="password" inputMode="numeric" placeholder="4–8 digits" value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 8))} />
       <label style={styles.label}>Confirm new PIN</label>
-      <input
-        style={styles.input}
-        type="password"
-        inputMode="numeric"
-        placeholder="Repeat PIN"
-        value={confirmPin}
-        onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
-      />
-
+      <input style={styles.input} type="password" inputMode="numeric" placeholder="Repeat PIN" value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 8))} />
       {error && <p style={styles.error}>{error}</p>}
-
-      <button style={styles.primaryBtn} onClick={handleReset}>
-        Reset PIN
-      </button>
+      <button style={styles.primaryBtn} onClick={handleReset}>Reset PIN</button>
     </div>
   )
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getGreeting() {
-  const h = new Date().getHours()
-  if (h < 12) return 'morning'
-  if (h < 17) return 'afternoon'
-  return 'evening'
-}
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = {
   splash: {
-    display:        'flex',
-    flexDirection:  'column',
-    alignItems:     'center',
-    justifyContent: 'center',
-    height:         '100dvh',
-    background:     'var(--bg-base)',
-    color:          'var(--text-primary)',
-    gap:            '12px',
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    justifyContent: 'center', height: '100dvh',
+    background: 'var(--bg-base)', color: 'var(--text-primary)', gap: '12px',
   },
-  splashLogo: {
-    fontSize: '64px',
-  },
-  splashText: {
-    fontSize: '18px',
-    color:    'var(--text-secondary)',
-    margin:   0,
-  },
-  splashSub: {
-    fontSize:  '13px',
-    color:     'var(--text-tertiary)',
-    margin:    0,
-    textAlign: 'center',
-    padding:   '0 32px',
-  },
+  splashLogo:  { fontSize: '64px' },
+  splashText:  { fontSize: '18px', color: 'var(--text-secondary)', margin: 0 },
+  splashSub:   { fontSize: '13px', color: 'var(--text-tertiary)', margin: 0, textAlign: 'center', padding: '0 32px' },
   retryBtn: {
-    marginTop:    '16px',
-    padding:      '12px 24px',
-    background:   'var(--accent)',
-    border:       'none',
-    borderRadius: 'var(--r-lg)',
-    color:        '#fff',
-    fontSize:     '16px',
-    fontWeight:   '700',
-    cursor:       'pointer',
+    marginTop: '16px', padding: '12px 24px', background: 'var(--accent)',
+    border: 'none', borderRadius: 'var(--r-lg)', color: '#fff',
+    fontSize: '16px', fontWeight: '700', cursor: 'pointer',
   },
   appShell: {
-    display:       'flex',
-    flexDirection: 'column',
-    minHeight:     '100dvh',
-    background:    'var(--bg-base)',
-    color:         'var(--text-primary)',
+    display: 'flex', flexDirection: 'column', minHeight: '100dvh',
+    background: 'var(--bg-base)', color: 'var(--text-primary)',
   },
-  main: {
-    flex:      1,
-    overflowY: 'auto',
-  },
-  screen: {
-    padding:   '24px 16px 16px',
-    minHeight: '100%',
-  },
-  screenHeader: {
-    display:         'flex',
-    alignItems:      'center',
-    justifyContent:  'space-between',
-    marginBottom:    '24px',
-  },
-  screenTitle: {
-    fontSize:      '26px',
-    fontWeight:    '600',
-    margin:        '0 0 20px',
-    letterSpacing: '-0.03em',
-    color:         'var(--text-primary)',
-  },
-  lockBtn: {
-    background: 'none',
-    border:     'none',
-    fontSize:   '22px',
-    cursor:     'pointer',
-  },
+  main:    { flex: 1, overflowY: 'auto' },
+  screen:  { padding: '24px 16px 16px', minHeight: '100%' },
+  screenHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' },
+  screenTitle: { fontSize: '26px', fontWeight: '600', margin: '0 0 20px', letterSpacing: '-0.03em', color: 'var(--text-primary)' },
+  lockBtn:     { background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer' },
   lockBtnFull: {
-    width:        '100%',
-    padding:      '14px',
-    background:   'var(--bg-elevated)',
-    border:       '1px solid var(--border-default)',
-    borderRadius: 'var(--r-lg)',
-    color:        'var(--red)',
-    fontSize:     '16px',
-    fontWeight:   '600',
-    cursor:       'pointer',
-    marginTop:    '16px',
+    width: '100%', padding: '14px', background: 'var(--bg-elevated)',
+    border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)',
+    color: 'var(--red)', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginTop: '16px',
   },
   placeholder: {
-    display:        'flex',
-    flexDirection:  'column',
-    alignItems:     'center',
-    justifyContent: 'center',
-    minHeight:      '300px',
-    background:     'var(--bg-elevated)',
-    borderRadius:   'var(--r-xl)',
-    border:         '1px dashed var(--border-default)',
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    justifyContent: 'center', minHeight: '300px', background: 'var(--bg-elevated)',
+    borderRadius: 'var(--r-xl)', border: '1px dashed var(--border-default)',
   },
-  placeholderText: {
-    fontSize: '16px',
-    color:    'var(--text-secondary)',
-    margin:   '0 0 8px',
-  },
-  placeholderSub: {
-    fontSize: '13px',
-    color:    'var(--text-tertiary)',
-    margin:   0,
-  },
+  placeholderText: { fontSize: '16px', color: 'var(--text-secondary)', margin: '0 0 8px' },
+  placeholderSub:  { fontSize: '13px', color: 'var(--text-tertiary)', margin: 0 },
   settingsCard: {
-    background:    'var(--bg-surface)',
-    border:        '1px solid var(--border-subtle)',
-    borderRadius:  'var(--r-lg)',
-    padding:       '16px 20px',
-    marginBottom:  '16px',
+    background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+    borderRadius: 'var(--r-lg)', padding: '16px 20px', marginBottom: '16px',
   },
-  settingsRow: {
-    fontSize: '15px',
-    color:    'var(--text-primary)',
-    margin:   '6px 0',
-  },
+  settingsRow:      { fontSize: '15px', color: 'var(--text-primary)', margin: '6px 0' },
   recoverContainer: {
-    display:       'flex',
-    flexDirection: 'column',
-    padding:       '24px 20px',
-    minHeight:     '100dvh',
-    background:    'var(--bg-base)',
-    color:         'var(--text-primary)',
-    boxSizing:     'border-box',
+    display: 'flex', flexDirection: 'column', padding: '24px 20px',
+    minHeight: '100dvh', background: 'var(--bg-base)', color: 'var(--text-primary)', boxSizing: 'border-box',
   },
-  backBtn: {
-    background:   'none',
-    border:       'none',
-    color:        'var(--accent)',
-    fontSize:     '16px',
-    cursor:       'pointer',
-    padding:      '0 0 16px',
-    alignSelf:    'flex-start',
-  },
-  label: {
-    fontSize:     '13px',
-    color:        'var(--text-secondary)',
-    marginBottom: '4px',
-    marginTop:    '12px',
-  },
+  backBtn:    { background: 'none', border: 'none', color: 'var(--accent)', fontSize: '16px', cursor: 'pointer', padding: '0 0 16px', alignSelf: 'flex-start' },
+  label:      { fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px', marginTop: '12px' },
   input: {
-    width:        '100%',
-    padding:      '13px 14px',
-    background:   'var(--bg-surface)',
-    border:       '1px solid var(--border-default)',
-    borderRadius: 'var(--r-md)',
-    color:        'var(--text-primary)',
-    fontSize:     '16px',
-    outline:      'none',
-    boxSizing:    'border-box',
+    width: '100%', padding: '13px 14px', background: 'var(--bg-surface)',
+    border: '1px solid var(--border-default)', borderRadius: 'var(--r-md)',
+    color: 'var(--text-primary)', fontSize: '16px', outline: 'none', boxSizing: 'border-box',
   },
-  error: {
-    color:     'var(--red)',
-    fontSize:  '14px',
-    margin:    '8px 0',
-  },
+  error:      { color: 'var(--red)', fontSize: '14px', margin: '8px 0' },
   primaryBtn: {
-    width:        '100%',
-    padding:      '15px',
-    background:   'var(--text-primary)',
-    border:       'none',
-    borderRadius: 'var(--r-lg)',
-    color:        'var(--text-inverse)',
-    fontSize:     '17px',
-    fontWeight:   '700',
-    cursor:       'pointer',
-    marginTop:    '16px',
+    width: '100%', padding: '15px', background: 'var(--text-primary)',
+    border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)',
+    fontSize: '17px', fontWeight: '700', cursor: 'pointer', marginTop: '16px',
   },
 }
