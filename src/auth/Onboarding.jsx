@@ -51,6 +51,7 @@ export default function Onboarding({ onComplete }) {
         avatarInitials: data.avatarInitials || data.name.slice(0, 2).toUpperCase(),
         pin:            data.pin,
         passphrase:     'nourish-no-encryption',
+        skipPin:        data.skipPin || false,
         height:         parseFloat(data.height),
         startWeight:    parseFloat(data.startWeight),
         macroGoals:     data.macroGoals,
