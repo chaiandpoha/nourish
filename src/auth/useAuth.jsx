@@ -80,7 +80,7 @@ export function AuthProvider({ children }) {
       }
     }
 
-    const key = await deriveKey(passphrase, profile.encryptionSalt)
+    const key = await deriveKey(passphrase || 'nourish-no-encryption', profile.encryptionSalt)
     await completeLogin(profile, key)
     setPinAttempts(0)
     setLockoutUntil(null)
@@ -102,7 +102,7 @@ export function AuthProvider({ children }) {
     } catch (e) {
       throw new Error('Biometric failed — use PIN instead')
     }
-    const key = await deriveKey(passphrase, profile.encryptionSalt)
+    const key = await deriveKey(passphrase || 'nourish-no-encryption', profile.encryptionSalt)
     await completeLogin(profile, key)
     return profile
   }

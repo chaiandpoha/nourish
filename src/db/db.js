@@ -10,7 +10,6 @@ import {
   ensureFolderStructure,
   checkQuota,
 } from './driveApi.js'
-import { encrypt, decrypt } from '../auth/crypto.js'
 import { DRIVE, MACRO_KEYS } from '../config.js'
 
 // ─── Sync state ───────────────────────────────────────────────────────────────
@@ -129,7 +128,7 @@ async function flushMonthlyTable(table, userId, encryptionKey, folderId) {
     const merged = mergeRecords(existing, records)
 
     // Encrypt and write
-    const encrypted = await encrypt(JSON.stringify(merged), encryptionKey)
+    const encrypted = JSON.stringify(merged)
     const syncKey   = `${userId}:${table}:${month}`
     const stateRow  = await db.syncState.get(syncKey)
 
@@ -151,7 +150,7 @@ async function loadMonthFile(table, userId, month, encryptionKey, folderId) {
     if (!state?.fileId) return []
 
     const encrypted = await readFile(state.fileId)
-    const json      = await decrypt(encrypted, encryptionKey)
+    const json      = typeof encrypted === "string" ? encrypted : JSON.stringify(encrypted)
     return JSON.parse(json)
   } catch {
     return []
@@ -175,7 +174,7 @@ async function flushProgrammes(userId, encryptionKey) {
   const stateRow  = await db.syncState.get(syncKey)
 
   const all       = await db.programmes.where('userId').equals(userId).toArray()
-  const encrypted = await encrypt(JSON.stringify(all), encryptionKey)
+  const encrypted = JSON.stringify(all)
   const fileId    = await writeFile(filename, encrypted, folderId, stateRow?.fileId)
 
   await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
@@ -191,7 +190,7 @@ async function flushProfile(userId, encryptionKey) {
   const syncKey   = `${userId}:profile`
   const stateRow  = await db.syncState.get(syncKey)
 
-  const encrypted = await encrypt(JSON.stringify(user), encryptionKey)
+  const encrypted = JSON.stringify(user)
   const fileId    = await writeFile(filename, encrypted, folderId, stateRow?.fileId)
 
   await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })

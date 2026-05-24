@@ -50,17 +50,14 @@ export default function Onboarding({ onComplete }) {
         name:           data.name,
         avatarInitials: data.avatarInitials || data.name.slice(0, 2).toUpperCase(),
         pin:            data.pin,
-        passphrase:     data.passphrase,
+        passphrase:     'nourish-no-encryption',
         height:         parseFloat(data.height),
         startWeight:    parseFloat(data.startWeight),
         macroGoals:     data.macroGoals,
         supplements:    data.supplements,
       })
 
-      // Store recovery key hash on profile
-      const recoveryHash = await sha256(data.recoveryKey)
-      const { db } = await import('../db/indexedDB.js')
-      await db.users.update(profile.id, { recoveryKeyHash: recoveryHash })
+      // Encryption skipped in v1
 
       if (data.enableBiometric && window.PublicKeyCredential) {
         try { await registerBiometric(profile.id) } catch {}
@@ -87,8 +84,9 @@ export default function Onboarding({ onComplete }) {
       {step === 2  && <StepGoogleSignIn  {...stepProps} />}
       {step === 3  && <StepCreateProfile {...stepProps} />}
       {step === 4  && <StepSetPin        {...stepProps} />}
-      {step === 5  && <StepPassphrase    {...stepProps} />}
-      {step === 6  && <StepRecoveryKey   {...stepProps} onGenerateKey={() => {
+      {step === 5  && <StepBodyStats     {...stepProps} />}
+      {step === 6  && <StepMacroGoals    {...stepProps} />}
+      {false && <StepRecoveryKey   {...stepProps} onGenerateKey={() => {
         update({ recoveryKey: generateRecoveryKey() })
       }} />}
       {step === 7  && <StepBodyStats     {...stepProps} />}
