@@ -111,25 +111,17 @@ export default function Home() {
     <div style={styles.screen}>
 
       {/* Header */}
-      <div style={styles.header}>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:'4px' }}>
         <div>
           <div style={styles.dateLabel}>{dateLabel}</div>
           <div style={styles.greeting}>{greeting}, <span style={styles.greetingName}>{user?.name}</span></div>
         </div>
-        <div style={styles.headerRight}>
-          <button
-            style={styles.avatarBtn}
-            onClick={() => {
-              sessionStorage.setItem('nourish_logged_out', 'true')
-              logout()
-            }}
-            title="Switch profile"
-          >
-            <div style={styles.avatar}>
-              {user?.avatarInitials || user?.name?.slice(0,2).toUpperCase()}
-            </div>
-          </button>
-        </div>
+        <button
+          onClick={() => { sessionStorage.setItem('nourish_logged_out', 'true'); logout() }}
+          style={{ width:'42px', height:'42px', borderRadius:'50%', background:'var(--text-primary)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', fontWeight:'600', color:'var(--text-inverse)', flexShrink:0, marginTop:'4px' }}
+        >
+          {user?.avatarInitials || user?.name?.slice(0,2).toUpperCase()}
+        </button>
       </div>
 
       {/* Calorie ring + macros */}
