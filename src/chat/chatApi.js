@@ -87,24 +87,36 @@ export async function sendChatMessage({
     ? [contextMessage, contextReply, ...messages]
     : messages
 
-  const res = await fetch('/api/ai', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId:    userId || 'anonymous',
-      type:      'chat',
-      model:     AI.chatModel,
-      maxTokens: AI.maxTokens,
-      system,
-      messages:  fullMessages,
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.error || 'AI request failed')
+  let res
+  try {
+    res = await fetch('/api/ai', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId:    userId || 'anonymous',
+        type:      'chat',
+        model:     AI.chatModel,
+        maxTokens: AI.maxTokens,
+        system,
+        messages:  fullMessages,
+      }),
+    })
+  } catch (fetchErr) {
+    throw new Error('Network error: ' + fetchErr.message)
   }
 
-  const data = await res.json()
+  if (!res.ok) {
+    let errMsg = 'HTTP ' + res.status
+    try { const err = await res.json(); errMsg = err.error || errMsg } catch {}
+    throw new Error(errMsg)
+  }
+
+  let data
+  try {
+    data = await res.json()
+  } catch (parseErr) {
+    throw new Error('Response parse error: ' + parseErr.message)
+  }
+
   return data.content?.[0]?.text || ''
 }
