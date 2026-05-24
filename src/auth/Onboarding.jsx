@@ -7,7 +7,9 @@ import { AUTH } from '../config.js'
 const TOTAL_STEPS = 10
 
 export default function Onboarding({ onComplete }) {
-  const [step,       setStep]       = useState(1)
+  const params     = new URLSearchParams(window.location.search)
+  const fromGoogle = params.get('googled') === '1'
+  const [step, setStep] = useState(fromGoogle ? 3 : 1)
   const [data,       setData]       = useState({
     name:            '',
     avatarInitials:  '',
