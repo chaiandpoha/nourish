@@ -8,6 +8,7 @@ import { getDayMacros } from '../db/db.js'
 import { db } from '../db/indexedDB.js'
 import { seedFoodDatabase } from '../food/FoodDB.js'
 import MealChat from '../chat/MealChat.jsx'
+import WeeklySummary from '../progress/WeeklySummary.jsx'
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
 // Main dashboard screen
@@ -207,6 +208,9 @@ export default function Home() {
         date={today}
         onTotalsChange={setTotals}
       />
+
+      {/* Weekly Summary */}
+      <WeeklySummary />
 
       {/* AI Chat button */}
       <button style={styles.chatBtn} onClick={() => setShowChat(true)}>

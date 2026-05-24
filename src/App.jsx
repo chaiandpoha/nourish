@@ -10,6 +10,11 @@ import { db } from './db/indexedDB.js'
 import { DRIVE } from './config.js'
 import HomeScreen from './screens/Home.jsx'
 import BatchList from './batches/BatchList.jsx'
+import WeightLog from './progress/WeightLog.jsx'
+import WeeklySummary from './progress/WeeklySummary.jsx'
+import BloodWork from './progress/BloodWork.jsx'
+import MoodLog from './progress/MoodLog.jsx'
+import CalendarView from './calendar/CalendarView.jsx'
 import ProgramManager from './workout/ProgramManager.jsx'
 import WorkoutLog from './workout/WorkoutLog.jsx'
 
@@ -208,16 +213,14 @@ function WorkoutScreen() {
 function CalendarScreen() {
   return (
     <div style={styles.screen}>
-      <h1 style={styles.screenTitle}>Calendar</h1>
-      <div style={styles.placeholder}>
-        <p style={styles.placeholderText}>Calendar coming in Phase 7</p>
-      </div>
+      <CalendarView />
     </div>
   )
 }
 
 function SettingsScreen() {
   const { user, lock } = useAuth()
+  const [tab,          setTab]          = useState('profile')
   const [instructions, setInstructions] = useState(
     user?.aiInstructions || 'Suggest vegetarian Indian meals. Prioritise high protein foods like paneer, dal, curd, sprouts and eggs.'
   )
@@ -234,37 +237,76 @@ function SettingsScreen() {
     setTimeout(() => setSaved(false), 2000)
   }
 
+  const tabs = [
+    { id:'profile',  label:'Profile'  },
+    { id:'progress', label:'Progress' },
+    { id:'mood',     label:'Mood'     },
+    { id:'blood',    label:'Blood'    },
+    { id:'ai',       label:'AI'       },
+  ]
+
   return (
     <div style={styles.screen}>
       <h1 style={styles.screenTitle}>Settings</h1>
 
-      <div style={styles.settingsCard}>
-        <p style={styles.settingsRow}>👤 {user?.name}</p>
-        <p style={styles.settingsRow}>🎯 {user?.macroGoals?.calories} kcal goal</p>
-        <p style={styles.settingsRow}>💊 {user?.supplements?.length || 0} supplements</p>
+      {/* Tab bar */}
+      <div style={styles.tabBar}>
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            style={{ ...styles.tabBtn, ...(tab === t.id ? styles.tabBtnActive : {}) }}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      <div style={styles.settingsSection}>
-        <div style={styles.settingsSectionHeader}>
-          <span style={styles.settingsSectionTitle}>AI Instructions</span>
-          <span style={styles.settingsSectionSub}>Tell the AI your food preferences</span>
+      {tab === 'profile' && (
+        <>
+          <div style={styles.settingsCard}>
+            <p style={styles.settingsRow}>👤 {user?.name}</p>
+            <p style={styles.settingsRow}>🎯 {user?.macroGoals?.calories} kcal · {user?.macroGoals?.protein}g protein</p>
+            <p style={styles.settingsRow}>💊 {user?.supplements?.length || 0} supplements</p>
+            <p style={styles.settingsRow}>📏 {user?.height ? Math.round(user.height) + 'cm' : 'Height not set'}</p>
+          </div>
+          <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
+        </>
+      )}
+
+      {tab === 'progress' && (
+        <WeightLog />
+      )}
+
+      {tab === 'mood' && (
+        <MoodLog />
+      )}
+
+      {tab === 'blood' && (
+        <BloodWork />
+      )}
+
+      {tab === 'ai' && (
+        <div style={styles.settingsSection}>
+          <div style={styles.settingsSectionHeader}>
+            <span style={styles.settingsSectionTitle}>AI Instructions</span>
+            <span style={styles.settingsSectionSub}>Tell the AI your food preferences and restrictions</span>
+          </div>
+          <textarea
+            style={styles.instructionsInput}
+            value={instructions}
+            onChange={e => { setInstructions(e.target.value); setSaved(false) }}
+            rows={6}
+            placeholder="e.g. I am vegetarian. Suggest Indian meals. I prefer high protein foods..."
+          />
+          <button
+            style={{ ...styles.saveInstructionsBtn, background: saved ? 'var(--accent)' : 'var(--text-primary)' }}
+            onClick={saveInstructions}
+          >
+            {saved ? '✓ Saved' : 'Save Instructions'}
+          </button>
         </div>
-        <textarea
-          style={styles.instructionsInput}
-          value={instructions}
-          onChange={e => { setInstructions(e.target.value); setSaved(false) }}
-          rows={5}
-          placeholder="e.g. I am vegetarian. Suggest Indian meals. I prefer high protein foods..."
-        />
-        <button
-          style={{ ...styles.saveInstructionsBtn, background: saved ? 'var(--accent)' : 'var(--text-primary)' }}
-          onClick={saveInstructions}
-        >
-          {saved ? '✓ Saved' : 'Save Instructions'}
-        </button>
-      </div>
-
-      <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
+      )}
     </div>
   )
 }
@@ -336,6 +378,30 @@ const styles = {
   main:        { flex: 1, overflowY: 'auto' },
   screen:      { padding: '24px 16px 16px', minHeight: '100%' },
   screenTitle: { fontSize: '26px', fontWeight: '600', margin: '0 0 20px', letterSpacing: '-0.03em', color: 'var(--text-primary)' },
+  tabBar: {
+    display:        'flex',
+    gap:            '4px',
+    overflowX:      'auto',
+    paddingBottom:  '4px',
+    marginBottom:   '4px',
+  },
+  tabBtn: {
+    padding:        '8px 14px',
+    background:     'var(--bg-elevated)',
+    border:         '0.5px solid var(--border-subtle)',
+    borderRadius:   'var(--r-full)',
+    fontSize:       '13px',
+    fontWeight:     '500',
+    color:          'var(--text-secondary)',
+    cursor:         'pointer',
+    whiteSpace:     'nowrap',
+    flexShrink:     0,
+  },
+  tabBtnActive: {
+    background:     'var(--text-primary)',
+    color:          'var(--text-inverse)',
+    borderColor:    'var(--text-primary)',
+  },
   settingsSection: {
     background:    'var(--bg-surface)',
     border:        '0.5px solid var(--border-subtle)',
