@@ -23,7 +23,13 @@ export function AuthProvider({ children }) {
   const autoLockTimer  = useRef(null)
   const activityEvents = ['touchstart', 'mousedown', 'keydown']
 
-  useEffect(() => { setIsLoading(false) }, [])
+  useEffect(() => {
+    // Restore Drive token from sessionStorage on app start
+    import('../db/driveApi.js').then(({ restoreToken }) => {
+      restoreToken()
+    })
+    setIsLoading(false)
+  }, [])
 
   const resetAutoLockTimer = useCallback(() => {
     if (autoLockTimer.current) clearTimeout(autoLockTimer.current)
@@ -130,13 +136,14 @@ export function AuthProvider({ children }) {
     setUser(profile)
     setIsLocked(false)
     try {
-      // Check if we have a valid Drive token before init
-      const { isTokenValid } = await import('../db/driveApi.js')
+      const { isTokenValid, restoreToken } = await import('../db/driveApi.js')
+      // Try to restore token if not already valid
+      if (!isTokenValid()) restoreToken()
       if (isTokenValid()) {
+        console.log('Drive token valid — initializing storage')
         await initStorage(profile.id, key)
-        console.log('Drive storage initialized')
       } else {
-        console.warn('No Drive token — running offline')
+        console.warn('No Drive token — offline mode')
       }
     } catch (e) {
       console.warn('Storage init error:', e.message)

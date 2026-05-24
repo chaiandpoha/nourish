@@ -11,16 +11,42 @@ let _tokenExpiry = null  // timestamp ms
 
 export function setAccessToken(token, expiresInSeconds) {
   _accessToken = token
-  _tokenExpiry = Date.now() + (expiresInSeconds - 60) * 1000 // 60s buffer
+  _tokenExpiry = Date.now() + (expiresInSeconds - 60) * 1000
+  // Persist to sessionStorage so it survives page reload
+  sessionStorage.setItem('drive_token', token)
+  sessionStorage.setItem('drive_token_expiry', String(_tokenExpiry))
 }
 
 export function clearAccessToken() {
   _accessToken = null
   _tokenExpiry = null
+  sessionStorage.removeItem('drive_token')
+  sessionStorage.removeItem('drive_token_expiry')
 }
 
 export function isTokenValid() {
-  return _accessToken !== null && Date.now() < _tokenExpiry
+  // Check memory first
+  if (_accessToken && Date.now() < _tokenExpiry) return true
+  // Fall back to sessionStorage
+  const stored = sessionStorage.getItem('drive_token')
+  const expiry  = parseInt(sessionStorage.getItem('drive_token_expiry') || '0')
+  if (stored && Date.now() < expiry) {
+    _accessToken = stored
+    _tokenExpiry = expiry
+    return true
+  }
+  return false
+}
+
+export function restoreToken() {
+  const stored = sessionStorage.getItem('drive_token')
+  const expiry  = parseInt(sessionStorage.getItem('drive_token_expiry') || '0')
+  if (stored && Date.now() < expiry) {
+    _accessToken = stored
+    _tokenExpiry = expiry
+    return true
+  }
+  return false
 }
 
 // ─── OAuth flow ──────────────────────────────────────────────────────────────
