@@ -128,7 +128,7 @@ function ViewProgram({ programme, onStartWorkout, onBack }) {
           {day.exercises?.map((ex, j) => (
             <div key={j} style={s.exRow}>
               <span style={s.exName}>{ex.name}</span>
-              <span style={s.exTarget}>{ex.sets} × {ex.reps} @ {ex.weight}kg</span>
+              <span style={s.exTarget}>{ex.sets} × {ex.reps} @ {ex.weight}lbs</span>
             </div>
           ))}
         </div>
@@ -299,7 +299,7 @@ function DayBuilder({ day, dayIndex, onNameChange, onAddExercise, onUpdateExerci
                     value={ex.reps}
                     onChange={e => onUpdateExercise(exIndex, 'reps', parseInt(e.target.value) || 0)}
                   />
-                  <label style={s.exLabel}>kg</label>
+                  <label style={s.exLabel}>lbs</label>
                   <input
                     style={s.exInput}
                     type="number" inputMode="decimal"

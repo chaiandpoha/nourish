@@ -298,14 +298,14 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
             {/* Target from programme */}
             {ex.sets && (
               <div style={st.targetRow}>
-                Target: {ex.sets} × {ex.reps} @ {ex.weight}kg
+                Target: {ex.sets} × {ex.reps} @ {ex.weight}lbs
               </div>
             )}
 
             {/* Set rows */}
             <div style={st.setHeader}>
               <span style={st.setCol}>Set</span>
-              <span style={st.setCol}>kg</span>
+              <span style={st.setCol}>lbs</span>
               <span style={st.setCol}>Reps</span>
               <span style={st.setCol}>RPE</span>
               <span style={st.setCol}></span>
