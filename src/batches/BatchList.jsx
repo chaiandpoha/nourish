@@ -34,7 +34,7 @@ export default function BatchList({ onLogged }) {
       dirty:     1,
       updatedAt: new Date().toISOString(),
     })
-    await saveSharedBatches()
+    saveSharedBatches().catch(e => console.warn('Drive sync:', e))
     loadBatches()
   }
 

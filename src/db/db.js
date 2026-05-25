@@ -7,6 +7,7 @@ import {
   readFile,
   writeFile,
   findFile,
+  listFiles,
   ensureFolderStructure,
   checkQuota,
 } from './driveApi.js'
@@ -122,7 +123,7 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds) {
   try {
     const fIds = folderIds || await ensureFolderStructure(userId)
 
-    // Restore profile
+    // Profile
     const profileFile = await findFile('profile.json', fIds.userDir)
     if (profileFile) {
       const data = await readFile(profileFile.id)
@@ -133,17 +134,17 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds) {
       }
     }
 
-    // Restore shared foods
+    // Shared foods (preserve tags field for Safari multi-entry index)
     const foodsFile = await findFile('foods.json', fIds.shared)
     if (foodsFile) {
       const data = await readFile(foodsFile.id)
       if (Array.isArray(data)) {
-        await db.foods.bulkPut(data)
+        await db.foods.bulkPut(data.map(f => ({ tags: [], ...f })))
         console.log('Foods restored:', data.length)
       }
     }
 
-    // Restore batches
+    // Shared batches
     const batchesFile = await findFile('batches.json', fIds.shared)
     if (batchesFile) {
       const data = await readFile(batchesFile.id)
@@ -153,10 +154,66 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds) {
       }
     }
 
+    // Monthly tables — food logs
+    await _restoreMonthlyTable('foodLogs', fIds.foodLogsDir, userId)
+
+    // Monthly tables — workout data
+    await _restoreMonthlyTable('workoutLogs', fIds.workoutLogsDir, userId)
+    await _restoreMonthlyTable('workoutSets', fIds.workoutLogsDir, userId)
+
+    // Monthly tables — health data (stored in userDir alongside profile.json)
+    await _restoreMonthlyTable('weightLog',    fIds.userDir, userId)
+    await _restoreMonthlyTable('bloodWork',    fIds.userDir, userId)
+    await _restoreMonthlyTable('supplementLog',fIds.userDir, userId)
+    await _restoreMonthlyTable('moodLog',      fIds.userDir, userId)
+
+    // Single-file tables
+    await _restoreSingleTable('programmes',   fIds.userDir, userId)
+    await _restoreSingleTable('mealTemplates',fIds.userDir, userId)
+    await _restoreSingleTable('reminders',    fIds.userDir, userId)
+
     return true
   } catch (e) {
     console.error('Restore failed:', e)
     return false
+  }
+}
+
+async function _restoreMonthlyTable(tableName, folderId, userId) {
+  if (!folderId) return
+  try {
+    const files   = await listFiles(folderId)
+    const matches = files.filter(f =>
+      f.name.startsWith(`${tableName}_`) && f.name.endsWith('.json')
+    )
+    for (const file of matches) {
+      const data = await readFile(file.id)
+      if (!Array.isArray(data) || !data.length) continue
+      await db[tableName].bulkPut(data.map(r => ({ ...r, dirty: 0 })))
+      // Cache fileId so next flush updates rather than creates
+      const month   = file.name.slice(tableName.length + 1, -5)
+      const syncKey = `${userId}:${tableName}:${month}`
+      await db.syncState.put({ key: syncKey, userId, fileId: file.id, lastSyncAt: new Date().toISOString() })
+      console.log(`Restored ${data.length} ${tableName} (${month})`)
+    }
+  } catch (e) {
+    console.warn(`Restore ${tableName} error:`, e)
+  }
+}
+
+async function _restoreSingleTable(tableName, folderId, userId) {
+  if (!folderId) return
+  try {
+    const file = await findFile(`${tableName}.json`, folderId)
+    if (!file) return
+    const data = await readFile(file.id)
+    if (!Array.isArray(data) || !data.length) return
+    await db[tableName].bulkPut(data.map(r => ({ ...r, dirty: 0 })))
+    const syncKey = `${userId}:${tableName}`
+    await db.syncState.put({ key: syncKey, userId, fileId: file.id, lastSyncAt: new Date().toISOString() })
+    console.log(`Restored ${data.length} ${tableName}`)
+  } catch (e) {
+    console.warn(`Restore ${tableName} error:`, e)
   }
 }
 
@@ -331,6 +388,7 @@ export async function syncSharedDataDown() {
 
 /** Write shared foods to Drive */
 export async function saveSharedFoods() {
+  if (!isTokenValid() || !_folderIds.shared) return
   const foods   = await db.foods.where('source').notEqual('usda').toArray()
   const syncKey = 'shared:foods'
   const state   = await db.syncState.get(syncKey)
@@ -340,6 +398,7 @@ export async function saveSharedFoods() {
 
 /** Write shared batches to Drive */
 export async function saveSharedBatches() {
+  if (!isTokenValid() || !_folderIds.shared) return
   const batches = await db.batches.toArray()
   const syncKey = 'shared:batches'
   const state   = await db.syncState.get(syncKey)

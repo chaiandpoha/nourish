@@ -120,6 +120,64 @@ function BackupStatus() {
 }
 
 function OnboardingGate() {
+  const [checking, setChecking] = useState(true)
+  const [found,    setFound]    = useState(false)
+
+  useEffect(() => {
+    checkDriveForProfile()
+  }, [])
+
+  async function checkDriveForProfile() {
+    try {
+      const { isTokenValid, restoreToken, findFolder, findFile, listFolders, readFile } = await import('./db/driveApi.js')
+      if (!isTokenValid()) restoreToken()
+      if (!isTokenValid()) { setChecking(false); return }
+
+      // Walk Nourish/users/ looking for any profile.json
+      const nourishId = await findFolder('Nourish', 'root')
+      if (!nourishId) { setChecking(false); return }
+
+      const usersId = await findFolder('users', nourishId)
+      if (!usersId) { setChecking(false); return }
+
+      const userDirs = await listFolders(usersId)
+      if (!userDirs?.length) { setChecking(false); return }
+
+      for (const dir of userDirs) {
+        const profileFile = await findFile('profile.json', dir.id)
+        if (profileFile) {
+          const raw = await readFile(profileFile.id)
+          if (raw) {
+            const p = typeof raw === 'string' ? JSON.parse(raw) : raw
+            await db.users.put({ ...p, dirty: 0 })
+            console.log('Profile restored from Drive:', p.name)
+            setFound(true)
+            setChecking(false)
+            return
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Drive profile check failed:', e)
+    }
+    setChecking(false)
+  }
+
+  if (checking) {
+    return (
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100dvh', background:'var(--bg-base)', gap:'16px' }}>
+        <img src="/icons/icon-192.png" style={{ width:'64px', borderRadius:'16px' }} />
+        <p style={{ fontSize:'15px', color:'var(--text-secondary)' }}>Checking for existing profile…</p>
+      </div>
+    )
+  }
+
+  if (found) {
+    // Profile restored — go to dashboard
+    window.location.hash = '#/'
+    return null
+  }
+
   return <Onboarding onComplete={() => { window.location.hash = '#/' }} />
 }
 

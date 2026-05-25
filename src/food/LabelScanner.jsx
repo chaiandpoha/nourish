@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { saveFood } from './FoodDB.js'
 import { generateId } from '../auth/crypto.js'
+import { AI } from '../config.js'
 
 // ─── LabelScanner ─────────────────────────────────────────────────────────────
 // 1. User picks photo or takes a picture
@@ -15,9 +16,7 @@ export default function LabelScanner({ onSaved, onCancel, userId }) {
   const [edited,    setEdited]    = useState(null)
   const [error,     setError]     = useState('')
   const [loading,   setLoading]   = useState(false)
-  const fileRef  = useRef(null)
   const canvasRef = useRef(null)
-  const isMobile  = /iPhone|iPad|Android/i.test(navigator.userAgent)
 
   // ── Step 1 — pick image ────────────────────────────────────────────────────
   async function handleFileChange(e) {
@@ -95,7 +94,7 @@ All numeric values per 100g. If a value is not listed, use 0. Return only the JS
       body: JSON.stringify({
         userId:    userId || 'anonymous',
         type:      'vision',
-        model:     'claude-sonnet-4-20250514',
+        model:     AI.visionModel,
         maxTokens: 1000,
         messages: [{
           role:    'user',
@@ -199,35 +198,26 @@ All numeric values per 100g. If a value is not listed, use 0. Return only the JS
                 AI will extract the macros automatically.
               </p>
 
-              <input
-  ref={fileRef}
-  type="file"
-  accept="image/*"
-  {...(isMobile ? { capture: 'environment' } : {})}
-  onChange={handleFileChange}
-  style={{ display: 'none' }}
-/>
-
-              <button
-                style={st.cameraBtn}
-                onClick={() => fileRef.current?.click()}
-              >
+              <label style={{ ...st.cameraBtn, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                 📸 Take Photo
-              </button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileChange}
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                />
+              </label>
 
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-                id="gallery-input"
-              />
-              <button
-                style={st.galleryBtn}
-                onClick={() => document.getElementById('gallery-input').click()}
-              >
+              <label style={{ ...st.galleryBtn, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                 🖼 Choose from Gallery
-              </button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                />
+              </label>
 
               {error && <p style={st.error}>{error}</p>}
             </>

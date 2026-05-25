@@ -18,7 +18,7 @@ export const FEATURES = {
 // ─── AI ─────────────────────────────────────────────────────────────────────
 export const AI = {
   chatModel:        'claude-haiku-4-5-20251001',
-  visionModel:      'claude-sonnet-4-20250514',
+  visionModel:      'claude-sonnet-4-6',
   maxTokens:        1000,
   // Per-user daily limits — enforced in api/ai.js
   dailyChatLimit:   20,

@@ -166,6 +166,38 @@ export async function ensureFolderStructure(userId) {
 
 // ─── File operations ─────────────────────────────────────────────────────────
 
+/** List all subfolders under a parent — returns [{ id, name }] */
+export async function listFolders(parentId) {
+  const q = [
+    `'${parentId}' in parents`,
+    `mimeType='application/vnd.google-apps.folder'`,
+    `trashed=false`,
+  ].join(' and ')
+  const res = await fetch(
+    `${DRIVE_API}/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=1000`,
+    { headers: authHeaders() }
+  )
+  if (!res.ok) throw new Error(`Drive listFolders failed: ${res.status}`)
+  const data = await res.json()
+  return data.files || []
+}
+
+/** List all non-folder files under a parent — returns [{ id, name }] */
+export async function listFiles(parentId) {
+  const q = [
+    `'${parentId}' in parents`,
+    `trashed=false`,
+    `mimeType!='application/vnd.google-apps.folder'`,
+  ].join(' and ')
+  const res = await fetch(
+    `${DRIVE_API}/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=1000`,
+    { headers: authHeaders() }
+  )
+  if (!res.ok) throw new Error(`Drive listFiles failed: ${res.status}`)
+  const data = await res.json()
+  return data.files || []
+}
+
 /** Find a file by name under a parent — returns { id, name } or null */
 export async function findFile(name, parentId) {
   const q = [

@@ -10,22 +10,21 @@ import { db } from '../db/indexedDB.js'
 let _seeded = false
 
 export async function seedFoodDatabase() {
-  if (_seeded) return
-  // Check if foods actually exist in DB
-  const count = await db.foods.count()
-  if (count > 10) { _seeded = true; return }
+  if (_seeded) return true
 
   try {
-    console.log('Seeding food database...')
+    // Check for a known USDA food — if it exists, bundled data is already seeded
+    const alreadySeeded = await db.foods.get('usda_001')
+    if (alreadySeeded) { _seeded = true; return true }
+
+    console.log('FoodDB: seeding...')
     const [usdaRes, ninRes] = await Promise.all([
       fetch('/data/usda_foods.json'),
       fetch('/data/nin_foods.json'),
     ])
 
-    console.log('USDA status:', usdaRes.status, 'NIN status:', ninRes.status)
-
     if (!usdaRes.ok || !ninRes.ok) {
-      throw new Error('Failed to fetch food data: ' + usdaRes.status + ' ' + ninRes.status)
+      throw new Error(`Failed to fetch food data: usda=${usdaRes.status} nin=${ninRes.status}`)
     }
 
     const [usdaFoods, ninFoods] = await Promise.all([
@@ -33,19 +32,22 @@ export async function seedFoodDatabase() {
       ninRes.json(),
     ])
 
-    console.log('USDA foods:', usdaFoods.length, 'NIN foods:', ninFoods.length)
+    console.log(`FoodDB: usda=${usdaFoods.length} nin=${ninFoods.length}`)
 
+    // tags:[] required — omitting a multi-entry indexed field causes bulkPut
+    // to fail silently on Safari iOS (IndexedDB multi-entry index constraint)
     const all = [
-      ...usdaFoods.map(f => ({ ...f, source: 'usda' })),
-      ...ninFoods.map(f  => ({ ...f, source: 'nin'  })),
+      ...usdaFoods.map(f => ({ ...f, source: 'usda', tags: f.tags || [] })),
+      ...ninFoods.map(f  => ({ ...f, source: 'nin',  tags: f.tags || [] })),
     ]
 
     await db.foods.bulkPut(all)
-    console.log('Seeded', all.length, 'foods')
     _seeded = true
     console.log(`FoodDB: seeded ${all.length} foods`)
+    return true
   } catch (e) {
     console.warn('FoodDB seed error:', e)
+    return false
   }
 }
 
@@ -80,7 +82,23 @@ export async function searchFoods(query, limit = 20) {
     return aStarts - bStarts
   })
 
-  return matches.slice(0, limit)
+  // De-duplicate: if user has saved/scanned a food with this exact name,
+  // hide the DB (usda/nin) entry — the user's macros take precedence.
+  const personalNames = new Set(
+    matches
+      .filter(f => f.source === 'saved' || f.source === 'scanned')
+      .map(f => f.name.toLowerCase().trim())
+  )
+
+  const deduped = personalNames.size === 0
+    ? matches
+    : matches.filter(f =>
+        f.source !== 'usda' && f.source !== 'nin'
+          ? true
+          : !personalNames.has(f.name.toLowerCase().trim())
+      )
+
+  return deduped.slice(0, limit)
 }
 
 function sourcePriority(source) {
@@ -148,6 +166,7 @@ export async function getFoodByBarcode(barcode) {
 
 export async function saveFood(food) {
   const entry = {
+    tags:   [],        // default before spread — prevents Safari *tags index bug
     ...food,
     id:     food.id || `saved_${Date.now()}`,
     source: food.source || 'saved',

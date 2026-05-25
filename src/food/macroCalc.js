@@ -166,6 +166,18 @@ export function isFibreLow(totals, goals) {
   return (totals.fibre || 0) < fibreGoal * 0.5
 }
 
+// ─── Unit conversion ──────────────────────────────────────────────────────────
+
+export const WEIGHT_UNITS = ['g', 'ml', 'oz', 'lb']
+
+/** Convert any supported unit to grams. ml is treated as 1:1 with g. */
+export function toGrams(amount, unit) {
+  const n = parseFloat(amount) || 0
+  if (unit === 'oz') return Math.round(n * 28.3495 * 10) / 10
+  if (unit === 'lb') return Math.round(n * 453.592 * 10) / 10
+  return n
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function emptyMacros() {

@@ -477,6 +477,11 @@ hr, .divider {
   to   { opacity: 1; transform: scale(1); }
 }
 
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(74, 124, 106, 0.45); }
+  50%       { box-shadow: 0 0 0 7px rgba(74, 124, 106, 0);    }
+}
+
 .animate-up    { animation: fadeSlideUp 0.35s var(--ease-out) both; }
 .animate-in    { animation: fadeIn      0.2s  ease             both; }
 .animate-scale { animation: scaleIn     0.28s var(--ease-out)  both; }

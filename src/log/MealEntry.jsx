@@ -1,26 +1,97 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { searchFoods, getRecentFoods, getActiveBatches, detectMealSlot, seedFoodDatabase } from "../food/FoodDB.js"
 import { useAuth } from "../auth/useAuth.jsx"
 import { addFoodLogEntry } from "../db/db.js"
-import { calcMacros, calcBatchMacros } from "../food/macroCalc.js"
+import { calcMacros, calcBatchMacros, toGrams, WEIGHT_UNITS } from "../food/macroCalc.js"
 import LabelScanner from "../food/LabelScanner.jsx"
 import { MACRO_COLORS } from "../config.js"
 
+// ─── Speech recognition support ──────────────────────────────────────────────
+const speechSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
+
+// ─── Voice input parser ───────────────────────────────────────────────────────
+const _WORD_NUMS = {
+  half: 0.5, quarter: 0.25, a: 1, an: 1,
+  one: 1, two: 2, three: 3, four: 4, five: 5,
+  six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+}
+const _UNIT_MAP = {
+  g: 'g', gram: 'g', grams: 'g',
+  ml: 'ml', milliliter: 'ml', millilitre: 'ml', milliliters: 'ml', millilitres: 'ml',
+  oz: 'oz', ounce: 'oz', ounces: 'oz',
+  lb: 'lb', lbs: 'lb', pound: 'lb', pounds: 'lb',
+}
+
+function parseVoiceInput(text) {
+  const t = text.toLowerCase().trim()
+
+  // "[number] [unit] [food]" — with or without space between number and unit
+  // e.g. "150 grams chicken breast", "100g oats", "300 ml milk"
+  const m1 = t.match(/^(\d+(?:\.\d+)?)\s*(millilitres?|milliliters?|grams?|ounces?|pounds?|lbs?|oz|ml|g)\s+(.+)$/i)
+  if (m1) {
+    return {
+      qty:      parseFloat(m1[1]),
+      unit:     _UNIT_MAP[m1[2].toLowerCase()] || 'g',
+      foodName: m1[3].trim(),
+    }
+  }
+
+  // "[number] [food]" — no unit, default to g
+  // e.g. "200 chicken breast", "50 almonds"
+  const m2 = t.match(/^(\d+(?:\.\d+)?)\s+(.+)$/)
+  if (m2) {
+    return { qty: parseFloat(m2[1]), unit: 'g', foodName: m2[2].trim() }
+  }
+
+  // "[word number] [unit?] [food]"
+  // e.g. "two eggs", "three ounces salmon"
+  const words = t.split(/\s+/)
+  const wn = _WORD_NUMS[words[0]]
+  if (wn !== undefined && words.length >= 2) {
+    const possUnit = _UNIT_MAP[words[1]]
+    if (possUnit && words.length >= 3) {
+      return { qty: wn, unit: possUnit, foodName: words.slice(2).join(' ') }
+    }
+    return { qty: wn, unit: 'g', foodName: words.slice(1).join(' ') }
+  }
+
+  // No quantity — entire utterance is the food name
+  return { qty: null, unit: 'g', foodName: t }
+}
+
 export default function MealEntry({ date, onLogged }) {
-  const [open,     setOpen]     = useState(false)
-  const [screen,   setScreen]   = useState("list") // list | entry | scan
-  const [selected, setSelected] = useState(null)
-  const [query,    setQuery]    = useState("")
-  const [results,  setResults]  = useState([])
-  const [recents,  setRecents]  = useState([])
-  const [batches,  setBatches]  = useState([])
-  const [meal,     setMeal]     = useState(detectMealSlot())
-  const [seeded,   setSeeded]   = useState(false)
+  const [open,       setOpen]       = useState(false)
+  const [screen,     setScreen]     = useState("list") // list | entry | scan
+  const [selected,   setSelected]   = useState(null)
+  const [query,      setQuery]      = useState("")
+  const [results,    setResults]    = useState([])
+  const [recents,    setRecents]    = useState([])
+  const [batches,    setBatches]    = useState([])
+  const [meal,       setMeal]       = useState(detectMealSlot())
+  const [seeded,     setSeeded]     = useState(false)
+  const [seedFailed, setSeedFailed] = useState(false)
+  const [listening,  setListening]  = useState(false)
+  const [voiceHint,  setVoiceHint]  = useState('')
+  const [voiceQty,   setVoiceQty]   = useState(null)
+  const [voiceUnit,  setVoiceUnit]  = useState('g')
+  const recogRef = useRef(null)
   const { user } = useAuth()
 
-  // Seed food database once
+  // Seed food database once; retry once on failure
   useEffect(() => {
-    seedFoodDatabase().then(() => setSeeded(true))
+    seedFoodDatabase().then(ok => {
+      if (ok) {
+        setSeeded(true)
+      } else {
+        setSeedFailed(true)
+        // Retry after 3s in case of transient fetch failure
+        setTimeout(() => {
+          seedFoodDatabase().then(ok2 => {
+            if (ok2) { setSeeded(true); setSeedFailed(false) }
+          })
+        }, 3000)
+      }
+    })
   }, [])
 
   // Load recents + batches when sheet opens
@@ -51,13 +122,65 @@ export default function MealEntry({ date, onLogged }) {
     setScreen("list")
     setQuery("")
     setSelected(null)
+    setVoiceQty(null)
+    setVoiceHint('')
   }
 
   function closeSheet() {
+    recogRef.current?.abort()
+    recogRef.current = null
+    setListening(false)
     setOpen(false)
     setScreen("list")
     setQuery("")
     setSelected(null)
+    setVoiceQty(null)
+    setVoiceHint('')
+  }
+
+  function startListening() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR || !seeded) return
+
+    const recog = new SR()
+    recog.lang             = 'en-US'
+    recog.interimResults   = false
+    recog.maxAlternatives  = 1
+    recog.continuous       = false
+    recogRef.current       = recog
+
+    recog.onresult = (e) => {
+      const transcript = e.results[0][0].transcript
+      const { qty, unit, foodName } = parseVoiceInput(transcript)
+      setQuery(foodName)
+      if (qty) {
+        setVoiceQty(qty)
+        setVoiceUnit(unit)
+        setVoiceHint(`${qty}${unit} · "${foodName}"`)
+      } else {
+        setVoiceQty(null)
+        setVoiceHint(`"${foodName}"`)
+      }
+      setListening(false)
+    }
+
+    recog.onerror = (e) => {
+      if (e.error === 'not-allowed') setVoiceHint('Microphone access denied')
+      else if (e.error !== 'aborted' && e.error !== 'no-speech') setVoiceHint('')
+      setListening(false)
+    }
+
+    recog.onend = () => setListening(false)
+
+    setListening(true)
+    setVoiceHint('')
+    recog.start()
+  }
+
+  function stopListening() {
+    recogRef.current?.abort()
+    recogRef.current = null
+    setListening(false)
   }
 
   function selectItem(food, batch) {
@@ -111,15 +234,38 @@ export default function MealEntry({ date, onLogged }) {
               <div style={s.searchRow}>
                 <input
                   style={s.searchInput}
-                  placeholder="Search foods…"
+                  placeholder={
+                    listening ? "Listening…" :
+                    !seeded   ? (seedFailed ? "Food database unavailable" : "Loading foods…") :
+                    "Search foods…"
+                  }
                   value={query}
-                  onChange={e => setQuery(e.target.value)}
+                  onChange={e => {
+                    setQuery(e.target.value)
+                    setVoiceHint('')
+                    if (!e.target.value) setVoiceQty(null)
+                  }}
                   autoComplete="off"
+                  disabled={!seeded}
                 />
-                {query.length > 0 && (
-                  <button style={s.clearBtn} onClick={() => setQuery("")}>✕</button>
+                {query.length > 0 && !listening && (
+                  <button style={s.searchIconBtn} onClick={() => { setQuery(''); setVoiceQty(null); setVoiceHint('') }}>✕</button>
+                )}
+                {speechSupported && (
+                  <button
+                    style={{ ...s.searchIconBtn, ...(listening ? s.micActive : {}) }}
+                    onClick={listening ? stopListening : startListening}
+                    disabled={!seeded}
+                    type="button"
+                    aria-label={listening ? "Stop listening" : "Voice input"}
+                  >
+                    🎤
+                  </button>
                 )}
               </div>
+              {voiceHint ? (
+                <div style={s.voiceHint}>{voiceHint}</div>
+              ) : null}
 
               {/* Scan + Manual buttons */}
               <div style={s.actionRow}>
@@ -162,18 +308,27 @@ export default function MealEntry({ date, onLogged }) {
                   </div>
                 )}
 
-                {displayList.map(food => (
-                  <button key={food.id} style={s.foodRow} onClick={() => selectItem(food, null)}>
-                    <div style={s.foodInfo}>
-                      <div style={s.foodName}>{food.name}</div>
-                      <div style={s.foodMeta}>
-                        {food.per100g?.calories || 0} kcal · {food.per100g?.protein || 0}g P per 100g
-                        <span style={s.tag}> · {food.source === "nin" ? "Indian" : food.source}</span>
+                {displayList.map(food => {
+                  const isPersonal = food.source === 'saved' || food.source === 'scanned'
+                  const sourceTag  = food.source === 'scanned' ? 'Your label'
+                                   : food.source === 'saved'   ? 'Yours'
+                                   : food.source === 'nin'     ? 'Indian'
+                                   : 'USDA'
+                  return (
+                    <button key={food.id} style={s.foodRow} onClick={() => selectItem(food, null)}>
+                      <div style={s.foodInfo}>
+                        <div style={{ ...s.foodName, fontWeight: isPersonal ? '600' : '500' }}>
+                          {food.name}
+                        </div>
+                        <div style={s.foodMeta}>
+                          {food.per100g?.calories || 0} kcal · {food.per100g?.protein || 0}g P per 100g
+                          <span style={isPersonal ? s.tagPersonal : s.tag}> · {sourceTag}</span>
+                        </div>
                       </div>
-                    </div>
-                    <span style={s.chevron}>›</span>
-                  </button>
-                ))}
+                      <span style={s.chevron}>›</span>
+                    </button>
+                  )
+                })}
               </div>
             </>
           )}
@@ -186,6 +341,8 @@ export default function MealEntry({ date, onLogged }) {
               meal={meal}
               onAdd={handleAdd}
               onBack={() => setScreen("list")}
+              initialAmount={voiceQty ? String(voiceQty) : undefined}
+              initialUnit={voiceQty ? voiceUnit : undefined}
             />
           )}
 
@@ -204,17 +361,19 @@ export default function MealEntry({ date, onLogged }) {
 }
 
 // ─── Inline Food Entry ────────────────────────────────────────────────────────
-function FoodEntryInline({ food, batch, meal, onAdd, onBack }) {
+function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, initialUnit }) {
   const isManual = food?.id === "manual"
   const isBatch  = !!batch
   const item     = batch || food
 
-  const [grams,    setGrams]    = useState(String(item?.servingSize || 100))
-  const [name,     setName]     = useState(isManual ? "" : (item?.name || ""))
+  const [amount,    setAmount]    = useState(initialAmount ?? String(item?.servingSize || 100))
+  const [unit,      setUnit]      = useState(initialUnit   ?? 'g')
+  const [name,      setName]      = useState(isManual ? "" : (item?.name || ""))
   const [manMacros, setManMacros] = useState({ calories:"", protein:"", carbs:"", fat:"", fibre:"" })
-  const [error,    setError]    = useState("")
+  const [error,     setError]     = useState("")
 
-  const parsedGrams = parseFloat(grams) || 0
+  const parsedAmount = parseFloat(amount) || 0
+  const parsedGrams  = toGrams(parsedAmount, unit)  // always in grams for calculations
 
   // Calculate macros
   let macros = { calories:0, protein:0, carbs:0, fat:0, fibre:0 }
@@ -222,27 +381,26 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack }) {
     macros = calcBatchMacros(batch, parsedGrams)
   } else if (!isManual && food && parsedGrams > 0) {
     macros = calcMacros(food, parsedGrams)
-  } else if (isManual && parsedGrams > 0) {
-    // Manual — macros entered per 100g, calculate for grams
-    const ratio = parsedGrams / 100
+  } else if (isManual) {
+    // Macros entered directly for the amount specified — no per-100g normalisation
     macros = {
-      calories: Math.round((parseFloat(manMacros.calories) || 0) * ratio * 10) / 10,
-      protein:  Math.round((parseFloat(manMacros.protein)  || 0) * ratio * 10) / 10,
-      carbs:    Math.round((parseFloat(manMacros.carbs)    || 0) * ratio * 10) / 10,
-      fat:      Math.round((parseFloat(manMacros.fat)      || 0) * ratio * 10) / 10,
-      fibre:    Math.round((parseFloat(manMacros.fibre)    || 0) * ratio * 10) / 10,
+      calories: Math.round((parseFloat(manMacros.calories) || 0) * 10) / 10,
+      protein:  Math.round((parseFloat(manMacros.protein)  || 0) * 10) / 10,
+      carbs:    Math.round((parseFloat(manMacros.carbs)    || 0) * 10) / 10,
+      fat:      Math.round((parseFloat(manMacros.fat)      || 0) * 10) / 10,
+      fibre:    Math.round((parseFloat(manMacros.fibre)    || 0) * 10) / 10,
     }
   }
 
   function handleAdd() {
-    if (parsedGrams <= 0) { setError("Enter a valid amount"); return }
+    if (parsedAmount <= 0) { setError("Enter a valid amount"); return }
     if (isManual && !name.trim()) { setError("Enter food name"); return }
 
     onAdd({
       foodId:  isBatch ? null : (isManual ? null : food.id),
       batchId: isBatch ? batch.id : null,
       name:    isManual ? name.trim() : item.name,
-      grams:   parsedGrams,
+      grams:   parsedGrams,  // always stored in grams
       source:  isBatch ? "batch" : (isManual ? "manual" : food.source),
       ...macros,
     })
@@ -267,34 +425,47 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack }) {
 
       {isBatch && <div style={s.batchTag}>From batch</div>}
 
-      {/* Grams input */}
-      <div style={s.gramRow}>
-        <input
-          style={s.gramInput}
-          type="number"
-          inputMode="decimal"
-          placeholder="100"
-          value={grams}
-          onChange={e => setGrams(e.target.value)}
-          autoFocus={!isManual}
-        />
-        <span style={s.gramUnit}>g</span>
-      </div>
+      {/* Amount input + unit picker */}
+      <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+        <div style={s.gramRow}>
+          <input
+            style={s.gramInput}
+            type="number"
+            inputMode="decimal"
+            placeholder="100"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            autoFocus={!isManual}
+          />
+          <div style={{ display:'flex', gap:'4px', flexShrink:0 }}>
+            {WEIGHT_UNITS.map(u => (
+              <button
+                key={u}
+                type="button"
+                onClick={() => setUnit(u)}
+                style={{ padding:'6px 8px', background: unit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${unit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: unit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
+              >{u}</button>
+            ))}
+          </div>
+        </div>
 
-      {/* Serving size reference */}
-      {!isManual && item?.servingSize && item?.servingLabel && (
-        <button
-          style={s.servingHint}
-          onClick={() => setGrams(String(item.servingSize))}
-        >
-          1 serving = {item.servingSize}g ({item.servingLabel}) — tap to use
-        </button>
-      )}
+        {/* Serving size reference */}
+        {!isManual && item?.servingSize && item?.servingLabel && (
+          <button
+            style={s.servingHint}
+            onClick={() => { setAmount(String(item.servingSize)); setUnit('g') }}
+          >
+            1 serving = {item.servingSize}g ({item.servingLabel}) — tap to use
+          </button>
+        )}
+      </div>
 
       {/* Manual macro input */}
       {isManual && (
         <div style={s.manualSection}>
-          <div style={s.manualLabel}>Macros per 100g</div>
+          <div style={s.manualLabel}>
+            Macros for {parsedAmount > 0 ? parsedAmount : '?'}{unit}
+          </div>
           <div style={s.manualGrid}>
             {[
               { key:"calories", label:"kcal",   color:"var(--text-primary)"  },
@@ -361,9 +532,11 @@ const s = {
   mealRow:      { display:"flex", gap:"6px", marginBottom:"12px" },
   mealBtn:      { flex:1, padding:"8px 4px", background:"var(--bg-elevated)", border:"0.5px solid var(--border-subtle)", borderRadius:"var(--r-md)", fontSize:"12px", fontWeight:"500", color:"var(--text-secondary)", cursor:"pointer" },
   mealBtnActive:{ background:"var(--text-primary)", color:"var(--text-inverse)", borderColor:"var(--text-primary)" },
-  searchRow:    { display:"flex", alignItems:"center", gap:"8px", marginBottom:"10px", position:"relative" },
-  searchInput:  { flex:1, padding:"11px 14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-md)", fontSize:"15px", color:"var(--text-primary)", outline:"none" },
-  clearBtn:     { position:"absolute", right:"10px", background:"none", border:"none", color:"var(--text-tertiary)", fontSize:"14px", cursor:"pointer", padding:"4px" },
+  searchRow:    { display:"flex", alignItems:"center", gap:"6px", marginBottom:"6px" },
+  searchInput:  { flex:1, padding:"11px 14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-md)", fontSize:"15px", color:"var(--text-primary)", outline:"none", minWidth:0 },
+  searchIconBtn:{ width:"40px", height:"40px", borderRadius:"var(--r-md)", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", color:"var(--text-secondary)", fontSize:"15px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
+  micActive:    { background:"var(--accent)", borderColor:"var(--accent)", color:"#fff", animation:"micPulse 1s ease-in-out infinite" },
+  voiceHint:    { fontSize:"12px", color:"var(--accent)", marginBottom:"8px", paddingLeft:"2px", fontWeight:"500" },
   actionRow:    { display:"flex", gap:"8px", marginBottom:"12px" },
   actionBtn:    { flex:1, padding:"10px", background:"var(--bg-elevated)", border:"1px dashed var(--border-strong)", borderRadius:"var(--r-md)", color:"var(--text-secondary)", fontSize:"13px", fontWeight:"500", cursor:"pointer" },
   section:      { marginBottom:"8px" },
@@ -372,7 +545,8 @@ const s = {
   foodInfo:     { flex:1, display:"flex", flexDirection:"column", gap:"2px" },
   foodName:     { fontSize:"14px", fontWeight:"500", color:"var(--text-primary)", letterSpacing:"-0.01em" },
   foodMeta:     { fontSize:"12px", color:"var(--text-tertiary)" },
-  tag:          { color:"var(--accent)", fontWeight:"500" },
+  tag:          { color:"var(--text-tertiary)", fontWeight:"500" },
+  tagPersonal:  { color:"var(--accent)", fontWeight:"600" },
   chevron:      { fontSize:"20px", color:"var(--text-tertiary)", flexShrink:0 },
   empty:        { fontSize:"13px", color:"var(--text-tertiary)", textAlign:"center", padding:"24px 0" },
   entryContainer:{ display:"flex", flexDirection:"column", gap:"14px", paddingBottom:"8px" },
