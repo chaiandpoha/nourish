@@ -11,17 +11,29 @@ let _seeded = false
 
 export async function seedFoodDatabase() {
   if (_seeded) return
+  // Check if foods actually exist in DB
+  const count = await db.foods.count()
+  if (count > 10) { _seeded = true; return }
 
   try {
+    console.log('Seeding food database...')
     const [usdaRes, ninRes] = await Promise.all([
       fetch('/data/usda_foods.json'),
       fetch('/data/nin_foods.json'),
     ])
 
+    console.log('USDA status:', usdaRes.status, 'NIN status:', ninRes.status)
+
+    if (!usdaRes.ok || !ninRes.ok) {
+      throw new Error('Failed to fetch food data: ' + usdaRes.status + ' ' + ninRes.status)
+    }
+
     const [usdaFoods, ninFoods] = await Promise.all([
       usdaRes.json(),
       ninRes.json(),
     ])
+
+    console.log('USDA foods:', usdaFoods.length, 'NIN foods:', ninFoods.length)
 
     const all = [
       ...usdaFoods.map(f => ({ ...f, source: 'usda' })),
@@ -29,6 +41,7 @@ export async function seedFoodDatabase() {
     ]
 
     await db.foods.bulkPut(all)
+    console.log('Seeded', all.length, 'foods')
     _seeded = true
     console.log(`FoodDB: seeded ${all.length} foods`)
   } catch (e) {
