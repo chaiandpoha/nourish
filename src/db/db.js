@@ -101,7 +101,7 @@ export async function runDailyBackup(userId, encryptionKey) {
   try {
     await flushDirtyRecords(userId, encryptionKey)
     // Mark all records as dirty to force full backup
-    const tables = ['foodLogs','workoutLogs','workoutSets','weightLog','bloodWork','supplementLog','moodLog','programmes']
+    const tables = ['foodLogs','workoutLogs','workoutSets','weightLog','bloodWork','supplementLog','moodLog','programmes','reminders','mealTemplates']
     for (const table of tables) {
       const records = await db[table].where('userId').equals(userId).toArray()
       if (records.length === 0) continue
@@ -255,6 +255,7 @@ export async function flushDirtyRecords(userId, encryptionKey) {
     await flushMonthlyTable('bloodWork',    userId, encryptionKey, _folderIds.userDir)
     await flushMonthlyTable('supplementLog',userId, encryptionKey, _folderIds.userDir)
     await flushMonthlyTable('moodLog',      userId, encryptionKey, _folderIds.userDir)
+    await flushReminders(userId)
     await flushProgrammes(userId, encryptionKey)
     await flushProfile(userId, encryptionKey)
   } catch (e) {
@@ -324,6 +325,33 @@ function mergeRecords(existing, incoming) {
   for (const r of existing) map.set(r.id, r)
   for (const r of incoming)  map.set(r.id, r)  // incoming wins
   return Array.from(map.values())
+}
+
+async function flushReminders(userId) {
+  const dirty = await db.reminders.where('userId').equals(userId).and(r => r.dirty === 1).toArray()
+  if (!dirty.length) return
+
+  const all      = await db.reminders.where('userId').equals(userId).toArray()
+  const syncKey  = `${userId}:reminders`
+  const stateRow = await db.syncState.get(syncKey)
+  const fileId   = await writeFile('reminders.json', all, _folderIds.userDir, stateRow?.fileId)
+
+  await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
+  await clearDirty('reminders', dirty.map(r => r.id))
+}
+
+/** Immediately write all reminders to Drive — called after add/delete */
+export async function saveRemindersToCloud(userId) {
+  if (!isTokenValid() || !_folderIds.userDir) return
+  try {
+    const all      = await db.reminders.where('userId').equals(userId).toArray()
+    const syncKey  = `${userId}:reminders`
+    const stateRow = await db.syncState.get(syncKey)
+    const fileId   = await writeFile('reminders.json', all, _folderIds.userDir, stateRow?.fileId)
+    await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
+  } catch (e) {
+    console.warn('Reminder sync error:', e)
+  }
 }
 
 async function flushProgrammes(userId, encryptionKey) {

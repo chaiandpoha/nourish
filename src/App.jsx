@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/useAuth.jsx'
 import { BannerProvider, useBanners } from './shared/Banner.jsx'
@@ -7,6 +7,8 @@ import Onboarding from './auth/Onboarding.jsx'
 import BottomNav from './shared/BottomNav.jsx'
 import { runMigrations } from './db/migrations.js'
 import { db } from './db/indexedDB.js'
+import { saveRemindersToCloud } from './db/db.js'
+import { generateId } from './auth/crypto.js'
 import { DRIVE } from './config.js'
 import HomeScreen from './screens/Home.jsx'
 import BatchList from './batches/BatchList.jsx'
@@ -360,12 +362,14 @@ function SettingsScreen() {
   }
 
   const tabs = [
-    { id:'profile',  label:'Profile'  },
-    { id:'progress', label:'Progress' },
-    { id:'mood',     label:'Mood'     },
-    { id:'blood',    label:'Blood'    },
-    { id:'ai',       label:'AI'       },
-    { id:'admin',    label:'Admin'    },
+    { id:'profile',   label:'Profile'   },
+    { id:'supps',     label:'Supps'     },
+    { id:'reminders', label:'Reminders' },
+    { id:'progress',  label:'Progress'  },
+    { id:'mood',      label:'Mood'      },
+    { id:'blood',     label:'Blood'     },
+    { id:'ai',        label:'AI'        },
+    { id:'admin',     label:'Admin'     },
   ]
 
   return (
@@ -399,6 +403,14 @@ function SettingsScreen() {
 
 
         </>
+      )}
+
+      {tab === 'supps' && (
+        <SupplementStreaks userId={user?.id} supplements={user?.supplements || []} />
+      )}
+
+      {tab === 'reminders' && (
+        <ReminderSettings userId={user?.id} />
       )}
 
       {tab === 'progress' && (
@@ -508,6 +520,265 @@ function RecoverScreen() {
       <button style={styles.primaryBtn} onClick={handleReset}>Reset PIN</button>
     </div>
   )
+}
+
+// ─── SupplementStreaks ────────────────────────────────────────────────────────
+
+function SupplementStreaks({ userId, supplements }) {
+  const [streaks, setStreaks] = useState({})
+
+  const loadStreaks = useCallback(async () => {
+    if (!userId || !supplements.length) return
+
+    // Load last 30 days of supplement logs in one query
+    const today = new Date()
+    const days  = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date(today)
+      d.setDate(d.getDate() - i)
+      return d.toISOString().slice(0, 10)
+    })
+    const oldest = days[days.length - 1]
+    const newest = days[0]
+
+    const logs = await db.supplementLog
+      .where('[userId+date]')
+      .between([userId, oldest], [userId, newest], true, true)
+      .toArray()
+
+    const byDate = {}
+    for (const log of logs) byDate[log.date] = log.done || {}
+
+    const result = {}
+    for (const supp of supplements) {
+      let streak = 0
+      for (const day of days) {
+        if (byDate[day]?.[supp]) streak++
+        else break
+      }
+      result[supp] = streak
+    }
+    setStreaks(result)
+  }, [userId, supplements])
+
+  useEffect(() => { loadStreaks() }, [loadStreaks])
+
+  if (!supplements.length) {
+    return (
+      <div style={st2.empty}>
+        <p style={st2.emptyTitle}>No supplements configured</p>
+        <p style={st2.emptySub}>Add supplements during onboarding or profile setup</p>
+      </div>
+    )
+  }
+
+  return (
+    <div style={st2.section}>
+      <div style={st2.sectionHeader}>
+        <span style={st2.sectionTitle}>Supplement Streaks</span>
+        <span style={st2.sectionSub}>Consecutive days taken</span>
+      </div>
+      <div style={st2.card}>
+        {supplements.map((supp, i) => {
+          const streak   = streaks[supp] ?? 0
+          const isLast   = i === supplements.length - 1
+          return (
+            <div key={supp} style={{ ...st2.row, borderBottom: isLast ? 'none' : '0.5px solid var(--border-subtle)' }}>
+              <span style={st2.rowLabel}>💊 {supp}</span>
+              <div style={st2.streakRight}>
+                <span style={{ ...st2.streakNum, color: streak > 0 ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+                  {streak}
+                </span>
+                <span style={st2.streakUnit}>day{streak !== 1 ? 's' : ''}</span>
+                {streak >= 7  && <span title="7-day streak">🔥</span>}
+                {streak >= 30 && <span title="30-day streak">⚡</span>}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── ReminderSettings ─────────────────────────────────────────────────────────
+
+const WEEK_DAYS = [
+  { id:'sun', label:'Su' },
+  { id:'mon', label:'Mo' },
+  { id:'tue', label:'Tu' },
+  { id:'wed', label:'We' },
+  { id:'thu', label:'Th' },
+  { id:'fri', label:'Fr' },
+  { id:'sat', label:'Sa' },
+]
+const ALL_DAYS = WEEK_DAYS.map(d => d.id)
+
+function ReminderSettings({ userId }) {
+  const [reminders, setReminders] = useState([])
+  const [label,     setLabel]     = useState('')
+  const [time,      setTime]      = useState('09:00')
+  const [days,      setDays]      = useState(ALL_DAYS)
+  const [saving,    setSaving]    = useState(false)
+  const [error,     setError]     = useState('')
+
+  const loadReminders = useCallback(async () => {
+    if (!userId) return
+    const r = await db.reminders.where('userId').equals(userId).toArray()
+    setReminders(r.sort((a, b) => (a.time || '').localeCompare(b.time || '')))
+  }, [userId])
+
+  useEffect(() => { loadReminders() }, [loadReminders])
+
+  function toggleDay(day) {
+    setDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])
+  }
+
+  async function handleAdd() {
+    if (!label.trim())   { setError('Enter a label'); return }
+    if (!days.length)    { setError('Select at least one day'); return }
+    setSaving(true)
+    setError('')
+    try {
+      await db.reminders.add({
+        id:        generateId(),
+        userId,
+        label:     label.trim(),
+        time,
+        days,
+        dirty:     1,
+        updatedAt: new Date().toISOString(),
+      })
+      setLabel('')
+      setTime('09:00')
+      setDays(ALL_DAYS)
+      await loadReminders()
+      saveRemindersToCloud(userId)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id) {
+    await db.reminders.delete(id)
+    await loadReminders()
+    saveRemindersToCloud(userId)
+  }
+
+  const fmtDays = (ds = []) => {
+    if (ds.length === 7) return 'Every day'
+    if (ds.length === 0) return '—'
+    const order = ['sun','mon','tue','wed','thu','fri','sat']
+    return ds.sort((a,b) => order.indexOf(a) - order.indexOf(b))
+             .map(d => d.charAt(0).toUpperCase() + d.slice(1))
+             .join(', ')
+  }
+
+  return (
+    <div style={st2.section}>
+
+      {/* Existing reminders */}
+      {reminders.length > 0 && (
+        <div style={st2.card}>
+          {reminders.map((r, i) => (
+            <div key={r.id} style={{ ...st2.reminderRow, borderBottom: i < reminders.length - 1 ? '0.5px solid var(--border-subtle)' : 'none' }}>
+              <div style={{ flex:1 }}>
+                <div style={st2.reminderLabel}>{r.label}</div>
+                <div style={st2.reminderMeta}>{r.time} · {fmtDays(r.days)}</div>
+              </div>
+              <button style={st2.deleteBtn} onClick={() => handleDelete(r.id)}>Delete</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add reminder form */}
+      <div style={st2.sectionHeader}>
+        <span style={st2.sectionTitle}>{reminders.length ? 'Add Reminder' : 'New Reminder'}</span>
+        <span style={st2.sectionSub}>Shows as a banner when you open the app</span>
+      </div>
+
+      <div style={st2.card}>
+        <input
+          style={st2.input}
+          placeholder="e.g. Take creatine, Log weight"
+          value={label}
+          onChange={e => setLabel(e.target.value)}
+        />
+
+        <div style={st2.timeRow}>
+          <span style={st2.timeLabel}>Time</span>
+          <input
+            type="time"
+            style={st2.timeInput}
+            value={time}
+            onChange={e => setTime(e.target.value)}
+          />
+        </div>
+
+        <div style={st2.daysRow}>
+          {WEEK_DAYS.map(d => (
+            <button
+              key={d.id}
+              type="button"
+              style={{
+                ...st2.dayBtn,
+                ...(days.includes(d.id) ? st2.dayBtnActive : {}),
+              }}
+              onClick={() => toggleDay(d.id)}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+
+        {error && <p style={st2.error}>{error}</p>}
+
+        <button
+          style={{ ...st2.addBtn, opacity: saving ? 0.6 : 1 }}
+          onClick={handleAdd}
+          disabled={saving}
+        >
+          {saving ? 'Adding…' : '+ Add Reminder'}
+        </button>
+      </div>
+
+      {reminders.length === 0 && (
+        <p style={st2.emptySub}>No reminders yet. Reminders appear as banners when you open the app at the right time.</p>
+      )}
+    </div>
+  )
+}
+
+// Shared styles for SupplementStreaks + ReminderSettings
+const st2 = {
+  section:       { display:'flex', flexDirection:'column', gap:'12px' },
+  sectionHeader: { display:'flex', flexDirection:'column', gap:'2px', paddingTop:'4px' },
+  sectionTitle:  { fontSize:'15px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.01em' },
+  sectionSub:    { fontSize:'12px', color:'var(--text-tertiary)' },
+  card:          { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', padding:'0 16px', overflow:'hidden' },
+  row:           { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'13px 0' },
+  rowLabel:      { fontSize:'14px', color:'var(--text-primary)' },
+  streakRight:   { display:'flex', alignItems:'center', gap:'4px' },
+  streakNum:     { fontSize:'22px', fontWeight:'600', fontFamily:'var(--font-mono)', letterSpacing:'-0.03em' },
+  streakUnit:    { fontSize:'12px', color:'var(--text-tertiary)' },
+  reminderRow:   { display:'flex', alignItems:'center', gap:'12px', padding:'13px 0' },
+  reminderLabel: { fontSize:'14px', fontWeight:'600', color:'var(--text-primary)' },
+  reminderMeta:  { fontSize:'12px', color:'var(--text-tertiary)', marginTop:'2px' },
+  deleteBtn:     { background:'none', border:'none', color:'var(--red)', fontSize:'13px', fontWeight:'600', cursor:'pointer', padding:'4px 0', flexShrink:0 },
+  input:         { width:'100%', padding:'11px 0', background:'transparent', border:'none', borderBottom:'0.5px solid var(--border-subtle)', fontSize:'15px', color:'var(--text-primary)', outline:'none', boxSizing:'border-box' },
+  timeRow:       { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'11px 0', borderBottom:'0.5px solid var(--border-subtle)' },
+  timeLabel:     { fontSize:'14px', color:'var(--text-primary)' },
+  timeInput:     { background:'transparent', border:'none', fontSize:'15px', fontWeight:'500', color:'var(--text-primary)', outline:'none', textAlign:'right', cursor:'pointer' },
+  daysRow:       { display:'flex', gap:'6px', padding:'12px 0', borderBottom:'0.5px solid var(--border-subtle)' },
+  dayBtn:        { width:'34px', height:'34px', borderRadius:'50%', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', color:'var(--text-secondary)', fontSize:'11px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
+  dayBtnActive:  { background:'var(--text-primary)', borderColor:'var(--text-primary)', color:'var(--text-inverse)' },
+  addBtn:        { width:'100%', padding:'13px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-md)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer', marginTop:'4px' },
+  error:         { fontSize:'13px', color:'var(--red)', margin:'4px 0 0' },
+  empty:         { display:'flex', flexDirection:'column', alignItems:'center', padding:'48px 0', gap:'6px' },
+  emptyTitle:    { fontSize:'15px', fontWeight:'600', color:'var(--text-primary)', margin:0 },
+  emptySub:      { fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center', margin:0, lineHeight:'1.5' },
 }
 
 const styles = {
