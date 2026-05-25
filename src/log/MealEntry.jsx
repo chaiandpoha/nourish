@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { searchFoods, getRecentFoods, getActiveBatches, detectMealSlot, seedFoodDatabase } from "../food/FoodDB.js"
+import { searchFoods, getRecentFoods, getActiveBatches, detectMealSlot, seedFoodDatabase, getPopularFoods } from "../food/FoodDB.js"
 import { useAuth } from "../auth/useAuth.jsx"
 import { addFoodLogEntry } from "../db/db.js"
 import { calcMacros, calcBatchMacros, toGrams, WEIGHT_UNITS } from "../food/macroCalc.js"
@@ -70,6 +70,7 @@ export default function MealEntry({ date, onLogged }) {
   const [meal,       setMeal]       = useState(detectMealSlot())
   const [seeded,     setSeeded]     = useState(false)
   const [seedFailed, setSeedFailed] = useState(false)
+  const [suggested,  setSuggested]  = useState([])
   const [listening,  setListening]  = useState(false)
   const [voiceHint,  setVoiceHint]  = useState('')
   const [voiceQty,   setVoiceQty]   = useState(null)
@@ -104,6 +105,10 @@ export default function MealEntry({ date, onLogged }) {
     ]).then(([b, r]) => {
       setBatches(b)
       setRecents(r)
+      // If no recents, load popular foods so the list is never blank
+      if (!r.length) {
+        getPopularFoods(16).then(setSuggested).catch(() => {})
+      }
     })
   }, [open, user, seeded])
 
@@ -136,6 +141,7 @@ export default function MealEntry({ date, onLogged }) {
     setSelected(null)
     setVoiceQty(null)
     setVoiceHint('')
+    setSuggested([])
   }
 
   function startListening() {
@@ -199,7 +205,7 @@ export default function MealEntry({ date, onLogged }) {
     onLogged?.()
   }
 
-  const displayList = query.trim() ? results : recents
+  const displayList = query.trim() ? results : recents.length ? recents : suggested
 
   return (
     <>
@@ -299,12 +305,22 @@ export default function MealEntry({ date, onLogged }) {
               {/* Results / Recents */}
               <div style={s.section}>
                 <div style={s.sectionLabel}>
-                  {query.trim() ? `${results.length} results` : "Recent Foods"}
+                  {query.trim()
+                    ? `${results.length} result${results.length !== 1 ? 's' : ''}`
+                    : recents.length ? 'Recent Foods'
+                    : suggested.length ? 'Popular Foods'
+                    : 'Foods'}
                 </div>
 
                 {displayList.length === 0 && (
                   <div style={s.empty}>
-                    {query.trim() ? "No foods found — try scanning a label" : "No recent foods yet — search above"}
+                    {query.trim()
+                      ? 'No foods found — try scanning a label or add manually'
+                      : seeded
+                        ? 'Loading foods…'
+                        : seedFailed
+                          ? 'Food database unavailable — try scanning a label'
+                          : 'Loading…'}
                   </div>
                 )}
 

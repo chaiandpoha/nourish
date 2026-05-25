@@ -148,6 +148,18 @@ export async function getRecentFoods(userId, limit = 10) {
   return foods.filter(Boolean)
 }
 
+// ─── Popular / suggested foods ────────────────────────────────────────────────
+
+/**
+ * Returns a curated default list when the user has no recent foods.
+ * Prioritises saved/scanned > nin > usda — same as search priority.
+ */
+export async function getPopularFoods(limit = 16) {
+  const all = await db.foods.toArray()
+  all.sort((a, b) => sourcePriority(a.source) - sourcePriority(b.source))
+  return all.slice(0, limit)
+}
+
 // ─── Get food by ID ───────────────────────────────────────────────────────────
 
 export async function getFoodById(id) {
