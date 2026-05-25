@@ -21,6 +21,9 @@ import AdminPanel from './admin/AdminPanel.jsx'
 import HouseholdSetup, { getHouseholdCode } from './auth/HouseholdSetup.jsx'
 import ProgramManager from './workout/ProgramManager.jsx'
 import WorkoutLog from './workout/WorkoutLog.jsx'
+import WorkoutCharts from './workout/WorkoutCharts.jsx'
+import MuscleVolume from './workout/MuscleVolume.jsx'
+import ProgressPhotos from './progress/ProgressPhotos.jsx'
 
 export default function App() {
   const [migrationsRun,   setMigrationsRun]   = useState(false)
@@ -297,8 +300,14 @@ function FoodScreen() {
   )
 }
 
+const WORKOUT_TABS = [
+  { id: 'programmes', label: 'Plans'   },
+  { id: 'charts',     label: 'Charts'  },
+  { id: 'volume',     label: 'Volume'  },
+]
+
 function WorkoutScreen() {
-  const [screen,    setScreen]    = useState('programmes') // programmes | logging
+  const [screen,     setScreen]     = useState('programmes') // programmes | charts | volume | logging
   const [activeProg, setActiveProg] = useState(null)
   const [activeDay,  setActiveDay]  = useState(null)
 
@@ -308,7 +317,7 @@ function WorkoutScreen() {
     setScreen('logging')
   }
 
-  function handleFinish(summary) {
+  function handleFinish() {
     setScreen('programmes')
     setActiveProg(null)
     setActiveDay(null)
@@ -329,7 +338,20 @@ function WorkoutScreen() {
 
   return (
     <div style={styles.screen}>
-      <ProgramManager onStartWorkout={handleStartWorkout} />
+      <div style={styles.tabBar}>
+        {WORKOUT_TABS.map(t => (
+          <button
+            key={t.id}
+            style={{ ...styles.tabBtn, ...(screen === t.id ? styles.tabBtnActive : {}) }}
+            onClick={() => setScreen(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {screen === 'programmes' && <ProgramManager onStartWorkout={handleStartWorkout} />}
+      {screen === 'charts'     && <WorkoutCharts />}
+      {screen === 'volume'     && <MuscleVolume />}
     </div>
   )
 }
@@ -366,6 +388,7 @@ function SettingsScreen() {
     { id:'supps',     label:'Supps'     },
     { id:'reminders', label:'Reminders' },
     { id:'progress',  label:'Progress'  },
+    { id:'photos',    label:'Photos'    },
     { id:'mood',      label:'Mood'      },
     { id:'blood',     label:'Blood'     },
     { id:'ai',        label:'AI'        },
@@ -415,6 +438,10 @@ function SettingsScreen() {
 
       {tab === 'progress' && (
         <WeightLog />
+      )}
+
+      {tab === 'photos' && (
+        <ProgressPhotos userId={user?.id} />
       )}
 
       {tab === 'mood' && (
