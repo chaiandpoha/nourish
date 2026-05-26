@@ -19,7 +19,6 @@ import BloodWork from './progress/BloodWork.jsx'
 import MoodLog from './progress/MoodLog.jsx'
 import CalendarView from './calendar/CalendarView.jsx'
 import AdminPanel from './admin/AdminPanel.jsx'
-import HouseholdSetup, { getHouseholdCode } from './auth/HouseholdSetup.jsx'
 import ProgramManager from './workout/ProgramManager.jsx'
 import WorkoutLog from './workout/WorkoutLog.jsx'
 import WorkoutCharts from './workout/WorkoutCharts.jsx'
@@ -37,14 +36,14 @@ export default function App() {
   useEffect(() => {
     const hash = window.location.hash
     if (hash.includes('access_token')) {
-      import('./db/driveApi.js').then(async ({ parseOAuthCallback, ensureFolderStructure, isTokenValid }) => {
+      import('./db/driveApi.js').then(async ({ parseOAuthCallback, fetchUserInfo }) => {
         try {
           parseOAuthCallback()
-          console.log('OAuth token parsed, valid:', isTokenValid())
+          await fetchUserInfo()
         } catch (e) {
           console.error('OAuth error:', e)
         }
-        window.location.replace(window.location.origin + '/#/onboarding?googled=1')
+        window.location.replace(window.location.origin + '/#/auth/callback')
       })
       return
     }
@@ -87,125 +86,14 @@ export default function App() {
   )
 }
 
-function OnboardingGate() {
-  const [checking, setChecking] = useState(true)
-  const [found,    setFound]    = useState(false)
-
-  useEffect(() => {
-    checkDriveForProfile()
-  }, [])
-
-  async function checkDriveForProfile() {
-    try {
-      const { isTokenValid, restoreToken, findFolder, findFile, listFolders, readFile } = await import('./db/driveApi.js')
-      if (!isTokenValid()) restoreToken()
-      if (!isTokenValid()) { setChecking(false); return }
-
-      // Walk Nourish/users/ looking for any profile.json
-      const nourishId = await findFolder('Nourish', 'root')
-      if (!nourishId) { setChecking(false); return }
-
-      const usersId = await findFolder('users', nourishId)
-      if (!usersId) { setChecking(false); return }
-
-      const userDirs = await listFolders(usersId)
-      if (!userDirs?.length) { setChecking(false); return }
-
-      for (const dir of userDirs) {
-        const profileFile = await findFile('profile.json', dir.id)
-        if (profileFile) {
-          const raw = await readFile(profileFile.id)
-          if (raw) {
-            const p = typeof raw === 'string' ? JSON.parse(raw) : raw
-            await db.users.put({ ...p, dirty: 0 })
-            console.log('Profile restored from Drive:', p.name)
-            setFound(true)
-            setChecking(false)
-            return
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Drive profile check failed:', e)
-    }
-    setChecking(false)
-  }
-
-  if (checking) {
-    return (
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100dvh', background:'var(--bg-base)', gap:'16px' }}>
-        <img src="/icons/icon-192.png" style={{ width:'64px', borderRadius:'16px' }} />
-        <p style={{ fontSize:'15px', color:'var(--text-secondary)' }}>Checking for existing profile…</p>
-      </div>
-    )
-  }
-
-  if (found) {
-    // Profile restored — go to dashboard
-    window.location.hash = '#/'
-    return null
-  }
-
-  return <Onboarding onComplete={() => { window.location.hash = '#/' }} />
-}
-
 function AppRoutes() {
   const { isLoading } = useAuth()
-  const [householdReady, setHouseholdReady] = useState(false)
 
-  useEffect(() => {
-    const code = localStorage.getItem('nourish_household_code')
-    if (code) { setHouseholdReady(true); return }
-    // If profiles already exist in IndexedDB, auto-create a household so the gate
-    // never permanently locks out a user who lost their localStorage.
-    db.users.count().then(n => {
-      if (n > 0) {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-        const rand  = crypto.getRandomValues(new Uint8Array(12))
-        const raw   = Array.from(rand).map(b => chars[b % chars.length]).join('')
-        const auto  = 'NOURISH-' + raw.slice(0,4) + '-' + raw.slice(4,8) + '-' + raw.slice(8,12)
-        localStorage.setItem('nourish_household_code',  auto)
-        localStorage.setItem('nourish_household_admin', 'true')
-      }
-      setHouseholdReady(true)
-    })
-  }, [])
-
-  if (isLoading || !householdReady) {
+  if (isLoading) {
     return (
       <div style={styles.splash}>
         <img src='/icons/icon-192.png' style={{ width:'80px', height:'80px', borderRadius:'20px' }} alt='Nourish' />
       </div>
-    )
-  }
-
-  const hasHousehold = !!localStorage.getItem('nourish_household_code')
-  const hash = window.location.hash
-
-  // Admin login and join links bypass the household gate
-  if (hash.includes('admin-login')) {
-    return (
-      <Routes>
-        <Route path="/admin-login" element={<AdminLogin />} />
-        <Route path="/*" element={<Navigate to="/admin-login" replace />} />
-      </Routes>
-    )
-  }
-
-  if (hash.includes('/join')) {
-    return (
-      <Routes>
-        <Route path="/join" element={<JoinRoute />} />
-        <Route path="/*" element={<Navigate to={hash.replace('#', '')} replace />} />
-      </Routes>
-    )
-  }
-
-  if (!hasHousehold && !hash.includes('onboarding')) {
-    return (
-      <HouseholdSetup
-        onJoined={() => window.location.reload()}
-      />
     )
   }
 
@@ -214,14 +102,45 @@ function AppRoutes() {
       <ReminderChecker />
       <QuotaChecker />
       <Routes>
-        <Route path="/admin-login" element={<AdminLogin />} />
-        <Route path="/join" element={<JoinRoute />} />
-        <Route path="/onboarding" element={<OnboardingGate />} />
+        <Route path="/admin-login"   element={<AdminLogin />} />
+        <Route path="/onboarding"    element={<OnboardingScreen />} />
         <Route path="/auth/callback" element={<AuthCallbackScreen />} />
-        <Route path="/recover" element={<RecoverScreen />} />
-        <Route path="/*" element={<AuthGate><ProtectedApp /></AuthGate>} />
+        <Route path="/recover"       element={<RecoverScreen />} />
+        <Route path="/*"             element={<AuthGate><ProtectedApp /></AuthGate>} />
       </Routes>
     </>
+  )
+}
+
+function OnboardingScreen() {
+  const { user, refreshUser } = useAuth()
+  if (!user) { window.location.hash = '#/'; return null }
+  return (
+    <Onboarding
+      onComplete={() => { refreshUser(); window.location.hash = '#/' }}
+    />
+  )
+}
+
+function AuthCallbackScreen() {
+  const { loginWithGoogle } = useAuth()
+
+  useEffect(() => {
+    import('./db/driveApi.js').then(({ getUserEmail, getUserName, isTokenValid }) => {
+      const email = getUserEmail()
+      const name  = getUserName()
+      if (!email || !isTokenValid()) { window.location.hash = '#/'; return }
+      loginWithGoogle(email, name)
+        .then(profile => { window.location.hash = profile._isNew ? '#/onboarding' : '#/' })
+        .catch(() => { window.location.hash = '#/' })
+    })
+  }, [])
+
+  return (
+    <div style={styles.splash}>
+      <img src='/icons/icon-192.png' style={{ width:'80px', height:'80px', borderRadius:'20px' }} alt='Nourish' />
+      <p style={styles.splashText}>Signing in…</p>
+    </div>
   )
 }
 
@@ -504,33 +423,6 @@ function SettingsScreen() {
   )
 }
 
-function JoinRoute() {
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.hash.split('?')[1] || '')
-    const code   = params.get('code')?.trim().toUpperCase()
-    if (code && code.startsWith('NOURISH-')) {
-      localStorage.setItem('nourish_household_code',  code)
-      localStorage.setItem('nourish_household_admin', 'false')
-    }
-    window.location.replace(window.location.origin + '/#/onboarding')
-  }, [])
-
-  return (
-    <div style={styles.splash}>
-      <img src='/icons/icon-192.png' style={{ width:'80px', height:'80px', borderRadius:'20px' }} alt='Nourish' />
-      <p style={styles.splashText}>Joining household…</p>
-    </div>
-  )
-}
-
-function AuthCallbackScreen() {
-  return (
-    <div style={styles.splash}>
-      <img src='/icons/icon-192.png' style={{ width:'80px', height:'80px', borderRadius:'20px' }} alt='Nourish' />
-      <p style={styles.splashText}>Connecting to Google Drive…</p>
-    </div>
-  )
-}
 
 function RecoverScreen() {
   const [userId,      setUserId]      = useState('')

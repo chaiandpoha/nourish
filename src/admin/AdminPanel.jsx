@@ -4,7 +4,7 @@ import { db } from '../db/indexedDB.js'
 import { sha256 } from '../auth/crypto.js'
 
 export default function AdminPanel() {
-  const [tab,      setTab]      = useState('household')
+  const [tab,      setTab]      = useState('members')
   const [profiles, setProfiles] = useState([])
   const [usage,    setUsage]    = useState({})
   const [foods,    setFoods]    = useState([])
@@ -102,11 +102,11 @@ export default function AdminPanel() {
   }
 
   const tabs = [
-    { id:'household', label:'Household' },
-    { id:'usage',     label:'Usage'     },
-    { id:'foods',     label:'Foods'     },
-    { id:'batches',   label:'Batches'   },
-    { id:'danger',    label:'⚠ Danger'  },
+    { id:'members', label:'Members'  },
+    { id:'usage',   label:'Usage'    },
+    { id:'foods',   label:'Foods'    },
+    { id:'batches', label:'Batches'  },
+    { id:'danger',  label:'⚠ Danger' },
   ]
 
   if (loading) {
@@ -136,8 +136,8 @@ export default function AdminPanel() {
         ))}
       </div>
 
-      {/* Household */}
-      {tab === 'household' && (
+      {/* Members */}
+      {tab === 'members' && (
         <div style={s.section}>
           <div style={s.sectionHeader}>
             <span style={s.sectionTitle}>
@@ -509,99 +509,6 @@ function FactoryReset() {
   )
 }
 
-// ─── InviteManager ───────────────────────────────────────────────────────────
-
-function MakeAdminButton() {
-  const [done, setDone] = useState(false)
-  const { user } = useAuth()
-
-  if (user?.isAdmin || done) return null
-
-  return (
-    <button
-      style={{ padding:'10px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer' }}
-      onClick={async () => {
-        await db.users.update(user.id, { isAdmin: true, dirty:1, updatedAt: new Date().toISOString() })
-        setDone(true)
-        alert('You are now admin — go back and reopen Settings')
-      }}
-    >
-      ⚡ Make Me Admin (first time only)
-    </button>
-  )
-}
-
-function InviteManager() {
-  const code      = localStorage.getItem('nourish_household_code') || 'Not set'
-  const isAdmin   = localStorage.getItem('nourish_household_admin') === 'true'
-  const [copied,      setCopied]      = useState(false)
-  const [copiedLink,  setCopiedLink]  = useState(false)
-
-  const inviteLink = `${window.location.origin}/#/join?code=${encodeURIComponent(code)}`
-
-  function generateNew() {
-    const chars  = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-    const rand   = crypto.getRandomValues(new Uint8Array(12))
-    const raw    = Array.from(rand).map(b => chars[b % chars.length]).join('')
-    const newCode = 'NOURISH-' + raw.slice(0,4) + '-' + raw.slice(4,8) + '-' + raw.slice(8,12)
-    localStorage.setItem('nourish_household_code', newCode)
-    window.location.reload()
-  }
-
-  function copyCode() {
-    navigator.clipboard.writeText(code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  function copyLink() {
-    navigator.clipboard.writeText(inviteLink)
-    setCopiedLink(true)
-    setTimeout(() => setCopiedLink(false), 2000)
-  }
-
-  return (
-    <div style={s.section}>
-      <div style={s.card}>
-        <div style={{ padding:'16px', display:'flex', flexDirection:'column', gap:'12px' }}>
-          <div style={s.subsectionTitle}>Household Invite</div>
-          <p style={{ fontSize:'13px', color:'var(--text-secondary)', margin:0 }}>
-            Share the invite link — it opens the app and fills the code automatically.
-          </p>
-          <div style={{ padding:'16px', background:'var(--bg-elevated)', borderRadius:'var(--r-lg)', textAlign:'center' }}>
-            <code style={{ fontSize:'18px', letterSpacing:'2px', color:'var(--accent)', fontFamily:'var(--font-mono)' }}>
-              {code}
-            </code>
-          </div>
-          <button
-            style={{ ...s.saveBtn, background: copiedLink ? 'var(--accent)' : 'var(--text-primary)' }}
-            onClick={copyLink}
-          >
-            {copiedLink ? '✓ Link copied!' : '🔗 Copy Invite Link'}
-          </button>
-          <button
-            style={{ ...s.saveBtn, background: copied ? 'var(--accent)' : 'var(--bg-elevated)', color: copied ? 'var(--text-inverse)' : 'var(--text-secondary)' }}
-            onClick={copyCode}
-          >
-            {copied ? '✓ Copied' : 'Copy Code'}
-          </button>
-          {isAdmin && (
-            <button
-              style={{ ...s.saveBtn, background:'var(--bg-elevated)', color:'var(--text-secondary)' }}
-              onClick={generateNew}
-            >
-              Generate New Code
-            </button>
-          )}
-          <MakeAdminButton />
-          <p style={{ fontSize:'11px', color:'var(--text-tertiary)', margin:0, textAlign:'center' }}>
-            Generating a new code does not invalidate old ones yet
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = {

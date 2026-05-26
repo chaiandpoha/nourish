@@ -24,11 +24,11 @@ export function AuthProvider({ children }) {
   const activityEvents = ['touchstart', 'mousedown', 'keydown']
 
   useEffect(() => {
-    // Restore Drive token from sessionStorage on app start
-    import('../db/driveApi.js').then(({ restoreToken }) => {
+    ;(async () => {
+      const { restoreToken } = await import('../db/driveApi.js')
       restoreToken()
-    })
-    setIsLoading(false)
+      setIsLoading(false)
+    })()
   }, [])
 
   const resetAutoLockTimer = useCallback(() => {
@@ -176,7 +176,70 @@ export function AuthProvider({ children }) {
     window.location.hash = '#/'
   }
 
-  async function createProfile({ name, email, pin, passphrase, avatarInitials, height, startWeight, macroGoals, supplements, skipPin }) {
+  async function loginWithGoogle(email, name) {
+    if (!email) throw new Error('No email provided')
+    const normalEmail = email.toLowerCase().trim()
+
+    // 1. Find existing profile in IndexedDB by email
+    let profile = await db.users.where('email').equals(normalEmail).first()
+    let isNew   = false
+
+    // 2. Try Drive restore if not local
+    if (!profile) {
+      profile = await _tryRestoreByEmail(normalEmail)
+    }
+
+    // 3. Create new profile
+    if (!profile) {
+      const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
+      profile = await createProfile({
+        name:    name || normalEmail.split('@')[0],
+        email:   normalEmail,
+        skipPin: true,
+        isAdmin: normalEmail === adminEmail,
+      })
+      isNew = true
+    } else {
+      // Ensure admin flag is up to date
+      const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
+      if (normalEmail === adminEmail && !profile.isAdmin) {
+        await db.users.update(profile.id, { isAdmin: true, dirty: 1, updatedAt: new Date().toISOString() })
+        profile = { ...profile, isAdmin: true }
+      }
+    }
+
+    const key = await deriveKey('nourish-no-encryption', profile.encryptionSalt)
+    await completeLogin(profile, key)
+    return { ...profile, _isNew: isNew }
+  }
+
+  async function _tryRestoreByEmail(email) {
+    try {
+      const { isTokenValid, findFolder, listFolders, findFile, readFile } = await import('../db/driveApi.js')
+      if (!isTokenValid()) return null
+      const nourishId = await findFolder('Nourish', 'root')
+      if (!nourishId) return null
+      const usersId = await findFolder('users', nourishId)
+      if (!usersId) return null
+      const userDirs = await listFolders(usersId)
+      for (const dir of userDirs) {
+        const profileFile = await findFile('profile.json', dir.id)
+        if (!profileFile) continue
+        const raw = await readFile(profileFile.id)
+        if (!raw) continue
+        const p = typeof raw === 'string' ? JSON.parse(raw) : raw
+        if ((p.email || '').toLowerCase() === email) {
+          await db.users.put({ ...p, dirty: 0 })
+          return p
+        }
+      }
+    } catch (e) {
+      console.warn('Drive profile search failed:', e)
+    }
+    return null
+  }
+
+  async function createProfile({ name, email, pin, passphrase, avatarInitials, height, startWeight, macroGoals, supplements, skipPin, isAdmin }) {
     const id             = generateId()
     const pinHash        = (skipPin || !pin) ? null : await sha256(pin)
     const encryptionSalt = generateId()
@@ -188,6 +251,7 @@ export function AuthProvider({ children }) {
       avatarInitials: avatarInitials || name.slice(0, 2).toUpperCase(),
       pinHash,
       skipPin:        skipPin || false,
+      isAdmin:        isAdmin || false,
       encryptionSalt,
       biometricCredentialId: null,
       height,
@@ -227,7 +291,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user, isLocked, isLoading, encryptionKey, pinAttempts, lockoutUntil,
-    loginWithPin, loginWithBiometric, registerBiometric, createProfile, resetPin, lock, logout, refreshUser,
+    loginWithPin, loginWithBiometric, loginWithGoogle, registerBiometric, createProfile, resetPin, lock, logout, refreshUser,
   }
 
   return (

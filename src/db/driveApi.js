@@ -3,16 +3,20 @@
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3'
 const DRIVE_UPLOAD = 'https://www.googleapis.com/upload/drive/v3'
-const SCOPES = 'https://www.googleapis.com/auth/drive.file'
+const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile'
 
 // ─── Token storage (in-memory only — never persisted to disk) ────────────────
 let _accessToken = null
 let _tokenExpiry = null  // timestamp ms
+let _userEmail   = null
+let _userName    = null
+
+export function getUserEmail() { return _userEmail }
+export function getUserName()  { return _userName  }
 
 export function setAccessToken(token, expiresInSeconds) {
   _accessToken = token
   _tokenExpiry = Date.now() + (expiresInSeconds - 60) * 1000
-  // Persist to sessionStorage so it survives page reload
   sessionStorage.setItem('drive_token', token)
   sessionStorage.setItem('drive_token_expiry', String(_tokenExpiry))
 }
@@ -20,14 +24,16 @@ export function setAccessToken(token, expiresInSeconds) {
 export function clearAccessToken() {
   _accessToken = null
   _tokenExpiry = null
+  _userEmail   = null
+  _userName    = null
   sessionStorage.removeItem('drive_token')
   sessionStorage.removeItem('drive_token_expiry')
+  sessionStorage.removeItem('drive_user_email')
+  sessionStorage.removeItem('drive_user_name')
 }
 
 export function isTokenValid() {
-  // Check memory first
   if (_accessToken && Date.now() < _tokenExpiry) return true
-  // Fall back to sessionStorage
   const stored = sessionStorage.getItem('drive_token')
   const expiry  = parseInt(sessionStorage.getItem('drive_token_expiry') || '0')
   if (stored && Date.now() < expiry) {
@@ -44,9 +50,30 @@ export function restoreToken() {
   if (stored && Date.now() < expiry) {
     _accessToken = stored
     _tokenExpiry = expiry
+    _userEmail   = sessionStorage.getItem('drive_user_email') || null
+    _userName    = sessionStorage.getItem('drive_user_name')  || null
     return true
   }
   return false
+}
+
+/** Fetch the authenticated user's email + name from Google */
+export async function fetchUserInfo() {
+  if (!_accessToken) return null
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
+      headers: { Authorization: `Bearer ${_accessToken}` },
+    })
+    if (!res.ok) return null
+    const info = await res.json()
+    _userEmail = info.email || null
+    _userName  = info.name  || null
+    if (_userEmail) sessionStorage.setItem('drive_user_email', _userEmail)
+    if (_userName)  sessionStorage.setItem('drive_user_name',  _userName)
+    return info
+  } catch {
+    return null
+  }
 }
 
 // ─── OAuth flow ──────────────────────────────────────────────────────────────

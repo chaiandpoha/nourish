@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useAuth } from './useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 
-const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS || 'nourish-admin'
+const ADMIN_PASS  = import.meta.env.VITE_ADMIN_PASS  || 'nourish-admin'
+const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
 
 export default function AdminLogin() {
   const [password, setPassword] = useState('')
@@ -12,32 +13,23 @@ export default function AdminLogin() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (password !== ADMIN_PASS) {
-      setError('Incorrect password')
-      return
-    }
+    if (password !== ADMIN_PASS) { setError('Incorrect password'); return }
     setLoading(true)
     setError('')
     try {
-      // Ensure household code exists
-      if (!localStorage.getItem('nourish_household_code')) {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-        const rand  = crypto.getRandomValues(new Uint8Array(12))
-        const raw   = Array.from(rand).map(b => chars[b % chars.length]).join('')
-        localStorage.setItem('nourish_household_code',  'NOURISH-' + raw.slice(0,4) + '-' + raw.slice(4,8) + '-' + raw.slice(8,12))
-        localStorage.setItem('nourish_household_admin', 'true')
-      }
-
       const users  = await db.users.toArray()
       if (users.length === 0) {
-        // No profiles yet — mark pending admin and go to onboarding
-        localStorage.setItem('nourish_pending_admin', 'true')
-        window.location.hash = '#/onboarding'
+        // No profiles yet — go to main screen, Google sign-in will create one
+        window.location.hash = '#/'
         return
       }
 
-      // Prefer an existing admin profile, else promote the first
-      const target = users.find(u => u.isAdmin) || users[0]
+      // Find admin profile: prefer isAdmin flag, then email match, then first user
+      const target =
+        users.find(u => u.isAdmin) ||
+        (ADMIN_EMAIL && users.find(u => (u.email || '').toLowerCase() === ADMIN_EMAIL)) ||
+        users[0]
+
       if (!target.isAdmin) {
         await db.users.update(target.id, {
           isAdmin:   true,
@@ -77,6 +69,7 @@ export default function AdminLogin() {
           {loading ? 'Signing in…' : 'Sign In'}
         </button>
       </form>
+      <button style={s.back} onClick={() => { window.location.hash = '#/' }}>← Back</button>
     </div>
   )
 }
@@ -90,4 +83,5 @@ const s = {
   input:     { padding:'13px 16px', fontSize:'16px', borderRadius:'var(--r-lg)', border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-primary)', outline:'none' },
   error:     { fontSize:'13px', color:'var(--red)', margin:'0', textAlign:'center' },
   btn:       { padding:'14px', background:'var(--text-primary)', color:'var(--text-inverse)', border:'none', borderRadius:'var(--r-lg)', fontSize:'15px', fontWeight:'600', cursor:'pointer' },
+  back:      { marginTop:'24px', background:'none', border:'none', color:'var(--text-tertiary)', fontSize:'14px', cursor:'pointer' },
 }
