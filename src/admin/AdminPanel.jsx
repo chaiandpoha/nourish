@@ -532,9 +532,12 @@ function MakeAdminButton() {
 }
 
 function InviteManager() {
-  const code     = localStorage.getItem('nourish_household_code') || 'Not set'
-  const isAdmin  = localStorage.getItem('nourish_household_admin') === 'true'
-  const [copied, setCopied] = useState(false)
+  const code      = localStorage.getItem('nourish_household_code') || 'Not set'
+  const isAdmin   = localStorage.getItem('nourish_household_admin') === 'true'
+  const [copied,      setCopied]      = useState(false)
+  const [copiedLink,  setCopiedLink]  = useState(false)
+
+  const inviteLink = `${window.location.origin}/#/join?code=${encodeURIComponent(code)}`
 
   function generateNew() {
     const chars  = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -551,13 +554,19 @@ function InviteManager() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  function copyLink() {
+    navigator.clipboard.writeText(inviteLink)
+    setCopiedLink(true)
+    setTimeout(() => setCopiedLink(false), 2000)
+  }
+
   return (
     <div style={s.section}>
       <div style={s.card}>
         <div style={{ padding:'16px', display:'flex', flexDirection:'column', gap:'12px' }}>
-          <div style={s.subsectionTitle}>Household Invite Code</div>
+          <div style={s.subsectionTitle}>Household Invite</div>
           <p style={{ fontSize:'13px', color:'var(--text-secondary)', margin:0 }}>
-            Share this code with family members. They enter it when setting up the app on their phone.
+            Share the invite link — it opens the app and fills the code automatically.
           </p>
           <div style={{ padding:'16px', background:'var(--bg-elevated)', borderRadius:'var(--r-lg)', textAlign:'center' }}>
             <code style={{ fontSize:'18px', letterSpacing:'2px', color:'var(--accent)', fontFamily:'var(--font-mono)' }}>
@@ -565,7 +574,13 @@ function InviteManager() {
             </code>
           </div>
           <button
-            style={{ ...s.saveBtn, background: copied ? 'var(--accent)' : 'var(--text-primary)' }}
+            style={{ ...s.saveBtn, background: copiedLink ? 'var(--accent)' : 'var(--text-primary)' }}
+            onClick={copyLink}
+          >
+            {copiedLink ? '✓ Link copied!' : '🔗 Copy Invite Link'}
+          </button>
+          <button
+            style={{ ...s.saveBtn, background: copied ? 'var(--accent)' : 'var(--bg-elevated)', color: copied ? 'var(--text-inverse)' : 'var(--text-secondary)' }}
             onClick={copyCode}
           >
             {copied ? '✓ Copied' : 'Copy Code'}

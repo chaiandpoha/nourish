@@ -182,12 +182,21 @@ function AppRoutes() {
   const hasHousehold = !!localStorage.getItem('nourish_household_code')
   const hash = window.location.hash
 
-  // Admin login bypasses household gate — always reachable
+  // Admin login and join links bypass the household gate
   if (hash.includes('admin-login')) {
     return (
       <Routes>
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/*" element={<Navigate to="/admin-login" replace />} />
+      </Routes>
+    )
+  }
+
+  if (hash.includes('/join')) {
+    return (
+      <Routes>
+        <Route path="/join" element={<JoinRoute />} />
+        <Route path="/*" element={<Navigate to={hash.replace('#', '')} replace />} />
       </Routes>
     )
   }
@@ -206,6 +215,7 @@ function AppRoutes() {
       <QuotaChecker />
       <Routes>
         <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/join" element={<JoinRoute />} />
         <Route path="/onboarding" element={<OnboardingGate />} />
         <Route path="/auth/callback" element={<AuthCallbackScreen />} />
         <Route path="/recover" element={<RecoverScreen />} />
@@ -490,6 +500,25 @@ function SettingsScreen() {
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+function JoinRoute() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.split('?')[1] || '')
+    const code   = params.get('code')?.trim().toUpperCase()
+    if (code && code.startsWith('NOURISH-')) {
+      localStorage.setItem('nourish_household_code',  code)
+      localStorage.setItem('nourish_household_admin', 'false')
+    }
+    window.location.replace(window.location.origin + '/#/onboarding')
+  }, [])
+
+  return (
+    <div style={styles.splash}>
+      <img src='/icons/icon-192.png' style={{ width:'80px', height:'80px', borderRadius:'20px' }} alt='Nourish' />
+      <p style={styles.splashText}>Joining household…</p>
     </div>
   )
 }
