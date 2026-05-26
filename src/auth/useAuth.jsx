@@ -176,7 +176,7 @@ export function AuthProvider({ children }) {
     window.location.hash = '#/'
   }
 
-  async function createProfile({ name, pin, passphrase, avatarInitials, height, startWeight, macroGoals, supplements, skipPin }) {
+  async function createProfile({ name, email, pin, passphrase, avatarInitials, height, startWeight, macroGoals, supplements, skipPin }) {
     const id             = generateId()
     const pinHash        = (skipPin || !pin) ? null : await sha256(pin)
     const encryptionSalt = generateId()
@@ -184,7 +184,7 @@ export function AuthProvider({ children }) {
     const profile = {
       id,
       name,
-      email:          '',
+      email:          email || '',
       avatarInitials: avatarInitials || name.slice(0, 2).toUpperCase(),
       pinHash,
       skipPin:        skipPin || false,

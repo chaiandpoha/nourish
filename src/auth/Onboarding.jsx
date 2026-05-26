@@ -11,6 +11,7 @@ export default function Onboarding({ onComplete }) {
   const [step, setStep] = useState(fromGoogle ? 3 : 1)
   const [data,       setData]       = useState({
     name:            '',
+    email:           '',
     avatarInitials:  '',
     pin:             '',
     pinConfirm:      '',
@@ -48,6 +49,7 @@ export default function Onboarding({ onComplete }) {
     try {
       const profile = await createProfile({
         name:           data.name,
+        email:          data.email.trim().toLowerCase(),
         avatarInitials: data.avatarInitials || data.name.slice(0, 2).toUpperCase(),
         pin:            data.pin,
         passphrase:     'nourish-no-encryption',
@@ -164,6 +166,9 @@ function StepGoogleSignIn({ next }) {
 function StepCreateProfile({ data, update, next, error, setError }) {
   function validate() {
     if (!data.name.trim()) { setError('Name is required'); return }
+    if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
+      setError('Enter a valid email address'); return
+    }
     next()
   }
   return (
@@ -178,6 +183,16 @@ function StepCreateProfile({ data, update, next, error, setError }) {
         value={data.name}
         onChange={e => update({ name: e.target.value })}
         autoFocus
+      />
+
+      <label style={styles.label}>Email <span style={{ color:'#555' }}>(optional)</span></label>
+      <input
+        style={styles.input}
+        type="email"
+        inputMode="email"
+        placeholder="e.g. you@example.com"
+        value={data.email}
+        onChange={e => update({ email: e.target.value })}
       />
 
       <label style={styles.label}>Initials (shown on profile card)</label>
