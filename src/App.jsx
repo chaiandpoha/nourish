@@ -149,8 +149,27 @@ function OnboardingGate() {
 
 function AppRoutes() {
   const { isLoading } = useAuth()
+  const [householdReady, setHouseholdReady] = useState(false)
 
-  if (isLoading) {
+  useEffect(() => {
+    const code = localStorage.getItem('nourish_household_code')
+    if (code) { setHouseholdReady(true); return }
+    // If profiles already exist in IndexedDB, auto-create a household so the gate
+    // never permanently locks out a user who lost their localStorage.
+    db.users.count().then(n => {
+      if (n > 0) {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+        const rand  = crypto.getRandomValues(new Uint8Array(12))
+        const raw   = Array.from(rand).map(b => chars[b % chars.length]).join('')
+        const auto  = 'NOURISH-' + raw.slice(0,4) + '-' + raw.slice(4,8) + '-' + raw.slice(8,12)
+        localStorage.setItem('nourish_household_code',  auto)
+        localStorage.setItem('nourish_household_admin', 'true')
+      }
+      setHouseholdReady(true)
+    })
+  }, [])
+
+  if (isLoading || !householdReady) {
     return (
       <div style={styles.splash}>
         <img src='/icons/icon-192.png' style={{ width:'80px', height:'80px', borderRadius:'20px' }} alt='Nourish' />
@@ -158,7 +177,6 @@ function AppRoutes() {
     )
   }
 
-  // Check household code
   const hasHousehold = !!localStorage.getItem('nourish_household_code')
 
   if (!hasHousehold && !window.location.hash.includes('onboarding')) {

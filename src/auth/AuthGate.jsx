@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "./useAuth.jsx"
 import { db } from "../db/indexedDB.js"
 
@@ -19,9 +19,12 @@ function SplashScreen() {
 }
 
 function ProfileSelector() {
-  const [profiles, setProfiles] = useState([])
-  const [loading,  setLoading]  = useState(true)
+  const [profiles,  setProfiles]  = useState([])
+  const [loading,   setLoading]   = useState(true)
+  const [tapHint,   setTapHint]   = useState(false)
   const { loginWithPin } = useAuth()
+  const tapCount  = useRef(0)
+  const tapTimer  = useRef(null)
 
   useEffect(() => {
     const loggedOut = sessionStorage.getItem("nourish_logged_out")
@@ -44,17 +47,65 @@ function ProfileSelector() {
     })
   }, [])
 
+  async function handleLogoTap() {
+    tapCount.current += 1
+    clearTimeout(tapTimer.current)
+
+    if (tapCount.current >= 7) {
+      tapCount.current = 0
+      // Emergency admin unlock — set first profile as admin and log in
+      const users = await db.users.toArray()
+      if (!users.length) { window.location.hash = "#/onboarding"; return }
+      const target = users[0]
+      if (!target.isAdmin) {
+        await db.users.update(target.id, {
+          isAdmin:   true,
+          skipPin:   true,
+          dirty:     1,
+          updatedAt: new Date().toISOString(),
+        })
+      }
+      // Ensure household code exists
+      if (!localStorage.getItem('nourish_household_code')) {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+        const rand  = crypto.getRandomValues(new Uint8Array(12))
+        const raw   = Array.from(rand).map(b => chars[b % chars.length]).join('')
+        localStorage.setItem('nourish_household_code',  'NOURISH-' + raw.slice(0,4) + '-' + raw.slice(4,8) + '-' + raw.slice(8,12))
+        localStorage.setItem('nourish_household_admin', 'true')
+      }
+      sessionStorage.removeItem("nourish_logged_out")
+      loginWithPin(target.id, "", "nourish-no-encryption").catch(console.error)
+      return
+    }
+
+    // Show hint after 3 taps
+    if (tapCount.current >= 3) setTapHint(true)
+    tapTimer.current = setTimeout(() => {
+      tapCount.current = 0
+      setTapHint(false)
+    }, 2000)
+  }
+
   if (loading) return <SplashScreen />
   if (profiles.length === 0) return null
 
-  // Non-admin with one profile — show single profile tap to login
   const isAdmin = profiles.some(p => p.isAdmin)
 
   return (
     <div style={s.container}>
       <div style={s.header}>
-        <img src='/icons/icon-192.png' style={{ width:'64px', height:'64px', borderRadius:'16px', marginBottom:'8px' }} alt='Nourish' />
+        <img
+          src='/icons/icon-192.png'
+          style={{ width:'64px', height:'64px', borderRadius:'16px', marginBottom:'8px', cursor:'pointer', userSelect:'none' }}
+          alt='Nourish'
+          onClick={handleLogoTap}
+        />
         <h1 style={s.appName}>Nourish</h1>
+        {tapHint && (
+          <p style={{ fontSize:'11px', color:'var(--text-tertiary)', margin:'4px 0 0', letterSpacing:'0.02em' }}>
+            {7 - tapCount.current} more taps for admin access
+          </p>
+        )}
       </div>
 
       {/* Admin sees all profiles, regular user sees only theirs */}
