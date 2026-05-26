@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
+import { AI } from '../config.js'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -184,17 +185,22 @@ export default function WeeklySummary() {
 - Current logging streak: ${data.logStreak} days
 - Goals: ${data.goals.calories || 2000} kcal, ${data.goals.protein || 150}g protein`
 
+      const system = `You are a supportive nutrition coach inside Nourish, a personal health tracking app.
+User: ${user.name || 'User'}. Goals: ${data.goals.calories || 2000} kcal, ${data.goals.protein || 150}g protein per day.
+Be warm, direct, and encouraging. Under 120 words. No lists — write in short paragraphs.`
+
       const res = await fetch('/api/ai', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId:    user.id,
           type:      'chat',
-          model:     'claude-haiku-4-5-20251001',
+          model:     AI.chatModel,
           maxTokens: 250,
+          system,
           messages: [{
             role:    'user',
-            content: `${ctx}\n\nBrief, encouraging analysis and 2 specific tips for next week. Under 120 words.`
+            content: `${ctx}\n\nBrief, encouraging analysis and 2 specific tips for next week.`
           }]
         })
       })

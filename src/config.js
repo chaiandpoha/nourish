@@ -20,7 +20,7 @@ export const AI = {
   chatModel:        'claude-haiku-4-5-20251001',
   visionModel:      'claude-sonnet-4-6',
   maxTokens:        1000,
-  // Per-user daily limits — enforced in api/ai.js
+  // Per-user daily limits — enforced client-side via localStorage
   dailyChatLimit:   20,
   dailyScanLimit:   10,
 }

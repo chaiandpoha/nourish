@@ -26,20 +26,20 @@ export default function Measurements() {
     load()
   }, [user?.id])
 
+  useEffect(() => {
+    const match = entries.find(e => e.date.startsWith(entryDate.slice(0, 7)))
+    setForm(match ? {
+      waist:  String(match.waist  || ''),
+      chest:  String(match.chest  || ''),
+      arms:   String(match.arms   || ''),
+      hips:   String(match.hips   || ''),
+      thighs: String(match.thighs || ''),
+    } : { waist:'', chest:'', arms:'', hips:'', thighs:'' })
+  }, [entryDate, entries])
+
   async function load() {
     const data = await getMeasurements(user.id)
     setEntries([...data].reverse()) // most recent first
-    // Pre-fill form with the entry matching the selected date (same month) if it exists
-    const thisMonthEntry = data.find(e => e.date.startsWith(entryDate.slice(0, 7)))
-    if (thisMonthEntry) {
-      setForm({
-        waist:  String(thisMonthEntry.waist  || ''),
-        chest:  String(thisMonthEntry.chest  || ''),
-        arms:   String(thisMonthEntry.arms   || ''),
-        hips:   String(thisMonthEntry.hips   || ''),
-        thighs: String(thisMonthEntry.thighs || ''),
-      })
-    }
   }
 
   async function handleSave() {

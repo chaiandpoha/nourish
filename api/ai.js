@@ -1,17 +1,6 @@
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 const ANTHROPIC_VERSION = "2023-06-01"
 
-const rateLimitMap = new Map()
-const LIMITS = { chat: 20, vision: 10 }
-
-function checkRateLimit(userId, type) {
-  const key   = `${userId}:${type}:${new Date().toISOString().slice(0,10)}`
-  const count = rateLimitMap.get(key) || 0
-  if (count >= (LIMITS[type] || 20)) return false
-  rateLimitMap.set(key, count + 1)
-  return true
-}
-
 export default async function handler(req, res) {
   // Allow all origins — API key is server side only
   res.setHeader("Access-Control-Allow-Origin", "*")
@@ -33,10 +22,6 @@ export default async function handler(req, res) {
   if (!userId) return res.status(400).json({ error: "userId required" })
   if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: "messages required" })
   if (!type || !["chat","vision"].includes(type)) return res.status(400).json({ error: "invalid type" })
-
-  if (!checkRateLimit(userId, type)) {
-    return res.status(429).json({ error: "Daily limit reached" })
-  }
 
   const anthropicBody = {
     model:      model || "claude-haiku-4-5-20251001",

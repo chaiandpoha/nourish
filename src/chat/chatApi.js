@@ -64,6 +64,16 @@ Privacy: ${settings?.shareFoodNamesWithAI !== false ? 'Food names may be shared'
 
 // ─── Send message ─────────────────────────────────────────────────────────────
 
+function checkClientRateLimit(userId, type) {
+  const date  = new Date().toISOString().slice(0, 10)
+  const key   = `nourish_rate_${userId}_${type}_${date}`
+  const limit = type === 'vision' ? AI.dailyScanLimit : AI.dailyChatLimit
+  const count = parseInt(localStorage.getItem(key) || '0', 10)
+  if (count >= limit) return false
+  localStorage.setItem(key, String(count + 1))
+  return true
+}
+
 export async function sendChatMessage({
   messages,
   user,
@@ -73,6 +83,10 @@ export async function sendChatMessage({
   settings,
   userId,
 }) {
+  if (!checkClientRateLimit(userId || 'anon', 'chat')) {
+    throw new Error(`Daily limit of ${AI.dailyChatLimit} messages reached`)
+  }
+
   // Load fresh user data to get latest aiInstructions
   try {
     const { db } = await import('../db/indexedDB.js')
