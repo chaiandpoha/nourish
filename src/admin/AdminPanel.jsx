@@ -55,18 +55,14 @@ export default function AdminPanel() {
   }
 
   async function handleDeleteProfile(userId) {
-    if (userId === user.id) {
-      alert('Cannot delete your own profile')
-      return
-    }
-    if (!confirm('Delete this profile? This removes all local data.')) return
+    if (userId === user.id) return
     const tables = [
       'foodLogs','workoutLogs','workoutSets','programmes',
       'weightLog','bloodWork','supplementLog','moodLog',
-      'progressPhotos','mealTemplates','reminders'
+      'progressPhotos','mealTemplates','reminders','measurements','waterLog',
     ]
     for (const t of tables) {
-      await db[t].where('userId').equals(userId).delete()
+      if (db[t]) await db[t].where('userId').equals(userId).delete()
     }
     await db.users.delete(userId)
     loadAll()
