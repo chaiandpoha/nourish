@@ -57,30 +57,30 @@
   },
   {
     "id": "nin_005",
-    "name": "Basmati Rice, cooked",
+    "name": "Basmati Rice, dry",
     "per100g": {
-      "calories": 121,
-      "protein": 2.5,
-      "carbs": 27,
-      "fat": 0.2,
-      "fibre": 0.4
+      "calories": 349,
+      "protein": 7.5,
+      "carbs": 78,
+      "fat": 0.5,
+      "fibre": 0.7
     },
-    "servingSize": 200,
-    "servingLabel": "1 cup cooked",
+    "servingSize": 75,
+    "servingLabel": "75g dry",
     "barcode": null
   },
   {
     "id": "nin_006",
-    "name": "Jeera Rice, cooked",
+    "name": "Brown Basmati Rice, dry",
     "per100g": {
-      "calories": 135,
-      "protein": 2.6,
-      "carbs": 27,
+      "calories": 362,
+      "protein": 8.2,
+      "carbs": 76,
       "fat": 2.8,
-      "fibre": 0.4
+      "fibre": 3.2
     },
-    "servingSize": 200,
-    "servingLabel": "1 cup cooked",
+    "servingSize": 75,
+    "servingLabel": "75g dry",
     "barcode": null
   },
   {
@@ -645,58 +645,58 @@
   },
   {
     "id": "nin_047",
-    "name": "Moong Dal, cooked",
+    "name": "Moong Dal, dry",
     "per100g": {
-      "calories": 104,
-      "protein": 7.3,
-      "carbs": 17,
-      "fat": 0.6,
-      "fibre": 4.1
+      "calories": 347,
+      "protein": 24,
+      "carbs": 60,
+      "fat": 1.2,
+      "fibre": 8
     },
-    "servingSize": 200,
-    "servingLabel": "1 bowl",
+    "servingSize": 60,
+    "servingLabel": "60g dry",
     "barcode": null
   },
   {
     "id": "nin_048",
-    "name": "Toor Dal, cooked",
+    "name": "Toor Dal / Arhar Dal, dry",
     "per100g": {
-      "calories": 111,
-      "protein": 7.5,
-      "carbs": 18,
-      "fat": 0.7,
-      "fibre": 4.5
+      "calories": 343,
+      "protein": 22,
+      "carbs": 60,
+      "fat": 1.7,
+      "fibre": 10
     },
-    "servingSize": 200,
-    "servingLabel": "1 bowl",
+    "servingSize": 60,
+    "servingLabel": "60g dry",
     "barcode": null
   },
   {
     "id": "nin_049",
-    "name": "Masoor Dal, cooked",
+    "name": "Masoor Dal, dry",
     "per100g": {
-      "calories": 100,
-      "protein": 7.6,
-      "carbs": 17,
-      "fat": 0.4,
-      "fibre": 4
+      "calories": 353,
+      "protein": 26,
+      "carbs": 60,
+      "fat": 1,
+      "fibre": 11
     },
-    "servingSize": 200,
-    "servingLabel": "1 bowl",
+    "servingSize": 60,
+    "servingLabel": "60g dry",
     "barcode": null
   },
   {
     "id": "nin_050",
-    "name": "Urad Dal, cooked",
+    "name": "Urad Dal, dry",
     "per100g": {
-      "calories": 105,
-      "protein": 7.3,
-      "carbs": 18,
-      "fat": 0.6,
-      "fibre": 3.6
+      "calories": 347,
+      "protein": 25,
+      "carbs": 58,
+      "fat": 1.6,
+      "fibre": 18
     },
-    "servingSize": 200,
-    "servingLabel": "1 bowl",
+    "servingSize": 60,
+    "servingLabel": "60g dry",
     "barcode": null
   },
   {
@@ -1135,16 +1135,16 @@
   },
   {
     "id": "nin_082",
-    "name": "Soya Chunks, cooked",
+    "name": "Soya Chunks, dry",
     "per100g": {
-      "calories": 153,
-      "protein": 17,
-      "carbs": 12,
-      "fat": 0.7,
-      "fibre": 4.5
+      "calories": 345,
+      "protein": 52,
+      "carbs": 33,
+      "fat": 0.5,
+      "fibre": 13
     },
-    "servingSize": 100,
-    "servingLabel": "100g",
+    "servingSize": 50,
+    "servingLabel": "50g dry",
     "barcode": null
   },
   {
