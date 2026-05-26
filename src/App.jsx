@@ -24,6 +24,7 @@ import WorkoutLog from './workout/WorkoutLog.jsx'
 import WorkoutCharts from './workout/WorkoutCharts.jsx'
 import MuscleVolume from './workout/MuscleVolume.jsx'
 import ProgressPhotos from './progress/ProgressPhotos.jsx'
+import InstallPrompt from './shared/InstallPrompt.jsx'
 
 export default function App() {
   const [migrationsRun,   setMigrationsRun]   = useState(false)
@@ -236,6 +237,7 @@ function ProtectedApp() {
         </Routes>
       </main>
       <BottomNav />
+      <InstallPrompt />
     </div>
   )
 }
