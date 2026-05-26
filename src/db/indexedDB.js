@@ -166,6 +166,11 @@ db.version(2).stores({
   waterLog:     '++id, userId, date, [userId+date], dirty, updatedAt',
 })
 
+// Version 3 — email index on users for Google Sign-In lookup
+db.version(3).stores({
+  users: '&id, name, email, driveFileId, createdAt',
+})
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Mark a record dirty — needs sync to Drive */
