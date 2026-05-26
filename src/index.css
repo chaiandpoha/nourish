@@ -3,6 +3,8 @@
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 :root {
+  color-scheme: light dark;
+
   /* Surfaces */
   --bg-base:        #f6f3ee;
   --bg-surface:     #ffffff;
@@ -50,6 +52,9 @@
   --r-xl:   20px;
   --r-2xl:  24px;
   --r-full: 9999px;
+
+  /* Button hover */
+  --bg-btn-primary-hover: #2e2a26;
 
   /* Motion */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -194,7 +199,7 @@ button:disabled {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #2e2a26;
+  background: var(--bg-btn-primary-hover);
 }
 
 /* Ghost */
@@ -522,3 +527,63 @@ hr, .divider {
 .text-danger   { color: var(--red); }
 .mono          { font-family: var(--font-mono); }
 .full-width    { width: 100%; }
+
+/* ─── Dark mode ──────────────────────────────────────────────────────────────── */
+/* System preference (when no manual override) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg-base:             #131210;
+    --bg-surface:          #1c1a18;
+    --bg-elevated:         #232120;
+    --bg-hover:            #2a2826;
+    --border-subtle:       #242220;
+    --border-default:      #2e2c28;
+    --border-strong:       #3a3834;
+    --text-primary:        #f0ede7;
+    --text-secondary:      #7c7870;
+    --text-tertiary:       #504e49;
+    --text-inverse:        #131210;
+    --accent:              #5a9c88;
+    --accent-dim:          #192923;
+    --accent-glow:         rgba(90, 156, 136, 0.12);
+    --bg-btn-primary-hover:#e0ddd6;
+  }
+}
+
+/* Manual dark override */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-base:             #131210;
+  --bg-surface:          #1c1a18;
+  --bg-elevated:         #232120;
+  --bg-hover:            #2a2826;
+  --border-subtle:       #242220;
+  --border-default:      #2e2c28;
+  --border-strong:       #3a3834;
+  --text-primary:        #f0ede7;
+  --text-secondary:      #7c7870;
+  --text-tertiary:       #504e49;
+  --text-inverse:        #131210;
+  --accent:              #5a9c88;
+  --accent-dim:          #192923;
+  --accent-glow:         rgba(90, 156, 136, 0.12);
+  --bg-btn-primary-hover:#e0ddd6;
+}
+
+/* Manual light override — forces light even on dark-preferring system */
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* ─── Page transition ─────────────────────────────────────────────────────────── */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* ─── Skeleton shimmer ───────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%);  }
+}

@@ -9,6 +9,7 @@ import { db } from '../db/indexedDB.js'
 import { seedFoodDatabase } from '../food/FoodDB.js'
 import MealChat from '../chat/MealChat.jsx'
 import WeeklySummary from '../progress/WeeklySummary.jsx'
+import { Skeleton, SkeletonCard, SkeletonRow } from '../shared/Skeleton.jsx'
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
 // Main dashboard screen
@@ -60,6 +61,7 @@ export default function Home() {
   const [showChat,    setShowChat]    = useState(false)
   const [greeting,    setGreeting]    = useState('')
   const [dateLabel,   setDateLabel]   = useState('')
+  const [loading,     setLoading]     = useState(true)
 
   const today = new Date().toISOString().slice(0, 10)
 
@@ -75,36 +77,41 @@ export default function Home() {
   }, [user, refreshKey])
 
   async function loadDashboard() {
-    // Macros
-    const macros = await getDayMacros(user.id, today)
-    setTotals(macros)
+    setLoading(true)
+    try {
+      // Macros
+      const macros = await getDayMacros(user.id, today)
+      setTotals(macros)
 
-    // Latest weight
-    const weights = await db.weightLog
-      .where('[userId+date]')
-      .between([user.id, '2000-01-01'], [user.id, today], true, true)
-      .toArray()
-    if (weights.length) {
-      const latest = weights.sort((a,b) => b.date.localeCompare(a.date))[0]
-      setWeight(latest.weightKg)
+      // Latest weight
+      const weights = await db.weightLog
+        .where('[userId+date]')
+        .between([user.id, '2000-01-01'], [user.id, today], true, true)
+        .toArray()
+      if (weights.length) {
+        const latest = weights.sort((a,b) => b.date.localeCompare(a.date))[0]
+        setWeight(latest.weightKg)
+      }
+
+      // Supplements
+      const supps = user.supplements || []
+      setSupplements(supps)
+
+      // Load today's supplement log
+      const suppLog = await db.supplementLog
+        .where('[userId+date]')
+        .equals([user.id, today])
+        .first()
+      setSuppDone(suppLog?.done || {})
+
+      // Active batches
+      const allBatches = await db.batches
+        .where('closed').equals(0)
+        .toArray()
+      setBatches(allBatches.slice(0, 3))
+    } finally {
+      setLoading(false)
     }
-
-    // Supplements
-    const supps = user.supplements || []
-    setSupplements(supps)
-
-    // Load today's supplement log
-    const suppLog = await db.supplementLog
-      .where('[userId+date]')
-      .equals([user.id, today])
-      .first()
-    setSuppDone(suppLog?.done || {})
-
-    // Active batches
-    const allBatches = await db.batches
-      .where('closed').equals(0)
-      .toArray()
-    setBatches(allBatches.slice(0, 3))
   }
 
   async function toggleSupplement(name) {
@@ -142,6 +149,39 @@ export default function Home() {
   const goals        = user?.macroGoals || {}
 
   if (showChat) return <MealChat onClose={() => setShowChat(false)} />
+
+  if (loading) {
+    return (
+      <div style={styles.screen}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+            <Skeleton width="80px" height="10px" radius="5px" />
+            <Skeleton width="180px" height="22px" radius="8px" />
+          </div>
+          <Skeleton width="42px" height="42px" radius="50%" />
+        </div>
+        <SkeletonCard style={{ alignItems:'center', padding:'24px 16px' }}>
+          <Skeleton width="160px" height="160px" radius="50%" />
+          <SkeletonRow items={5} />
+        </SkeletonCard>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+          <SkeletonCard style={{ gap:'8px' }}>
+            <Skeleton width="50px" height="10px" radius="5px" />
+            <Skeleton width="80px" height="22px" radius="8px" />
+          </SkeletonCard>
+          <SkeletonCard style={{ gap:'8px' }}>
+            <Skeleton width="60px" height="10px" radius="5px" />
+            <Skeleton width="90px" height="22px" radius="8px" />
+          </SkeletonCard>
+        </div>
+        <SkeletonCard>
+          <Skeleton height="14px" radius="7px" />
+          <Skeleton height="14px" radius="7px" style={{ width: '70%' }} />
+          <Skeleton height="14px" radius="7px" style={{ width: '85%' }} />
+        </SkeletonCard>
+      </div>
+    )
+  }
 
   return (
     <div style={styles.screen}>
@@ -322,6 +362,7 @@ const styles = {
     flexDirection: 'column',
     gap:           '12px',
     minHeight:     '100%',
+    animation:     'pageIn 0.25s var(--ease-out) both',
   },
   header: {
     display:         'flex',

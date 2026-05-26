@@ -25,6 +25,7 @@ import WorkoutCharts from './workout/WorkoutCharts.jsx'
 import MuscleVolume from './workout/MuscleVolume.jsx'
 import ProgressPhotos from './progress/ProgressPhotos.jsx'
 import InstallPrompt from './shared/InstallPrompt.jsx'
+import { getThemePref, setThemePref } from './shared/theme.js'
 
 export default function App() {
   const [migrationsRun,   setMigrationsRun]   = useState(false)
@@ -422,11 +423,10 @@ function SettingsScreen() {
             <p style={styles.settingsRow}>💊 {user?.supplements?.length || 0} supplements</p>
             <p style={styles.settingsRow}>📏 {user?.height ? Math.round(user.height) + 'cm' : 'Height not set'}</p>
           </div>
+          <ThemeToggle />
           {user?.pinHash && (
             <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
           )}
-
-
         </>
       )}
 
@@ -780,6 +780,42 @@ function ReminderSettings({ userId }) {
   )
 }
 
+// ─── ThemeToggle ─────────────────────────────────────────────────────────────
+
+function ThemeToggle() {
+  const [pref, setPref] = useState(getThemePref)
+
+  function choose(p) {
+    setPref(p)
+    setThemePref(p)
+  }
+
+  return (
+    <div style={th.row}>
+      <span style={th.label}>Appearance</span>
+      <div style={th.group}>
+        {[['light','Light'],['system','System'],['dark','Dark']].map(([val, lbl]) => (
+          <button
+            key={val}
+            style={{ ...th.btn, ...(pref === val ? th.btnActive : {}) }}
+            onClick={() => choose(val)}
+          >
+            {lbl}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const th = {
+  row:       { display:'flex', alignItems:'center', justifyContent:'space-between', background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', padding:'14px 16px' },
+  label:     { fontSize:'15px', fontWeight:'500', color:'var(--text-primary)' },
+  group:     { display:'flex', background:'var(--bg-elevated)', borderRadius:'var(--r-md)', padding:'3px', gap:'2px' },
+  btn:       { padding:'6px 14px', background:'transparent', border:'none', borderRadius:'9px', fontSize:'13px', fontWeight:'500', color:'var(--text-secondary)', cursor:'pointer' },
+  btnActive: { background:'var(--bg-surface)', color:'var(--text-primary)', boxShadow:'0 1px 3px rgba(0,0,0,0.1)' },
+}
+
 // Shared styles for SupplementStreaks + ReminderSettings
 const st2 = {
   section:       { display:'flex', flexDirection:'column', gap:'12px' },
@@ -818,7 +854,7 @@ const styles = {
   retryBtn:    { marginTop: '16px', padding: '12px 24px', background: 'var(--accent)', border: 'none', borderRadius: 'var(--r-lg)', color: '#fff', fontSize: '16px', fontWeight: '700', cursor: 'pointer' },
   appShell:    { display: 'flex', flexDirection: 'column', minHeight: '100dvh', background: 'var(--bg-base)', color: 'var(--text-primary)' },
   main:        { flex: 1, overflowY: 'auto' },
-  screen:      { padding: '24px 16px 16px', minHeight: '100%' },
+  screen:      { padding: '24px 16px 16px', minHeight: '100%', animation: 'pageIn 0.25s var(--ease-out) both' },
   screenTitle: { fontSize: '26px', fontWeight: '600', margin: '0 0 20px', letterSpacing: '-0.03em', color: 'var(--text-primary)' },
   tabBar: {
     display:        'flex',

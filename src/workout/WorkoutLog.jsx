@@ -353,17 +353,18 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
       {/* ── Rest timer ── */}
       {restActive && (
         <div style={st.restBanner}>
-          {/* green progress bar fills the banner as time counts down */}
-          <div style={{ ...st.restFill, width: `${(restTimer / restTotal) * 100}%` }} />
+          <div style={st.restTrack}>
+            <div style={{ ...st.restFill, width: `${(restTimer / restTotal) * 100}%` }} />
+          </div>
           <div style={st.restContent}>
-            <div>
-              <div style={st.restLabel}>REST</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:'1px' }}>
+              <div style={st.restLabel}>Rest</div>
               <div style={st.restTime}>{fmt(restTimer)}</div>
             </div>
             <div style={st.restBtns}>
               <button style={st.restAdj} onClick={() => setRestTimer(t => Math.max(0, t - 15))}>−15s</button>
               <button style={st.restAdj} onClick={() => setRestTimer(t => t + 15)}>+15s</button>
-              <button style={st.restSkip} onClick={() => setRestActive(false)}>Skip</button>
+              <button style={st.restSkip} onClick={() => setRestActive(false)}>Done</button>
             </div>
           </div>
         </div>
@@ -395,11 +396,9 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
             )}
 
             {/* Progress within this exercise */}
-            {doneCnt > 0 && (
-              <div style={st.exProgress}>
-                <div style={{ ...st.exProgressBar, width: `${(doneCnt / exSets.length) * 100}%` }} />
-              </div>
-            )}
+            <div style={st.exProgress}>
+              <div style={{ ...st.exProgressBar, width: `${(doneCnt / exSets.length) * 100}%` }} />
+            </div>
 
             {/* Column headers */}
             <div style={st.colHeader}>
@@ -542,36 +541,37 @@ const st = {
   finishBtn:    { padding:'10px 22px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'#fff', fontSize:'15px', fontWeight:'600', cursor:'pointer', letterSpacing:'-0.01em' },
 
   // Rest timer banner
-  restBanner:   { position:'relative', borderRadius:'var(--r-lg)', overflow:'hidden', background:'var(--accent-dim)', border:'1px solid var(--accent)' },
-  restFill:     { position:'absolute', top:0, left:0, height:'100%', background:'rgba(74,124,106,0.15)', transition:'width 1s linear', pointerEvents:'none' },
-  restContent:  { position:'relative', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px' },
-  restLabel:    { fontSize:'10px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em' },
-  restTime:     { fontSize:'28px', fontWeight:'300', color:'var(--text-primary)', fontFamily:'var(--font-mono)', letterSpacing:'-0.04em', lineHeight:1.1 },
-  restBtns:     { display:'flex', gap:'8px', alignItems:'center' },
-  restAdj:      { padding:'7px 10px', background:'rgba(74,124,106,0.15)', border:'1px solid var(--accent)', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'12px', fontWeight:'600', cursor:'pointer' },
-  restSkip:     { padding:'7px 12px', background:'transparent', border:'1px solid var(--border-strong)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'13px', cursor:'pointer' },
+  restBanner:   { borderRadius:'var(--r-xl)', overflow:'hidden', background:'var(--accent-dim)', border:'1px solid var(--accent)' },
+  restTrack:    { height:'3px', background:'rgba(74,124,106,0.2)' },
+  restFill:     { height:'100%', background:'var(--accent)', transition:'width 1s linear' },
+  restContent:  { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px' },
+  restLabel:    { fontSize:'11px', fontWeight:'600', color:'var(--accent)', letterSpacing:'0.04em' },
+  restTime:     { fontSize:'32px', fontWeight:'300', color:'var(--text-primary)', fontFamily:'var(--font-mono)', letterSpacing:'-0.05em', lineHeight:1 },
+  restBtns:     { display:'flex', gap:'6px', alignItems:'center' },
+  restAdj:      { padding:'8px 11px', background:'rgba(74,124,106,0.15)', border:'1px solid var(--accent)', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'12px', fontWeight:'600', cursor:'pointer' },
+  restSkip:     { padding:'8px 14px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'13px', fontWeight:'600', cursor:'pointer' },
 
   // Exercise card
-  exCard:       { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', overflow:'hidden' },
-  exHeader:     { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', borderBottom:'0.5px solid var(--border-subtle)' },
+  exCard:       { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.04)' },
+  exHeader:     { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px 12px', borderBottom:'0.5px solid var(--border-subtle)' },
   exName:       { fontSize:'15px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.01em' },
-  exMeta:       { fontSize:'12px', color:'var(--text-tertiary)', textTransform:'capitalize', marginTop:'2px' },
-  swapBtn:      { padding:'6px 12px', background:'var(--bg-elevated)', border:'none', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'12px', fontWeight:'500', cursor:'pointer', flexShrink:0 },
-  prevHint:     { padding:'6px 16px', fontSize:'12px', color:'var(--text-tertiary)', background:'var(--bg-elevated)', borderBottom:'0.5px solid var(--border-subtle)' },
-  exProgress:   { height:'2px', background:'var(--bg-elevated)' },
-  exProgressBar:{ height:'100%', background:'var(--accent)', transition:'width 0.3s ease' },
+  exMeta:       { fontSize:'12px', color:'var(--text-tertiary)', textTransform:'capitalize', marginTop:'3px' },
+  swapBtn:      { padding:'6px 12px', background:'var(--bg-elevated)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'12px', fontWeight:'500', cursor:'pointer', flexShrink:0 },
+  prevHint:     { padding:'8px 16px', fontSize:'12px', color:'var(--text-tertiary)', background:'var(--bg-elevated)', borderBottom:'0.5px solid var(--border-subtle)', fontStyle:'italic' },
+  exProgress:   { height:'3px', background:'var(--bg-elevated)' },
+  exProgressBar:{ height:'100%', background:'var(--accent)', transition:'width 0.4s var(--ease-out)', borderRadius:'0 2px 2px 0' },
 
   // Column headers
   colHeader:    { display:'flex', gap:'4px', padding:'8px 12px 4px', alignItems:'center' },
   colLbl:       { fontSize:'10px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.05em', textAlign:'center', flexShrink:0 },
 
   // Set rows
-  setRow:       { display:'flex', gap:'4px', padding:'7px 12px', alignItems:'center', borderTop:'0.5px solid var(--border-subtle)' },
-  setDone:      { background:'rgba(74,124,106,0.07)' },
-  setNum:       { width:'26px', fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center', fontFamily:'var(--font-mono)', flexShrink:0 },
-  setHint:      { width:'56px', fontSize:'12px', color:'var(--text-tertiary)', textAlign:'center', flexShrink:0, letterSpacing:'-0.01em' },
-  numIn:        { flex:1, padding:'8px 4px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'15px', fontWeight:'500', color:'var(--text-primary)', outline:'none', textAlign:'center', minWidth:0 },
-  numInDone:    { background:'transparent', border:'1px solid transparent', color:'var(--accent)', fontWeight:'600' },
+  setRow:       { display:'flex', gap:'6px', padding:'9px 12px', alignItems:'center', borderTop:'0.5px solid var(--border-subtle)', transition:'background 0.2s ease' },
+  setDone:      { background:'rgba(74,124,106,0.08)' },
+  setNum:       { width:'24px', fontSize:'12px', color:'var(--text-tertiary)', textAlign:'center', fontFamily:'var(--font-mono)', flexShrink:0 },
+  setHint:      { width:'52px', fontSize:'11px', color:'var(--text-tertiary)', textAlign:'center', flexShrink:0, letterSpacing:'-0.01em' },
+  numIn:        { flex:1, padding:'10px 4px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'16px', fontWeight:'500', color:'var(--text-primary)', outline:'none', textAlign:'center', minWidth:0, transition:'border-color 0.15s, background 0.2s' },
+  numInDone:    { background:'transparent', border:'1px solid transparent', color:'var(--accent)', fontWeight:'700' },
 
   // RPE button (in set row)
   rpeBtn:       { width:'42px', flexShrink:0, padding:'8px 2px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'12px', fontWeight:'500', color:'var(--text-tertiary)', cursor:'pointer', textAlign:'center' },
@@ -579,8 +579,8 @@ const st = {
   rpeBtnDone:   { background:'transparent', border:'1px solid transparent', cursor:'default' },
 
   // Check buttons (in set row)
-  checkBtn:     { width:'34px', height:'34px', flexShrink:0, borderRadius:'50%', background:'var(--bg-elevated)', border:'1.5px solid var(--border-strong)', color:'var(--text-tertiary)', fontSize:'15px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' },
-  checkDone:    { width:'34px', height:'34px', flexShrink:0, borderRadius:'50%', background:'var(--accent)', border:'none', color:'#fff', fontSize:'15px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' },
+  checkBtn:     { width:'36px', height:'36px', flexShrink:0, borderRadius:'50%', background:'var(--bg-elevated)', border:'1.5px solid var(--border-strong)', color:'var(--text-tertiary)', fontSize:'16px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.15s var(--ease-out)' },
+  checkDone:    { width:'36px', height:'36px', flexShrink:0, borderRadius:'50%', background:'var(--accent)', border:'none', color:'#fff', fontSize:'16px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' },
 
   // Set actions row
   setActions:   { display:'flex', gap:'8px', padding:'10px 12px', borderTop:'0.5px solid var(--border-subtle)' },
