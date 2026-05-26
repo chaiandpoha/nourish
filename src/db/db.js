@@ -506,3 +506,33 @@ export async function saveUser(user) {
 export async function getAllUsers() {
   return db.users.toArray()
 }
+
+// ─── Water log helpers ────────────────────────────────────────────────────────
+
+export async function getWaterLog(userId, date) {
+  return db.waterLog.where('[userId+date]').equals([userId, date]).first()
+}
+
+export async function logWater(userId, date, amountMl) {
+  const existing = await db.waterLog.where('[userId+date]').equals([userId, date]).first()
+  if (existing) {
+    await db.waterLog.update(existing.id, { amountMl, dirty: 1, updatedAt: new Date().toISOString() })
+    return existing.id
+  }
+  return db.waterLog.add({ userId, date, amountMl, dirty: 1, updatedAt: new Date().toISOString() })
+}
+
+// ─── Measurements helpers ─────────────────────────────────────────────────────
+
+export async function getMeasurements(userId) {
+  return db.measurements.where('userId').equals(userId).sortBy('date')
+}
+
+export async function saveMeasurement(userId, entry) {
+  const existing = await db.measurements.where('[userId+date]').equals([userId, entry.date]).first()
+  if (existing) {
+    await db.measurements.update(existing.id, { ...entry, dirty: 1, updatedAt: new Date().toISOString() })
+    return existing.id
+  }
+  return db.measurements.add({ userId, ...entry, dirty: 1, updatedAt: new Date().toISOString() })
+}

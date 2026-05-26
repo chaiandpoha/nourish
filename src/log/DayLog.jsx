@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
-import { getFoodLogForDate, deleteFoodLogEntry, addFoodLogEntry } from '../db/db.js'
+import { getFoodLogForDate, deleteFoodLogEntry, addFoodLogEntry, updateFoodLogEntry } from '../db/db.js'
 import { sumMacros } from '../food/macroCalc.js'
 import { MACRO_COLORS } from '../config.js'
 
@@ -41,6 +41,11 @@ export default function DayLog({ date, onTotalsChange }) {
     loadLogs()
   }
 
+  async function handleEdit(id, updates) {
+    await updateFoodLogEntry(id, updates)
+    loadLogs()
+  }
+
   async function handleCopyFromYesterday(meal) {
     if (!user) return
     const yesterdayLogs = await getFoodLogForDate(user.id, yesterday)
@@ -71,6 +76,7 @@ export default function DayLog({ date, onTotalsChange }) {
           meal={meal}
           entries={byMeal[meal]}
           onDelete={handleDelete}
+          onEdit={handleEdit}
           onCopyFromYesterday={() => handleCopyFromYesterday(meal)}
         />
       ))}
@@ -80,7 +86,7 @@ export default function DayLog({ date, onTotalsChange }) {
 
 // ─── MealSlot ─────────────────────────────────────────────────────────────────
 
-function MealSlot({ meal, entries, onDelete, onCopyFromYesterday }) {
+function MealSlot({ meal, entries, onDelete, onEdit, onCopyFromYesterday }) {
   const [expanded, setExpanded] = useState(true)
   const totals  = sumMacros(entries)
   const hasFood = entries.length > 0
@@ -114,6 +120,7 @@ function MealSlot({ meal, entries, onDelete, onCopyFromYesterday }) {
               key={entry.id}
               entry={entry}
               onDelete={() => onDelete(entry.id)}
+              onEdit={(updates) => onEdit(entry.id, updates)}
             />
           ))}
 
@@ -159,13 +166,70 @@ function MealSlot({ meal, entries, onDelete, onCopyFromYesterday }) {
 
 // ─── FoodEntryRow ─────────────────────────────────────────────────────────────
 
-function FoodEntryRow({ entry, onDelete }) {
-  const [showDelete, setShowDelete] = useState(false)
+function FoodEntryRow({ entry, onDelete, onEdit }) {
+  const [mode,      setMode]      = useState('collapsed') // collapsed | actions | editing
+  const [gramsStr,  setGramsStr]  = useState(String(entry.grams))
+
+  const newGrams   = parseFloat(gramsStr) || 0
+  const ratio      = entry.grams > 0 ? newGrams / entry.grams : 0
+  const preview    = {
+    calories: Math.round(entry.calories * ratio),
+    protein:  Math.round(entry.protein  * ratio * 10) / 10,
+    carbs:    Math.round(entry.carbs    * ratio * 10) / 10,
+    fat:      Math.round(entry.fat      * ratio * 10) / 10,
+  }
+
+  function handleSave() {
+    if (newGrams <= 0) return
+    onEdit({
+      grams:    newGrams,
+      calories: preview.calories,
+      protein:  preview.protein,
+      carbs:    preview.carbs,
+      fat:      preview.fat,
+      fibre:    Math.round(entry.fibre * ratio * 10) / 10,
+    })
+    setMode('collapsed')
+  }
+
+  if (mode === 'editing') {
+    return (
+      <div style={{ ...styles.entryRow, flexDirection: 'column', alignItems: 'stretch', gap: '10px' }}>
+        <div style={styles.entryInfo}>
+          <div style={styles.entryName}>{entry.name}</div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+          <input
+            style={styles.gramsInput}
+            type="number"
+            value={gramsStr}
+            onChange={e => setGramsStr(e.target.value)}
+            onFocus={e => e.target.select()}
+            autoFocus
+          />
+          <span style={{ fontSize:'13px', color:'var(--text-tertiary)' }}>g</span>
+        </div>
+        <div style={styles.macroPreview}>
+          <span style={styles.previewVal}>{preview.calories} kcal</span>
+          <span style={styles.previewDot}>·</span>
+          <span style={styles.previewVal}>{preview.protein}g P</span>
+          <span style={styles.previewDot}>·</span>
+          <span style={styles.previewVal}>{preview.carbs}g C</span>
+          <span style={styles.previewDot}>·</span>
+          <span style={styles.previewVal}>{preview.fat}g F</span>
+        </div>
+        <div style={{ display:'flex', gap:'8px' }}>
+          <button style={styles.saveBtn} onClick={handleSave}>Save</button>
+          <button style={styles.cancelBtn} onClick={() => { setMode('collapsed'); setGramsStr(String(entry.grams)) }}>Cancel</button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
       style={styles.entryRow}
-      onClick={() => setShowDelete(s => !s)}
+      onClick={() => setMode(m => m === 'actions' ? 'collapsed' : 'actions')}
     >
       <div style={styles.entryInfo}>
         <div style={styles.entryName}>{entry.name}</div>
@@ -174,13 +238,21 @@ function FoodEntryRow({ entry, onDelete }) {
         </div>
       </div>
 
-      {showDelete ? (
-        <button
-          style={styles.deleteBtn}
-          onClick={e => { e.stopPropagation(); onDelete() }}
-        >
-          Remove
-        </button>
+      {mode === 'actions' ? (
+        <div style={{ display:'flex', gap:'6px', flexShrink:0 }}>
+          <button
+            style={styles.editBtn}
+            onClick={e => { e.stopPropagation(); setMode('editing') }}
+          >
+            Edit
+          </button>
+          <button
+            style={styles.deleteBtn}
+            onClick={e => { e.stopPropagation(); onDelete() }}
+          >
+            Remove
+          </button>
+        </div>
       ) : (
         <span style={styles.entryCalories}>{entry.calories}</span>
       )}
@@ -275,6 +347,17 @@ const styles = {
     fontFamily:    'var(--font-mono)',
     flexShrink:    0,
   },
+  editBtn: {
+    padding:       '5px 10px',
+    background:    'var(--bg-elevated)',
+    border:        'none',
+    borderRadius:  'var(--r-sm)',
+    color:         'var(--text-secondary)',
+    fontSize:      '12px',
+    fontWeight:    '600',
+    cursor:        'pointer',
+    flexShrink:    0,
+  },
   deleteBtn: {
     padding:       '5px 10px',
     background:    'rgba(200,80,64,0.08)',
@@ -285,6 +368,54 @@ const styles = {
     fontWeight:    '600',
     cursor:        'pointer',
     flexShrink:    0,
+  },
+  gramsInput: {
+    width:         '80px',
+    padding:       '7px 10px',
+    fontSize:      '16px',
+    fontWeight:    '600',
+    borderRadius:  'var(--r-md)',
+    border:        '1px solid var(--border-subtle)',
+    background:    'var(--bg-elevated)',
+    color:         'var(--text-primary)',
+    outline:       'none',
+    fontFamily:    'var(--font-mono)',
+  },
+  macroPreview: {
+    display:    'flex',
+    gap:        '6px',
+    alignItems: 'center',
+    flexWrap:   'wrap',
+  },
+  previewVal: {
+    fontSize:   '12px',
+    fontWeight: '600',
+    color:      'var(--text-secondary)',
+    fontFamily: 'var(--font-mono)',
+  },
+  previewDot: {
+    fontSize: '12px',
+    color:    'var(--text-tertiary)',
+  },
+  saveBtn: {
+    padding:       '7px 16px',
+    background:    'var(--accent)',
+    border:        'none',
+    borderRadius:  'var(--r-md)',
+    color:         '#fff',
+    fontSize:      '13px',
+    fontWeight:    '600',
+    cursor:        'pointer',
+  },
+  cancelBtn: {
+    padding:       '7px 12px',
+    background:    'var(--bg-elevated)',
+    border:        'none',
+    borderRadius:  'var(--r-md)',
+    color:         'var(--text-tertiary)',
+    fontSize:      '13px',
+    fontWeight:    '500',
+    cursor:        'pointer',
   },
   slotFooter: {
     display:         'flex',

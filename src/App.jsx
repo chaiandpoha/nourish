@@ -24,6 +24,7 @@ import WorkoutLog from './workout/WorkoutLog.jsx'
 import WorkoutCharts from './workout/WorkoutCharts.jsx'
 import MuscleVolume from './workout/MuscleVolume.jsx'
 import ProgressPhotos from './progress/ProgressPhotos.jsx'
+import Measurements from './progress/Measurements.jsx'
 import InstallPrompt from './shared/InstallPrompt.jsx'
 import { getThemePref, setThemePref } from './shared/theme.js'
 
@@ -387,15 +388,16 @@ function SettingsScreen() {
   }
 
   const tabs = [
-    { id:'profile',   label:'Profile'   },
-    { id:'supps',     label:'Supps'     },
-    { id:'reminders', label:'Reminders' },
-    { id:'progress',  label:'Progress'  },
-    { id:'photos',    label:'Photos'    },
-    { id:'mood',      label:'Mood'      },
-    { id:'blood',     label:'Blood'     },
-    { id:'ai',        label:'AI'        },
-    { id:'admin',     label:'Admin'     },
+    { id:'profile',      label:'Profile'   },
+    { id:'supps',        label:'Supps'     },
+    { id:'reminders',    label:'Reminders' },
+    { id:'progress',     label:'Progress'  },
+    { id:'body',         label:'Body'      },
+    { id:'photos',       label:'Photos'    },
+    { id:'mood',         label:'Mood'      },
+    { id:'blood',        label:'Blood'     },
+    { id:'ai',           label:'AI'        },
+    { id:'admin',        label:'Admin'     },
   ]
 
   return (
@@ -440,6 +442,10 @@ function SettingsScreen() {
 
       {tab === 'progress' && (
         <WeightLog />
+      )}
+
+      {tab === 'body' && (
+        <Measurements />
       )}
 
       {tab === 'photos' && (

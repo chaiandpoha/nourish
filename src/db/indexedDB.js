@@ -160,6 +160,12 @@ db.version(DB_VERSION).stores({
 
 })
 
+// Version 2 — body measurements + water log
+db.version(2).stores({
+  measurements: '++id, userId, date, [userId+date], dirty, updatedAt',
+  waterLog:     '++id, userId, date, [userId+date], dirty, updatedAt',
+})
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Mark a record dirty — needs sync to Drive */
@@ -201,7 +207,8 @@ export async function wipeUserData(userId) {
   const userTables = [
     'foodLogs', 'workoutLogs', 'workoutSets', 'programmes',
     'weightLog', 'bloodWork', 'supplementLog', 'moodLog',
-    'progressPhotos', 'mealTemplates', 'syncState', 'reminders'
+    'progressPhotos', 'mealTemplates', 'syncState', 'reminders',
+    'measurements', 'waterLog',
   ]
   await Promise.all(
     userTables.map(t =>

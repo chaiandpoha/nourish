@@ -10,6 +10,7 @@ import { seedFoodDatabase } from '../food/FoodDB.js'
 import MealChat from '../chat/MealChat.jsx'
 import WeeklySummary from '../progress/WeeklySummary.jsx'
 import { Skeleton, SkeletonCard, SkeletonRow } from '../shared/Skeleton.jsx'
+import WaterTracker from '../shared/WaterTracker.jsx'
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
 // Main dashboard screen
@@ -219,6 +220,9 @@ export default function Home() {
           <WorkoutStat userId={user?.id} date={today} />
         </div>
       </div>
+
+      {/* Water tracker */}
+      <WaterTracker />
 
       {/* Active batches */}
       {batches.length > 0 && (
