@@ -1,18 +1,23 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '../db/indexedDB.js'
 import { useAuth } from '../auth/useAuth.jsx'
+import { isTokenValid, initiateOAuthFlow } from '../db/driveApi.js'
 
 const TABLES = ['foodLogs', 'workoutLogs', 'weightLog', 'measurements', 'waterLog', 'supplementLog']
 
 export default function SyncStatus() {
   const { user } = useAuth()
-  const [status,   setStatus]   = useState('synced') // 'synced' | 'pending'
-  const [lastSync, setLastSync] = useState(null)
-  const [open,     setOpen]     = useState(false)
+  const [status,      setStatus]      = useState('synced') // 'synced' | 'pending' | 'disconnected'
+  const [lastSync,    setLastSync]    = useState(null)
+  const [open,        setOpen]        = useState(false)
 
   const checkStatus = useCallback(async () => {
     if (!user) return
     try {
+      if (!isTokenValid()) {
+        setStatus('disconnected')
+        return
+      }
       let dirty = 0
       for (const t of TABLES) {
         if (!db[t]) continue
@@ -37,8 +42,7 @@ export default function SyncStatus() {
     return () => clearInterval(interval)
   }, [checkStatus])
 
-  const color = status === 'synced' ? '#34C759' : '#FF9500'
-  const icon  = status === 'synced' ? '☁' : '☁'
+  const color = status === 'synced' ? '#34C759' : status === 'disconnected' ? '#FF3B30' : '#FF9500'
 
   function fmtTime(iso) {
     if (!iso) return 'Never'
@@ -73,12 +77,18 @@ export default function SyncStatus() {
             <div style={styles.popoverRow}>
               <div style={{ ...styles.dot, background: color }} />
               <span style={styles.popoverStatus}>
-                {status === 'synced' ? 'Synced to Drive' : 'Sync pending'}
+                {status === 'synced'       ? 'Synced to Drive'     :
+                 status === 'disconnected' ? 'Drive not connected' :
+                                            'Sync pending'}
               </span>
             </div>
-            <div style={styles.popoverSub}>
-              Last sync: {fmtTime(lastSync)}
-            </div>
+            {status === 'disconnected' ? (
+              <button style={styles.connectBtn} onClick={() => { setOpen(false); initiateOAuthFlow() }}>
+                Connect Google Drive
+              </button>
+            ) : (
+              <div style={styles.popoverSub}>Last sync: {fmtTime(lastSync)}</div>
+            )}
           </div>
         </>
       )}
@@ -152,5 +162,17 @@ const styles = {
     fontSize:    '12px',
     color:       'var(--text-tertiary)',
     paddingLeft: '16px',
+  },
+  connectBtn: {
+    marginTop:    '8px',
+    padding:      '8px 12px',
+    background:   'var(--accent-dim)',
+    border:       '1px solid var(--accent)',
+    borderRadius: 'var(--r-md)',
+    color:        'var(--accent)',
+    fontSize:     '13px',
+    fontWeight:   '600',
+    cursor:       'pointer',
+    width:        '100%',
   },
 }
