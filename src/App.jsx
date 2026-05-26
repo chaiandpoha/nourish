@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/useAuth.jsx'
 import { BannerProvider, useBanners } from './shared/Banner.jsx'
 import AuthGate from './auth/AuthGate.jsx'
+import AdminLogin from './auth/AdminLogin.jsx'
 import Onboarding from './auth/Onboarding.jsx'
 import BottomNav from './shared/BottomNav.jsx'
 import { runMigrations } from './db/migrations.js'
@@ -26,6 +27,7 @@ import MuscleVolume from './workout/MuscleVolume.jsx'
 import ProgressPhotos from './progress/ProgressPhotos.jsx'
 import Measurements from './progress/Measurements.jsx'
 import InstallPrompt from './shared/InstallPrompt.jsx'
+import MealEntry from './log/MealEntry.jsx'
 import { getThemePref, setThemePref } from './shared/theme.js'
 
 export default function App() {
@@ -178,8 +180,19 @@ function AppRoutes() {
   }
 
   const hasHousehold = !!localStorage.getItem('nourish_household_code')
+  const hash = window.location.hash
 
-  if (!hasHousehold && !window.location.hash.includes('onboarding')) {
+  // Admin login bypasses household gate — always reachable
+  if (hash.includes('admin-login')) {
+    return (
+      <Routes>
+        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/*" element={<Navigate to="/admin-login" replace />} />
+      </Routes>
+    )
+  }
+
+  if (!hasHousehold && !hash.includes('onboarding')) {
     return (
       <HouseholdSetup
         onJoined={() => window.location.reload()}
@@ -192,6 +205,7 @@ function AppRoutes() {
       <ReminderChecker />
       <QuotaChecker />
       <Routes>
+        <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/onboarding" element={<OnboardingGate />} />
         <Route path="/auth/callback" element={<AuthCallbackScreen />} />
         <Route path="/recover" element={<RecoverScreen />} />
@@ -202,6 +216,13 @@ function AppRoutes() {
 }
 
 function ProtectedApp() {
+  const { user } = useAuth()
+  const today = new Date().toISOString().slice(0, 10)
+
+  function handleGlobalLogged() {
+    window.dispatchEvent(new CustomEvent('nourish:food-logged'))
+  }
+
   return (
     <div style={styles.appShell}>
       <main style={styles.main}>
@@ -215,6 +236,7 @@ function ProtectedApp() {
         </Routes>
       </main>
       <BottomNav />
+      {user && <MealEntry date={today} onLogged={handleGlobalLogged} />}
       <InstallPrompt />
     </div>
   )

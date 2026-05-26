@@ -110,6 +110,7 @@ export default function AdminPanel() {
     { id:'usage',     label:'Usage'     },
     { id:'foods',     label:'Foods'     },
     { id:'batches',   label:'Batches'   },
+    { id:'danger',    label:'⚠ Danger'  },
   ]
 
   if (loading) {
@@ -230,6 +231,11 @@ export default function AdminPanel() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Danger zone */}
+      {tab === 'danger' && (
+        <FactoryReset />
       )}
 
       {/* Batches */}
@@ -423,6 +429,64 @@ function ProfileCard({ profile, isCurrentUser, usage, onResetPin, onDelete, onUp
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── FactoryReset ─────────────────────────────────────────────────────────────
+
+function FactoryReset() {
+  const [confirm, setConfirm] = useState(false)
+  const [wiping,  setWiping]  = useState(false)
+
+  async function handleWipe() {
+    setWiping(true)
+    try {
+      const tables = [
+        'users','foods','batches',
+        'foodLogs','weightLog','supplementLog','moodLog','bloodWork',
+        'workoutLogs','workoutSets','programmes','mealTemplates',
+        'reminders','progressPhotos','measurements','waterLog',
+      ]
+      for (const t of tables) {
+        if (db[t]) await db[t].clear()
+      }
+      localStorage.clear()
+      sessionStorage.clear()
+      window.location.href = window.location.origin + '/'
+    } catch (e) {
+      alert('Wipe failed: ' + e.message)
+      setWiping(false)
+    }
+  }
+
+  return (
+    <div style={s.section}>
+      <div style={{ ...s.card, border:'1px solid rgba(200,80,64,0.3)' }}>
+        <div style={{ padding:'16px', display:'flex', flexDirection:'column', gap:'12px' }}>
+          <div style={{ fontSize:'15px', fontWeight:'600', color:'var(--red)' }}>Factory Reset</div>
+          <p style={{ fontSize:'13px', color:'var(--text-secondary)', margin:0 }}>
+            Wipes ALL data from this device — every profile, food log, workout, and setting. Google Drive data is not affected.
+          </p>
+          {!confirm ? (
+            <button style={s.dangerBtn} onClick={() => setConfirm(true)}>
+              Reset All Data…
+            </button>
+          ) : (
+            <div style={s.confirmRow}>
+              <span style={{ ...s.confirmText, color:'var(--red)', fontWeight:'600' }}>
+                This cannot be undone. Are you sure?
+              </span>
+              <button style={s.confirmYes} onClick={handleWipe} disabled={wiping}>
+                {wiping ? 'Wiping…' : 'Yes, Wipe Everything'}
+              </button>
+              <button style={s.confirmNo} onClick={() => setConfirm(false)}>
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

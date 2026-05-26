@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { RingWithMacros } from '../shared/RingChart.jsx'
 import StreakStrip from '../shared/StreakStrip.jsx'
-import MealEntry from '../log/MealEntry.jsx'
 import DayLog from '../log/DayLog.jsx'
 import { getDayMacros } from '../db/db.js'
 import { db } from '../db/indexedDB.js'
@@ -146,6 +145,11 @@ export default function Home() {
   function handleLogged() {
     setRefreshKey(k => k + 1)
   }
+
+  useEffect(() => {
+    window.addEventListener('nourish:food-logged', handleLogged)
+    return () => window.removeEventListener('nourish:food-logged', handleLogged)
+  }, [])
 
   const suppCount    = supplements.filter(s => suppDone[s]).length
   const goals        = user?.macroGoals || {}
@@ -303,9 +307,6 @@ export default function Home() {
 
       {/* Bottom padding */}
       <div style={{ height: '24px' }} />
-
-      {/* Floating log button */}
-      <MealEntry date={today} onLogged={handleLogged} />
     </div>
   )
 }
