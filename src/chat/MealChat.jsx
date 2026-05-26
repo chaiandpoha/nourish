@@ -1,8 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { sendChatMessage } from './chatApi.js'
-import { getDayMacros } from '../db/db.js'
+import { getDayMacros, addFoodLogEntry } from '../db/db.js'
 import { MACRO_COLORS } from '../config.js'
+
+// ─── Parse AI message — strip ```foods block, return {text, foods} ─────────────
+function parseMessage(content) {
+  const FOODS_RE = /```foods\s*([\s\S]*?)```/
+  const m = content.match(FOODS_RE)
+  if (!m) return { text: content, foods: [] }
+  const text = content.replace(FOODS_RE, '').trim()
+  let foods = []
+  try { foods = JSON.parse(m[1].trim()) } catch {}
+  return { text, foods: Array.isArray(foods) ? foods : [] }
+}
 
 export default function MealChat({ onClose }) {
   const [messages,  setMessages]  = useState([])
@@ -10,6 +21,7 @@ export default function MealChat({ onClose }) {
   const [loading,   setLoading]   = useState(false)
   const [totals,    setTotals]    = useState({})
   const [error,     setError]     = useState('')
+  const [logged,    setLogged]    = useState({})   // key: `${msgIdx}-${foodIdx}` → true
   const bottomRef  = useRef(null)
   const inputRef   = useRef(null)
   const { user }   = useAuth()
@@ -60,6 +72,29 @@ export default function MealChat({ onClose }) {
       setLoading(false)
       inputRef.current?.focus()
     }
+  }
+
+  async function handleLogFood(food, key) {
+    if (!user || logged[key]) return
+    const today = new Date().toISOString().slice(0, 10)
+    const h = new Date().getHours()
+    const meal = h < 10 ? 'breakfast' : h < 15 ? 'lunch' : h < 19 ? 'dinner' : 'snack'
+    await addFoodLogEntry(user.id, {
+      foodId:   null,
+      batchId:  null,
+      name:     food.name,
+      grams:    food.grams || 100,
+      source:   'manual',
+      calories: Math.round(food.cal    || 0),
+      protein:  Math.round((food.protein || 0) * 10) / 10,
+      carbs:    Math.round((food.carbs   || 0) * 10) / 10,
+      fat:      Math.round((food.fat     || 0) * 10) / 10,
+      fibre:    Math.round((food.fibre   || 0) * 10) / 10,
+      date:     today,
+      meal,
+    })
+    setLogged(prev => ({ ...prev, [key]: true }))
+    loadTotals()
   }
 
   function detectMeal() {
@@ -152,22 +187,44 @@ export default function MealChat({ onClose }) {
           </div>
         )}
 
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            style={{
-              ...s.bubble,
-              ...(msg.role === 'user' ? s.bubbleUser : s.bubbleAssistant)
-            }}
-          >
-            <div style={{
-              ...s.bubbleText,
-              ...(msg.role === 'user' ? s.bubbleTextUser : s.bubbleTextAssistant)
-            }}>
-              {msg.content}
+        {messages.map((msg, i) => {
+          const isUser = msg.role === 'user'
+          const { text, foods } = isUser ? { text: msg.content, foods: [] } : parseMessage(msg.content)
+          return (
+            <div key={i} style={s.messageGroup}>
+              <div style={{ ...s.bubble, ...(isUser ? s.bubbleUser : s.bubbleAssistant) }}>
+                <div style={{ ...s.bubbleText, ...(isUser ? s.bubbleTextUser : s.bubbleTextAssistant) }}>
+                  {text}
+                </div>
+              </div>
+              {foods.length > 0 && (
+                <div style={s.foodCards}>
+                  {foods.map((food, fi) => {
+                    const key = `${i}-${fi}`
+                    const done = logged[key]
+                    return (
+                      <div key={fi} style={s.foodCard}>
+                        <div style={s.foodCardLeft}>
+                          <div style={s.foodCardName}>{food.name}</div>
+                          <div style={s.foodCardMeta}>
+                            {food.grams}g · {Math.round(food.cal || 0)} kcal · {food.protein || 0}g P · {food.carbs || 0}g C · {food.fat || 0}g F
+                          </div>
+                        </div>
+                        <button
+                          style={{ ...s.logBtn, ...(done ? s.logBtnDone : {}) }}
+                          onClick={() => handleLogFood(food, key)}
+                          disabled={done}
+                        >
+                          {done ? '✓' : 'Log'}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
 
         {loading && (
           <div style={{ ...s.bubble, ...s.bubbleAssistant }}>
@@ -238,8 +295,16 @@ const s = {
   bubbleText:   { padding:'12px 14px', borderRadius:'var(--r-xl)', fontSize:'15px', lineHeight:'1.5', whiteSpace:'pre-wrap' },
   bubbleTextUser:      { background:'var(--text-primary)', color:'var(--text-inverse)', borderBottomRightRadius:'4px' },
   bubbleTextAssistant: { background:'var(--bg-surface)', color:'var(--text-primary)', border:'0.5px solid var(--border-subtle)', borderBottomLeftRadius:'4px' },
-  typing:       { letterSpacing:'4px', color:'var(--text-tertiary)' },
-  errorBubble:  { padding:'10px 14px', background:'rgba(200,80,64,0.08)', borderRadius:'var(--r-md)', color:'var(--red)', fontSize:'13px' },
+  typing:         { letterSpacing:'4px', color:'var(--text-tertiary)' },
+  errorBubble:    { padding:'10px 14px', background:'rgba(200,80,64,0.08)', borderRadius:'var(--r-md)', color:'var(--red)', fontSize:'13px' },
+  messageGroup:   { display:'flex', flexDirection:'column', gap:'6px' },
+  foodCards:      { display:'flex', flexDirection:'column', gap:'6px', marginLeft:'4px' },
+  foodCard:       { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'10px 12px', background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)' },
+  foodCardLeft:   { display:'flex', flexDirection:'column', gap:'2px', flex:1, minWidth:0 },
+  foodCardName:   { fontSize:'13px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.01em' },
+  foodCardMeta:   { fontSize:'11px', color:'var(--text-tertiary)' },
+  logBtn:         { padding:'6px 14px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'12px', fontWeight:'600', cursor:'pointer', flexShrink:0 },
+  logBtnDone:     { background:'var(--bg-elevated)', color:'var(--accent)', cursor:'default' },
   inputArea:    { display:'flex', alignItems:'flex-end', gap:'8px', padding:'12px 16px', padding:'12px 16px calc(12px + env(safe-area-inset-bottom))', background:'var(--bg-surface)', borderTop:'0.5px solid var(--border-subtle)', flexShrink:0 },
   input:        { flex:1, padding:'11px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-xl)', fontSize:'15px', color:'var(--text-primary)', outline:'none', resize:'none', fontFamily:'var(--font-sans)', lineHeight:'1.4', maxHeight:'120px', overflowY:'auto' },
   sendBtn:      { width:'40px', height:'40px', borderRadius:'50%', background:'var(--text-primary)', border:'none', color:'var(--text-inverse)', fontSize:'18px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
