@@ -11,6 +11,7 @@ import MealChat from '../chat/MealChat.jsx'
 import WeeklySummary from '../progress/WeeklySummary.jsx'
 import { Skeleton, SkeletonCard, SkeletonRow } from '../shared/Skeleton.jsx'
 import WaterTracker from '../shared/WaterTracker.jsx'
+import SyncStatus from '../shared/SyncStatus.jsx'
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
 // Main dashboard screen
@@ -193,7 +194,10 @@ export default function Home() {
           <div style={styles.dateLabel}>{dateLabel}</div>
           <div style={styles.greeting}>{greeting}, <span style={styles.greetingName}>{user?.name}</span></div>
         </div>
-        <AvatarMenu user={user} logout={logout} />
+        <div style={{ display:'flex', alignItems:'center', gap:'4px' }}>
+          <SyncStatus />
+          <AvatarMenu user={user} logout={logout} />
+        </div>
       </div>
 
       {/* Calorie ring + macros */}

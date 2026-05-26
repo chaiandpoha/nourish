@@ -426,6 +426,7 @@ function SettingsScreen() {
             <p style={styles.settingsRow}>📏 {user?.height ? Math.round(user.height) + 'cm' : 'Height not set'}</p>
           </div>
           <ThemeToggle />
+          <ExportData userId={user?.id} />
           {user?.pinHash && (
             <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
           )}
@@ -820,6 +821,91 @@ const th = {
   group:     { display:'flex', background:'var(--bg-elevated)', borderRadius:'var(--r-md)', padding:'3px', gap:'2px' },
   btn:       { padding:'6px 14px', background:'transparent', border:'none', borderRadius:'9px', fontSize:'13px', fontWeight:'500', color:'var(--text-secondary)', cursor:'pointer' },
   btnActive: { background:'var(--bg-surface)', color:'var(--text-primary)', boxShadow:'0 1px 3px rgba(0,0,0,0.1)' },
+}
+
+// ─── ExportData ───────────────────────────────────────────────────────────────
+
+function ExportData({ userId }) {
+  const [exporting, setExporting] = useState(false)
+  const [days,      setDays]      = useState(30)
+
+  async function handleExport() {
+    if (!userId) return
+    setExporting(true)
+    try {
+      const today     = new Date().toISOString().slice(0, 10)
+      const startDate = (() => {
+        const d = new Date()
+        d.setDate(d.getDate() - days)
+        return d.toISOString().slice(0, 10)
+      })()
+
+      const { db } = await import('./db/indexedDB.js')
+      const logs = await db.foodLogs
+        .where('[userId+date]')
+        .between([userId, startDate], [userId, today], true, true)
+        .toArray()
+
+      if (!logs.length) {
+        alert('No food logs found for that period.')
+        return
+      }
+
+      logs.sort((a, b) => a.date.localeCompare(b.date) || (a.meal || '').localeCompare(b.meal || ''))
+
+      const header = 'Date,Meal,Food,Grams,Calories,Protein (g),Carbs (g),Fat (g),Fibre (g)\n'
+      const rows   = logs.map(l =>
+        [
+          l.date,
+          l.meal || '',
+          `"${(l.name || '').replace(/"/g, '""')}"`,
+          l.grams      ?? 0,
+          l.calories   ?? 0,
+          l.protein    ?? 0,
+          l.carbs      ?? 0,
+          l.fat        ?? 0,
+          l.fibre      ?? 0,
+        ].join(',')
+      ).join('\n')
+
+      const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `nourish-food-log-${today}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  return (
+    <div style={{ background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', padding:'14px 16px', display:'flex', flexDirection:'column', gap:'10px' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <span style={{ fontSize:'15px', fontWeight:'500', color:'var(--text-primary)' }}>Export Food Log</span>
+        <select
+          style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'var(--r-sm)', padding:'4px 8px', fontSize:'13px', color:'var(--text-primary)', cursor:'pointer' }}
+          value={days}
+          onChange={e => setDays(Number(e.target.value))}
+        >
+          <option value={7}>Last 7 days</option>
+          <option value={30}>Last 30 days</option>
+          <option value={90}>Last 90 days</option>
+          <option value={365}>Last year</option>
+        </select>
+      </div>
+      <button
+        style={{ padding:'10px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer', opacity: exporting ? 0.6 : 1 }}
+        onClick={handleExport}
+        disabled={exporting}
+      >
+        {exporting ? 'Exporting…' : '↓ Download CSV'}
+      </button>
+    </div>
+  )
 }
 
 // Shared styles for SupplementStreaks + ReminderSettings
