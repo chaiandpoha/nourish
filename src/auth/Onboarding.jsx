@@ -78,6 +78,18 @@ export default function Onboarding({ onComplete }) {
         console.warn('Drive sync after onboarding failed:', e)
       }
 
+      // If this onboarding was triggered from admin breakglass login, promote to admin
+      if (localStorage.getItem('nourish_pending_admin') === 'true') {
+        const { db } = await import('../db/indexedDB.js')
+        await db.users.update(profile.id, {
+          isAdmin:   true,
+          skipPin:   true,
+          dirty:     1,
+          updatedAt: new Date().toISOString(),
+        })
+        localStorage.removeItem('nourish_pending_admin')
+      }
+
       onComplete()
     } catch (e) {
       setError(e.message)

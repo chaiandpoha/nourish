@@ -92,7 +92,7 @@ borderTop:  '1px solid var(--border-subtle)',
   },
   label: {
     fontSize:        '10px',
-    ccolor: 'var(--text-tertiary)',
+    color: 'var(--text-tertiary)',
     fontWeight:      '500',
     letterSpacing:   '0.2px',
   },
