@@ -2,15 +2,13 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { calcPortionMacros } from './batchCalc.js'
-import { addFoodLogEntry, saveSharedBatches } from '../db/db.js'
+import { addFoodLogEntry } from '../db/db.js'
+import { sbFetchBatches, sbCloseBatch } from '../db/supabase.js'
 import BatchBuilder from './BatchBuilder.jsx'
-
-// ─── BatchList ────────────────────────────────────────────────────────────────
-// Shows active batches — log a portion or close a batch
 
 export default function BatchList({ onLogged }) {
   const [batches,  setBatches]  = useState([])
-  const [screen,   setScreen]   = useState('list') // list | create | log
+  const [screen,   setScreen]   = useState('list')
   const [selected, setSelected] = useState(null)
   const [loading,  setLoading]  = useState(true)
   const { user } = useAuth()
@@ -19,22 +17,26 @@ export default function BatchList({ onLogged }) {
 
   async function loadBatches() {
     if (!user) return
-    const all = await db.batches.where('closed').equals(0).toArray()
-    setBatches(all.sort((a, b) => {
-      if (a.shared && !b.shared) return -1
-      if (!a.shared && b.shared) return 1
-      return new Date(b.createdAt) - new Date(a.createdAt)
-    }))
+    try {
+      const data = await sbFetchBatches()
+      // Cache in IndexedDB for offline
+      await db.batches.bulkPut(data)
+      setBatches(data.filter(b => !b.closed).sort((a, b) => {
+        if (a.shared && !b.shared) return -1
+        if (!a.shared && b.shared) return 1
+        return new Date(b.createdAt) - new Date(a.createdAt)
+      }))
+    } catch {
+      // Offline fallback
+      const all = await db.batches.where('closed').equals(0).toArray()
+      setBatches(all)
+    }
     setLoading(false)
   }
 
   async function handleClose(batchId) {
-    await db.batches.update(batchId, {
-      closed:    1,
-      dirty:     1,
-      updatedAt: new Date().toISOString(),
-    })
-    saveSharedBatches().catch(e => console.warn('Drive sync:', e))
+    await sbCloseBatch(batchId).catch(e => console.warn('Supabase:', e))
+    await db.batches.update(batchId, { closed: 1, updatedAt: new Date().toISOString() })
     loadBatches()
   }
 

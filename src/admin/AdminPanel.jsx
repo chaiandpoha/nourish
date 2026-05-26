@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { sha256 } from '../auth/crypto.js'
+import { sbFetchBatches, sbCloseBatch, sbDeleteBatch } from '../db/supabase.js'
 
 export default function AdminPanel() {
   const [tab,      setTab]      = useState('members')
@@ -16,10 +17,16 @@ export default function AdminPanel() {
 
   async function loadAll() {
     setLoading(true)
-    const [allUsers, allFoods, allBatches] = await Promise.all([
+    let allBatches = []
+    try {
+      allBatches = await sbFetchBatches()
+      await db.batches.bulkPut(allBatches)
+    } catch {
+      allBatches = await db.batches.toArray()
+    }
+    const [allUsers, allFoods] = await Promise.all([
       db.users.toArray(),
       db.foods.where('source').anyOf(['saved','scanned']).toArray(),
-      db.batches.toArray(),
     ])
     setProfiles(allUsers)
     setFoods(allFoods)
@@ -83,11 +90,13 @@ export default function AdminPanel() {
   }
 
   async function handleCloseBatch(id) {
-    await db.batches.update(id, { closed: 1, dirty: 1, updatedAt: new Date().toISOString() })
+    await sbCloseBatch(id).catch(e => console.warn('Supabase close batch:', e))
+    await db.batches.update(id, { closed: 1, updatedAt: new Date().toISOString() })
     loadAll()
   }
 
   async function handleDeleteBatch(id) {
+    await sbDeleteBatch(id).catch(e => console.warn('Supabase delete batch:', e))
     await db.batches.delete(id)
     loadAll()
   }

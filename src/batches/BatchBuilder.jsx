@@ -3,7 +3,7 @@ import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { searchFoods, seedFoodDatabase } from '../food/FoodDB.js'
 import { calcBatchMacrosPer100g } from './batchCalc.js'
-import { saveSharedBatches } from '../db/db.js'
+import { sbSaveBatch } from '../db/supabase.js'
 import { generateId } from '../auth/crypto.js'
 import { toGrams, WEIGHT_UNITS } from '../food/macroCalc.js'
 
@@ -138,7 +138,7 @@ export default function BatchBuilder({ onSave, onCancel }) {
       const batch = {
         id:           generateId(),
         name:         name.trim(),
-        createdBy:    user.id,
+        createdBy:    user.email || user.id,
         shared:       shared ? 1 : 0,
         closed:       0,
         ingredients:  ingredients.map(i => ({ name: i.name, grams: i.grams, per100g: i.per100g })),
@@ -146,8 +146,10 @@ export default function BatchBuilder({ onSave, onCancel }) {
         macrosPer100g: per100g,
         createdAt:    new Date().toISOString(),
         updatedAt:    new Date().toISOString(),
-        dirty:        1,
+        dirty:        0,
       }
+      // Write to Supabase (source of truth) + local cache
+      await sbSaveBatch(batch, user.email)
       await db.batches.put(batch)
       onSave?.(batch)
     } catch (e) {
@@ -156,7 +158,6 @@ export default function BatchBuilder({ onSave, onCancel }) {
     } finally {
       setSaving(false)
     }
-    saveSharedBatches().catch(e => console.warn('Drive sync:', e))
   }
 
   const inp = {
