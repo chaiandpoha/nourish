@@ -1,10 +1,14 @@
 import { useState } from "react"
 
+const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS || 'nourish-admin'
+
 export default function HouseholdSetup({ onJoined, onCancel }) {
-  const [inputCode, setInputCode] = useState("")
-  const [error,     setError]     = useState("")
-  const [screen,    setScreen]    = useState("join")
-  const [code,      setCode]      = useState("")
+  const [inputCode,  setInputCode]  = useState("")
+  const [error,      setError]      = useState("")
+  const [screen,     setScreen]     = useState("join") // join | admin-auth | created
+  const [code,       setCode]       = useState("")
+  const [adminPass,  setAdminPass]  = useState("")
+  const [passError,  setPassError]  = useState("")
 
   function generateCode() {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -13,7 +17,12 @@ export default function HouseholdSetup({ onJoined, onCancel }) {
     return "NOURISH-" + raw.slice(0,4) + "-" + raw.slice(4,8) + "-" + raw.slice(8,12)
   }
 
-  function handleCreate() {
+  function handleAdminAuth(e) {
+    e.preventDefault()
+    if (adminPass !== ADMIN_PASS) {
+      setPassError("Incorrect admin password")
+      return
+    }
     const newCode = generateCode()
     localStorage.setItem("nourish_household_code", newCode)
     localStorage.setItem("nourish_household_admin", "true")
@@ -21,7 +30,8 @@ export default function HouseholdSetup({ onJoined, onCancel }) {
     setScreen("created")
   }
 
-  function handleJoin() {
+  function handleJoin(e) {
+    e?.preventDefault()
     const clean = inputCode.trim().toUpperCase()
     if (!clean.startsWith("NOURISH-")) {
       setError("Invalid code — should start with NOURISH-")
@@ -37,11 +47,11 @@ export default function HouseholdSetup({ onJoined, onCancel }) {
       <div style={s.container}>
         <div style={s.emoji}>🏠</div>
         <h2 style={s.title}>Household Created</h2>
-        <p style={s.body}>Share this code with family members:</p>
+        <p style={s.body}>Share this code with family members so they can join:</p>
         <div style={s.codeBox}>
           <code style={s.codeText}>{code}</code>
         </div>
-        <button style={s.copyBtn} onClick={() => { navigator.clipboard.writeText(code); alert("Copied!") }}>
+        <button style={s.copyBtn} onClick={() => navigator.clipboard.writeText(code).then(() => alert("Copied!"))}>
           Copy Code
         </button>
         <button style={s.primaryBtn} onClick={() => onJoined?.(code)}>
@@ -51,29 +61,56 @@ export default function HouseholdSetup({ onJoined, onCancel }) {
     )
   }
 
+  if (screen === "admin-auth") {
+    return (
+      <div style={s.container}>
+        <div style={s.emoji}>🔐</div>
+        <h2 style={s.title}>Admin Setup</h2>
+        <p style={s.body}>Enter the admin password to create a new household.</p>
+        <form onSubmit={handleAdminAuth} style={{ width:'100%', display:'flex', flexDirection:'column', gap:'10px' }}>
+          <input
+            style={s.input}
+            type="password"
+            placeholder="Admin password"
+            value={adminPass}
+            onChange={e => { setAdminPass(e.target.value); setPassError('') }}
+            autoFocus
+            autoComplete="current-password"
+          />
+          {passError && <p style={s.error}>{passError}</p>}
+          <button type="submit" style={s.primaryBtn}>Create Household</button>
+        </form>
+        <button style={s.ghostBtn} onClick={() => { setScreen("join"); setAdminPass(''); setPassError('') }}>
+          Back
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div style={s.container}>
       <div style={s.emoji}>🏠</div>
       <h2 style={s.title}>Join Household</h2>
-      <p style={s.body}>
-        Enter the invite code from your household admin, or create a new household.
-      </p>
-      <input
-        style={s.input}
-        placeholder="NOURISH-XXXX-XXXX-XXXX"
-        value={inputCode}
-        onChange={e => setInputCode(e.target.value.toUpperCase())}
-        autoCapitalize="characters"
-        autoCorrect="off"
-      />
-      {error && <p style={s.error}>{error}</p>}
-      <button style={s.primaryBtn} onClick={handleJoin}>
-        Join Household
-      </button>
+      <p style={s.body}>Enter the invite code from your household admin.</p>
+      <form onSubmit={handleJoin} style={{ width:'100%', display:'flex', flexDirection:'column', gap:'10px' }}>
+        <input
+          style={s.input}
+          placeholder="NOURISH-XXXX-XXXX-XXXX"
+          value={inputCode}
+          onChange={e => { setInputCode(e.target.value.toUpperCase()); setError('') }}
+          autoCapitalize="characters"
+          autoCorrect="off"
+        />
+        {error && <p style={s.error}>{error}</p>}
+        <button type="submit" style={s.primaryBtn}>Join Household</button>
+      </form>
+
       <div style={s.divider}><span style={s.dividerText}>or</span></div>
-      <button style={s.ghostBtn} onClick={handleCreate}>
-        Create New Household
+
+      <button style={s.ghostBtn} onClick={() => setScreen("admin-auth")}>
+        Set up as admin
       </button>
+
       {onCancel && (
         <button style={s.cancelBtn} onClick={onCancel}>Skip for now</button>
       )}
