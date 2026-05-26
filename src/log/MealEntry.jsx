@@ -4,6 +4,7 @@ import { useAuth } from "../auth/useAuth.jsx"
 import { addFoodLogEntry } from "../db/db.js"
 import { calcMacros, calcBatchMacros, toGrams, WEIGHT_UNITS } from "../food/macroCalc.js"
 import LabelScanner from "../food/LabelScanner.jsx"
+import BarcodeScanner from "../food/BarcodeScanner.jsx"
 import { MACRO_COLORS } from "../config.js"
 
 // ─── Speech recognition support ──────────────────────────────────────────────
@@ -61,7 +62,7 @@ function parseVoiceInput(text) {
 
 export default function MealEntry({ date, onLogged }) {
   const [open,       setOpen]       = useState(false)
-  const [screen,     setScreen]     = useState("list") // list | entry | scan
+  const [screen,     setScreen]     = useState("list") // list | entry | scan | barcode
   const [selected,   setSelected]   = useState(null)
   const [query,      setQuery]      = useState("")
   const [results,    setResults]    = useState([])
@@ -270,11 +271,14 @@ export default function MealEntry({ date, onLogged }) {
 
               {/* Scan + Manual buttons */}
               <div style={s.actionRow}>
+                <button style={s.actionBtn} onClick={() => setScreen("barcode")}>
+                  📲 Barcode
+                </button>
                 <button style={s.actionBtn} onClick={() => setScreen("scan")}>
                   📷 Scan Label
                 </button>
                 <button style={s.actionBtn} onClick={() => selectItem({ id:"manual", name:"", per100g:{ calories:0, protein:0, carbs:0, fat:0, fibre:0 }, servingSize:100 }, null)}>
-                  ✏️ Add Manual
+                  ✏️ Manual
                 </button>
               </div>
 
@@ -356,6 +360,14 @@ export default function MealEntry({ date, onLogged }) {
             <LabelScanner
               userId={user?.id}
               onSaved={food => selectItem(food, null)}
+              onCancel={() => setScreen("list")}
+            />
+          )}
+
+          {/* Barcode screen */}
+          {screen === "barcode" && (
+            <BarcodeScanner
+              onFound={food => selectItem(food, null)}
               onCancel={() => setScreen("list")}
             />
           )}
