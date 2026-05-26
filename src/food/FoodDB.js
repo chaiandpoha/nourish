@@ -3,9 +3,12 @@
 // No API calls — fully local, instant results
 
 import { db } from '../db/indexedDB.js'
+import usdaFoodsData from '../data/usda_foods.json'
+import ninFoodsData  from '../data/nin_foods.json'
 
 // ─── Seed bundled foods into IndexedDB ───────────────────────────────────────
-// Called once on app start — safe to call repeatedly (bulkPut is idempotent)
+// Data is bundled as static imports — no fetch needed, works offline from
+// the very first load with no service worker dependency.
 
 let _seeded = false
 
@@ -13,32 +16,17 @@ export async function seedFoodDatabase() {
   if (_seeded) return true
 
   try {
-    // Check for a known USDA food — if it exists, bundled data is already seeded
+    // If usda_001 already exists, data is seeded from a previous session
     const alreadySeeded = await db.foods.get('usda_001')
     if (alreadySeeded) { _seeded = true; return true }
 
-    console.log('FoodDB: seeding...')
-    const [usdaRes, ninRes] = await Promise.all([
-      fetch('/data/usda_foods.json'),
-      fetch('/data/nin_foods.json'),
-    ])
-
-    if (!usdaRes.ok || !ninRes.ok) {
-      throw new Error(`Failed to fetch food data: usda=${usdaRes.status} nin=${ninRes.status}`)
-    }
-
-    const [usdaFoods, ninFoods] = await Promise.all([
-      usdaRes.json(),
-      ninRes.json(),
-    ])
-
-    console.log(`FoodDB: usda=${usdaFoods.length} nin=${ninFoods.length}`)
+    console.log('FoodDB: seeding from bundle…')
 
     // tags:[] required — omitting a multi-entry indexed field causes bulkPut
     // to fail silently on Safari iOS (IndexedDB multi-entry index constraint)
     const all = [
-      ...usdaFoods.map(f => ({ ...f, source: 'usda', tags: f.tags || [] })),
-      ...ninFoods.map(f  => ({ ...f, source: 'nin',  tags: f.tags || [] })),
+      ...usdaFoodsData.map(f => ({ ...f, source: 'usda', tags: f.tags || [] })),
+      ...ninFoodsData.map(f  => ({ ...f, source: 'nin',  tags: f.tags || [] })),
     ]
 
     await db.foods.bulkPut(all)
@@ -146,18 +134,6 @@ export async function getRecentFoods(userId, limit = 10) {
   )
 
   return foods.filter(Boolean)
-}
-
-// ─── Popular / suggested foods ────────────────────────────────────────────────
-
-/**
- * Returns a curated default list when the user has no recent foods.
- * Prioritises saved/scanned > nin > usda — same as search priority.
- */
-export async function getPopularFoods(limit = 16) {
-  const all = await db.foods.toArray()
-  all.sort((a, b) => sourcePriority(a.source) - sourcePriority(b.source))
-  return all.slice(0, limit)
 }
 
 // ─── Get food by ID ───────────────────────────────────────────────────────────
