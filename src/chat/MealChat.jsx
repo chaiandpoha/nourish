@@ -22,6 +22,7 @@ export default function MealChat({ onClose }) {
   const [totals,    setTotals]    = useState({})
   const [error,     setError]     = useState('')
   const [logged,    setLogged]    = useState({})   // key: `${msgIdx}-${foodIdx}` → true
+  const [logMeal,   setLogMeal]   = useState(detectMeal)
   const bottomRef  = useRef(null)
   const inputRef   = useRef(null)
   const { user }   = useAuth()
@@ -77,8 +78,6 @@ export default function MealChat({ onClose }) {
   async function handleLogFood(food, key) {
     if (!user || logged[key]) return
     const today = new Date().toISOString().slice(0, 10)
-    const h = new Date().getHours()
-    const meal = h < 10 ? 'breakfast' : h < 15 ? 'lunch' : h < 19 ? 'dinner' : 'snack'
     await addFoodLogEntry(user.id, {
       foodId:   null,
       batchId:  null,
@@ -91,7 +90,7 @@ export default function MealChat({ onClose }) {
       fat:      Math.round((food.fat     || 0) * 10) / 10,
       fibre:    Math.round((food.fibre   || 0) * 10) / 10,
       date:     today,
-      meal,
+      meal:     logMeal,
     })
     setLogged(prev => ({ ...prev, [key]: true }))
     loadTotals()
@@ -199,6 +198,17 @@ export default function MealChat({ onClose }) {
               </div>
               {foods.length > 0 && (
                 <div style={s.foodCards}>
+                  <div style={s.mealPicker}>
+                    {['breakfast','lunch','dinner','snack'].map(m => (
+                      <button
+                        key={m}
+                        style={{ ...s.mealPickerBtn, ...(logMeal === m ? s.mealPickerBtnActive : {}) }}
+                        onClick={() => setLogMeal(m)}
+                      >
+                        {m.charAt(0).toUpperCase() + m.slice(1)}
+                      </button>
+                    ))}
+                  </div>
                   {foods.map((food, fi) => {
                     const key = `${i}-${fi}`
                     const done = logged[key]
@@ -299,6 +309,9 @@ const s = {
   errorBubble:    { padding:'10px 14px', background:'rgba(200,80,64,0.08)', borderRadius:'var(--r-md)', color:'var(--red)', fontSize:'13px' },
   messageGroup:   { display:'flex', flexDirection:'column', gap:'6px' },
   foodCards:      { display:'flex', flexDirection:'column', gap:'6px', marginLeft:'4px' },
+  mealPicker:     { display:'flex', gap:'4px', padding:'2px 0 6px' },
+  mealPickerBtn:  { flex:1, padding:'5px 0', background:'var(--bg-elevated)', border:'none', borderRadius:'var(--r-sm)', fontSize:'11px', fontWeight:'500', color:'var(--text-tertiary)', cursor:'pointer' },
+  mealPickerBtnActive: { background:'var(--text-primary)', color:'var(--text-inverse)', fontWeight:'600' },
   foodCard:       { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'10px 12px', background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)' },
   foodCardLeft:   { display:'flex', flexDirection:'column', gap:'2px', flex:1, minWidth:0 },
   foodCardName:   { fontSize:'13px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.01em' },

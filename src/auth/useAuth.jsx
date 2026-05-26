@@ -219,9 +219,15 @@ export function AuthProvider({ children }) {
     await db.users.update(userId, { pinHash: newPinHash, dirty: 1, updatedAt: new Date().toISOString() })
   }
 
+  async function refreshUser() {
+    if (!user) return
+    const updated = await db.users.get(user.id)
+    if (updated) setUser(updated)
+  }
+
   const value = {
     user, isLocked, isLoading, encryptionKey, pinAttempts, lockoutUntil,
-    loginWithPin, loginWithBiometric, registerBiometric, createProfile, resetPin, lock, logout,
+    loginWithPin, loginWithBiometric, registerBiometric, createProfile, resetPin, lock, logout, refreshUser,
   }
 
   return (

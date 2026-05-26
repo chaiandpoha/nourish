@@ -19,6 +19,7 @@ export default function Measurements() {
 
   const today = new Date().toISOString().slice(0, 10)
   const thisMonth = today.slice(0, 7)
+  const [entryDate, setEntryDate] = useState(today)
 
   useEffect(() => {
     if (!user) return
@@ -27,9 +28,9 @@ export default function Measurements() {
 
   async function load() {
     const data = await getMeasurements(user.id)
-    setEntries(data.reverse()) // most recent first
-    // Pre-fill form with this month's entry if it exists
-    const thisMonthEntry = data.find(e => e.date.startsWith(thisMonth))
+    setEntries([...data].reverse()) // most recent first
+    // Pre-fill form with the entry matching the selected date (same month) if it exists
+    const thisMonthEntry = data.find(e => e.date.startsWith(entryDate.slice(0, 7)))
     if (thisMonthEntry) {
       setForm({
         waist:  String(thisMonthEntry.waist  || ''),
@@ -51,7 +52,7 @@ export default function Measurements() {
     if (!Object.keys(entry).length) return
     setSaving(true)
     try {
-      await saveMeasurement(user.id, { ...entry, date: today })
+      await saveMeasurement(user.id, { ...entry, date: entryDate })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
       await load()
@@ -65,7 +66,16 @@ export default function Measurements() {
   return (
     <div style={styles.container}>
       <div style={styles.section}>
-        <div style={styles.sectionTitle}>Log Measurements (cm)</div>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={styles.sectionTitle}>Log Measurements (cm)</div>
+          <input
+            type="date"
+            value={entryDate}
+            max={today}
+            onChange={e => setEntryDate(e.target.value)}
+            style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'var(--r-sm)', padding:'4px 8px', fontSize:'12px', color:'var(--text-secondary)', cursor:'pointer' }}
+          />
+        </div>
         <div style={styles.formGrid}>
           {FIELDS.map(({ key, label }) => (
             <div key={key} style={styles.fieldRow}>

@@ -7,7 +7,7 @@ import Onboarding from './auth/Onboarding.jsx'
 import BottomNav from './shared/BottomNav.jsx'
 import { runMigrations } from './db/migrations.js'
 import { db } from './db/indexedDB.js'
-import { saveRemindersToCloud } from './db/db.js'
+import { saveRemindersToCloud, saveUser } from './db/db.js'
 import { generateId } from './auth/crypto.js'
 import { DRIVE } from './config.js'
 import HomeScreen from './screens/Home.jsx'
@@ -82,48 +82,6 @@ export default function App() {
         </HashRouter>
       </BannerProvider>
     </AuthProvider>
-  )
-}
-
-function BackupStatus() {
-  const [lastBackup, setLastBackup] = useState(null)
-  const [backing,    setBacking]    = useState(false)
-  const { user, encryptionKey } = useAuth()
-
-  useEffect(() => {
-    const { getLastBackupTime } = require('./db/syncManager.js')
-    setLastBackup(getLastBackupTime())
-  }, [])
-
-  async function handleBackup() {
-    if (!user || !encryptionKey) return
-    setBacking(true)
-    try {
-      const { runDailyBackup } = await import('./db/db.js')
-      // Force backup by clearing last backup time
-      localStorage.removeItem('nourish_last_backup')
-      await runDailyBackup(user.id, encryptionKey)
-      setLastBackup(new Date())
-    } catch (e) {
-      console.error('Manual backup failed:', e)
-    } finally {
-      setBacking(false)
-    }
-  }
-
-  return (
-    <div style={{ marginTop:'8px', paddingTop:'8px', borderTop:'0.5px solid var(--border-subtle)' }}>
-      <p style={{ ...styles.settingsRow, fontSize:'12px', color:'var(--text-tertiary)' }}>
-        ☁️ Last backup: {lastBackup ? lastBackup.toLocaleString() : 'Never'}
-      </p>
-      <button
-        style={{ marginTop:'6px', padding:'8px 14px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer', opacity: backing ? 0.6 : 1 }}
-        onClick={handleBackup}
-        disabled={backing}
-      >
-        {backing ? '☁️ Backing up…' : '☁️ Backup Now'}
-      </button>
-    </div>
   )
 }
 
@@ -369,7 +327,7 @@ function CalendarScreen() {
 }
 
 function SettingsScreen() {
-  const { user, lock } = useAuth()
+  const { user, lock, refreshUser } = useAuth()
   const [tab,          setTab]          = useState('profile')
   const [instructions, setInstructions] = useState(
     user?.aiInstructions || 'Suggest vegetarian Indian meals. Prioritise high protein foods like paneer, dal, curd, sprouts and eggs.'
@@ -419,12 +377,7 @@ function SettingsScreen() {
 
       {tab === 'profile' && (
         <>
-          <div style={styles.settingsCard}>
-            <p style={styles.settingsRow}>👤 {user?.name}</p>
-            <p style={styles.settingsRow}>🎯 {user?.macroGoals?.calories} kcal · {user?.macroGoals?.protein}g protein</p>
-            <p style={styles.settingsRow}>💊 {user?.supplements?.length || 0} supplements</p>
-            <p style={styles.settingsRow}>📏 {user?.height ? Math.round(user.height) + 'cm' : 'Height not set'}</p>
-          </div>
+          <ProfileEditor user={user} onSaved={refreshUser} />
           <ThemeToggle />
           <ExportData userId={user?.id} />
           {user?.pinHash && (
@@ -788,6 +741,146 @@ function ReminderSettings({ userId }) {
 }
 
 // ─── ThemeToggle ─────────────────────────────────────────────────────────────
+
+// ─── ProfileEditor ────────────────────────────────────────────────────────────
+
+function ProfileEditor({ user, onSaved }) {
+  const [calories,  setCalories]  = useState(String(user?.macroGoals?.calories || 2000))
+  const [protein,   setProtein]   = useState(String(user?.macroGoals?.protein  || 150))
+  const [carbs,     setCarbs]     = useState(String(user?.macroGoals?.carbs    || 200))
+  const [fat,       setFat]       = useState(String(user?.macroGoals?.fat      || 65))
+  const [fibre,     setFibre]     = useState(String(user?.macroGoals?.fibre    || 30))
+  const [height,    setHeight]    = useState(String(user?.height ? Math.round(user.height) : ''))
+  const [suppInput, setSuppInput] = useState('')
+  const [supps,     setSupps]     = useState(user?.supplements || [])
+  const [saving,    setSaving]    = useState(false)
+  const [saved,     setSaved]     = useState(false)
+
+  function addSupp() {
+    const s = suppInput.trim()
+    if (!s || supps.includes(s)) return
+    setSupps(prev => [...prev, s])
+    setSuppInput('')
+  }
+
+  function removeSupp(s) {
+    setSupps(prev => prev.filter(x => x !== s))
+  }
+
+  async function handleSave() {
+    if (!user) return
+    setSaving(true)
+    try {
+      const updates = {
+        height:     parseFloat(height) || user.height,
+        macroGoals: {
+          calories: parseInt(calories)  || 2000,
+          protein:  parseInt(protein)   || 150,
+          carbs:    parseInt(carbs)     || 200,
+          fat:      parseInt(fat)       || 65,
+          fibre:    parseInt(fibre)     || 30,
+        },
+        supplements: supps,
+      }
+      await saveUser({ ...user, ...updates })
+      await onSaved?.()
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const macroFields = [
+    { label:'Calories', unit:'kcal', val:calories, set:setCalories },
+    { label:'Protein',  unit:'g',    val:protein,  set:setProtein  },
+    { label:'Carbs',    unit:'g',    val:carbs,    set:setCarbs    },
+    { label:'Fat',      unit:'g',    val:fat,      set:setFat      },
+    { label:'Fibre',    unit:'g',    val:fibre,    set:setFibre    },
+  ]
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+
+      {/* Identity (read-only) */}
+      <div style={styles.settingsCard}>
+        <p style={styles.settingsRow}>👤 {user?.name}</p>
+      </div>
+
+      {/* Macro goals */}
+      <div style={{ background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', padding:'14px 16px', display:'flex', flexDirection:'column', gap:'10px' }}>
+        <div style={{ fontSize:'13px', fontWeight:'600', color:'var(--text-secondary)', letterSpacing:'0.02em' }}>Daily Goals</div>
+        {macroFields.map(({ label, unit, val, set }) => (
+          <div key={label} style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+            <span style={{ fontSize:'14px', fontWeight:'500', color:'var(--text-primary)', flex:1 }}>{label}</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={val}
+              onChange={e => set(e.target.value)}
+              style={{ width:'72px', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'var(--r-md)', fontSize:'15px', fontFamily:'var(--font-mono)', fontWeight:'600', color:'var(--text-primary)', outline:'none', textAlign:'right' }}
+            />
+            <span style={{ fontSize:'13px', color:'var(--text-tertiary)', width:'32px' }}>{unit}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Height */}
+      <div style={{ background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', padding:'14px 16px', display:'flex', alignItems:'center', gap:'10px' }}>
+        <span style={{ fontSize:'14px', fontWeight:'500', color:'var(--text-primary)', flex:1 }}>Height</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          value={height}
+          onChange={e => setHeight(e.target.value)}
+          placeholder="—"
+          style={{ width:'72px', padding:'7px 10px', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'var(--r-md)', fontSize:'15px', fontFamily:'var(--font-mono)', fontWeight:'600', color:'var(--text-primary)', outline:'none', textAlign:'right' }}
+        />
+        <span style={{ fontSize:'13px', color:'var(--text-tertiary)', width:'32px' }}>cm</span>
+      </div>
+
+      {/* Supplements */}
+      <div style={{ background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', padding:'14px 16px', display:'flex', flexDirection:'column', gap:'10px' }}>
+        <div style={{ fontSize:'13px', fontWeight:'600', color:'var(--text-secondary)', letterSpacing:'0.02em' }}>Supplements</div>
+        {supps.length > 0 && (
+          <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
+            {supps.map(s => (
+              <div key={s} style={{ display:'flex', alignItems:'center', gap:'4px', padding:'4px 10px', background:'var(--bg-elevated)', borderRadius:'var(--r-full)', fontSize:'13px', color:'var(--text-primary)' }}>
+                {s}
+                <button
+                  onClick={() => removeSupp(s)}
+                  style={{ background:'none', border:'none', color:'var(--text-tertiary)', fontSize:'14px', cursor:'pointer', padding:'0 0 0 2px', lineHeight:1 }}
+                >×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ display:'flex', gap:'8px' }}>
+          <input
+            value={suppInput}
+            onChange={e => setSuppInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addSupp()}
+            placeholder="e.g. Creatine, Vitamin D"
+            style={{ flex:1, padding:'8px 10px', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:'var(--r-md)', fontSize:'13px', color:'var(--text-primary)', outline:'none' }}
+          />
+          <button
+            onClick={addSupp}
+            style={{ padding:'8px 14px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer' }}
+          >Add</button>
+        </div>
+      </div>
+
+      {/* Save */}
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        style={{ padding:'13px', background: saved ? 'var(--accent)' : 'var(--text-primary)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer', opacity: saving ? 0.6 : 1, transition:'background 0.2s ease' }}
+      >
+        {saved ? '✓ Saved' : saving ? 'Saving…' : 'Save Profile'}
+      </button>
+    </div>
+  )
+}
 
 function ThemeToggle() {
   const [pref, setPref] = useState(getThemePref)

@@ -3,6 +3,7 @@ import { useAuth } from '../auth/useAuth.jsx'
 import { getFoodLogForDate, deleteFoodLogEntry, addFoodLogEntry, updateFoodLogEntry } from '../db/db.js'
 import { sumMacros } from '../food/macroCalc.js'
 import { MACRO_COLORS } from '../config.js'
+import { Skeleton, SkeletonCard } from '../shared/Skeleton.jsx'
 
 const MEAL_SLOTS   = ['breakfast', 'lunch', 'dinner', 'snack']
 const MEAL_ICONS   = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎' }
@@ -65,7 +66,17 @@ export default function DayLog({ date, onTotalsChange }) {
   }, {})
 
   if (loading) {
-    return <div style={styles.loading}>Loading…</div>
+    return (
+      <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+        {[0,1,2,3].map(i => (
+          <SkeletonCard key={i} style={{ gap:'10px' }}>
+            <Skeleton height="14px" width="120px" radius="6px" />
+            <Skeleton height="12px" width="80%" radius="5px" />
+            <Skeleton height="12px" width="60%" radius="5px" />
+          </SkeletonCard>
+        ))}
+      </div>
+    )
   }
 
   return (
