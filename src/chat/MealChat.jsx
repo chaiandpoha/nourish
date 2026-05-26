@@ -305,7 +305,7 @@ const s = {
   foodCardMeta:   { fontSize:'11px', color:'var(--text-tertiary)' },
   logBtn:         { padding:'6px 14px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'12px', fontWeight:'600', cursor:'pointer', flexShrink:0 },
   logBtnDone:     { background:'var(--bg-elevated)', color:'var(--accent)', cursor:'default' },
-  inputArea:    { display:'flex', alignItems:'flex-end', gap:'8px', padding:'12px 16px', padding:'12px 16px calc(12px + env(safe-area-inset-bottom))', background:'var(--bg-surface)', borderTop:'0.5px solid var(--border-subtle)', flexShrink:0 },
+  inputArea:    { display:'flex', alignItems:'flex-end', gap:'8px', padding:'12px 16px calc(12px + env(safe-area-inset-bottom))', background:'var(--bg-surface)', borderTop:'0.5px solid var(--border-subtle)', flexShrink:0 },
   input:        { flex:1, padding:'11px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-xl)', fontSize:'15px', color:'var(--text-primary)', outline:'none', resize:'none', fontFamily:'var(--font-sans)', lineHeight:'1.4', maxHeight:'120px', overflowY:'auto' },
   sendBtn:      { width:'40px', height:'40px', borderRadius:'50%', background:'var(--text-primary)', border:'none', color:'var(--text-inverse)', fontSize:'18px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
 }
