@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react"
-import { searchFoods, getRecentFoods, getActiveBatches, detectMealSlot, seedFoodDatabase } from "../food/FoodDB.js"
+import { searchFoods, getRecentFoods, getActiveBatches, seedFoodDatabase } from "../food/FoodDB.js"
 import { useAuth } from "../auth/useAuth.jsx"
 import { addFoodLogEntry } from "../db/db.js"
 import { calcMacros, calcBatchMacros, toGrams, WEIGHT_UNITS } from "../food/macroCalc.js"
 import LabelScanner from "../food/LabelScanner.jsx"
 import BarcodeScanner from "../food/BarcodeScanner.jsx"
 import { MACRO_COLORS } from "../config.js"
+import { localDate, readMealPref } from "./DayLog.jsx"
 
 // ─── Speech recognition support ──────────────────────────────────────────────
 const speechSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
@@ -68,7 +69,7 @@ export default function MealEntry({ date, onLogged }) {
   const [results,    setResults]    = useState([])
   const [recents,    setRecents]    = useState([])
   const [batches,    setBatches]    = useState([])
-  const [meal,       setMeal]       = useState(detectMealSlot())
+  const [meal,       setMeal]       = useState(readMealPref() || 'breakfast')
   const [seeded,     setSeeded]     = useState(false)
   const [seedFailed, setSeedFailed] = useState(false)
   const [listening,  setListening]  = useState(false)
@@ -95,11 +96,11 @@ export default function MealEntry({ date, onLogged }) {
     })
   }, [])
 
-  // Load recents + batches when sheet opens — independent of seeding
-  // (recents come from foodLogs table which is populated from previous sessions)
+  // Load recents + batches when sheet opens; pick up active tab from DayLog
   useEffect(() => {
     if (!open || !user) return
-    setMeal(detectMealSlot())
+    // Use the meal tab the user last tapped in DayLog (or time-based fallback)
+    setMeal(readMealPref() || 'breakfast')
     Promise.all([
       getActiveBatches(user.id),
       getRecentFoods(user.id),
@@ -194,7 +195,7 @@ export default function MealEntry({ date, onLogged }) {
     if (!user) return
     await addFoodLogEntry(user.id, {
       ...entry,
-      date: date || new Date().toISOString().slice(0, 10),
+      date: date || localDate(),
       meal,
     })
     closeSheet()

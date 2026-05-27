@@ -27,6 +27,7 @@ import ProgressPhotos from './progress/ProgressPhotos.jsx'
 import Measurements from './progress/Measurements.jsx'
 import InstallPrompt from './shared/InstallPrompt.jsx'
 import MealEntry from './log/MealEntry.jsx'
+import { localDate } from './log/DayLog.jsx'
 import HouseholdScreen from './household/HouseholdScreen.jsx'
 import { getThemePref, setThemePref } from './shared/theme.js'
 
@@ -147,7 +148,7 @@ function AuthCallbackScreen() {
 
 function ProtectedApp() {
   const { user } = useAuth()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDate()
 
   function handleGlobalLogged() {
     window.dispatchEvent(new CustomEvent('nourish:food-logged'))

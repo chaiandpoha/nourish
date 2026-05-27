@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { RingWithMacros } from '../shared/RingChart.jsx'
 import StreakStrip from '../shared/StreakStrip.jsx'
-import DayLog from '../log/DayLog.jsx'
+import DayLog, { localDate } from '../log/DayLog.jsx'
 import { getDayMacros } from '../db/db.js'
 import { db } from '../db/indexedDB.js'
 import { seedFoodDatabase } from '../food/FoodDB.js'
@@ -64,7 +64,7 @@ export default function Home() {
   const [dateLabel,   setDateLabel]   = useState('')
   const [loading,     setLoading]     = useState(true)
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDate()
 
   useEffect(() => {
     seedFoodDatabase()
