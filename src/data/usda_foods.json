@@ -1118,5 +1118,3015 @@
     "servingSize": 30,
     "servingLabel": "2 tbsp",
     "barcode": null
+  },
+  {
+    "id": "usda_081",
+    "name": "Avocado Oil",
+    "per100g": {
+      "calories": 884,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 100,
+      "fibre": 0
+    },
+    "servingSize": 14,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_082",
+    "name": "Sesame Oil",
+    "per100g": {
+      "calories": 884,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 100,
+      "fibre": 0
+    },
+    "servingSize": 14,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_083",
+    "name": "Sunflower Oil",
+    "per100g": {
+      "calories": 884,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 100,
+      "fibre": 0
+    },
+    "servingSize": 14,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_084",
+    "name": "Peanut Oil",
+    "per100g": {
+      "calories": 884,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 100,
+      "fibre": 0
+    },
+    "servingSize": 14,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_085",
+    "name": "Flaxseed Oil",
+    "per100g": {
+      "calories": 884,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 100,
+      "fibre": 0
+    },
+    "servingSize": 14,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_086",
+    "name": "Canola / Rapeseed Oil",
+    "per100g": {
+      "calories": 884,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 100,
+      "fibre": 0
+    },
+    "servingSize": 14,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_087",
+    "name": "MCT Oil",
+    "per100g": {
+      "calories": 883,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 100,
+      "fibre": 0
+    },
+    "servingSize": 14,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_088",
+    "name": "Walnut Oil",
+    "per100g": {
+      "calories": 884,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 100,
+      "fibre": 0
+    },
+    "servingSize": 14,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_089",
+    "name": "Rice Bran Oil",
+    "per100g": {
+      "calories": 884,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 100,
+      "fibre": 0
+    },
+    "servingSize": 14,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_090",
+    "name": "Cod, raw",
+    "per100g": {
+      "calories": 82,
+      "protein": 18,
+      "carbs": 0,
+      "fat": 0.7,
+      "fibre": 0
+    },
+    "servingSize": 150,
+    "servingLabel": "1 fillet",
+    "barcode": null
+  },
+  {
+    "id": "usda_091",
+    "name": "Tilapia, raw",
+    "per100g": {
+      "calories": 96,
+      "protein": 20,
+      "carbs": 0,
+      "fat": 1.7,
+      "fibre": 0
+    },
+    "servingSize": 150,
+    "servingLabel": "1 fillet",
+    "barcode": null
+  },
+  {
+    "id": "usda_092",
+    "name": "Sardines, canned in oil",
+    "per100g": {
+      "calories": 208,
+      "protein": 24.6,
+      "carbs": 0,
+      "fat": 11.5,
+      "fibre": 0
+    },
+    "servingSize": 85,
+    "servingLabel": "1 can",
+    "barcode": null
+  },
+  {
+    "id": "usda_093",
+    "name": "Mackerel, raw",
+    "per100g": {
+      "calories": 205,
+      "protein": 18.6,
+      "carbs": 0,
+      "fat": 13.9,
+      "fibre": 0
+    },
+    "servingSize": 150,
+    "servingLabel": "1 fillet",
+    "barcode": null
+  },
+  {
+    "id": "usda_094",
+    "name": "Rainbow Trout, raw",
+    "per100g": {
+      "calories": 148,
+      "protein": 20.8,
+      "carbs": 0,
+      "fat": 6.6,
+      "fibre": 0
+    },
+    "servingSize": 150,
+    "servingLabel": "1 fillet",
+    "barcode": null
+  },
+  {
+    "id": "usda_095",
+    "name": "Sea Bass, raw",
+    "per100g": {
+      "calories": 97,
+      "protein": 18.4,
+      "carbs": 0,
+      "fat": 2,
+      "fibre": 0
+    },
+    "servingSize": 180,
+    "servingLabel": "1 fillet",
+    "barcode": null
+  },
+  {
+    "id": "usda_096",
+    "name": "Haddock, raw",
+    "per100g": {
+      "calories": 87,
+      "protein": 19,
+      "carbs": 0,
+      "fat": 0.7,
+      "fibre": 0
+    },
+    "servingSize": 150,
+    "servingLabel": "1 fillet",
+    "barcode": null
+  },
+  {
+    "id": "usda_097",
+    "name": "Halibut, raw",
+    "per100g": {
+      "calories": 111,
+      "protein": 20.8,
+      "carbs": 0,
+      "fat": 2.3,
+      "fibre": 0
+    },
+    "servingSize": 180,
+    "servingLabel": "1 fillet",
+    "barcode": null
+  },
+  {
+    "id": "usda_098",
+    "name": "Tuna, yellowfin, raw",
+    "per100g": {
+      "calories": 109,
+      "protein": 24.4,
+      "carbs": 0,
+      "fat": 0.5,
+      "fibre": 0
+    },
+    "servingSize": 150,
+    "servingLabel": "1 steak",
+    "barcode": null
+  },
+  {
+    "id": "usda_099",
+    "name": "Salmon, canned in water",
+    "per100g": {
+      "calories": 130,
+      "protein": 19.6,
+      "carbs": 0,
+      "fat": 5.5,
+      "fibre": 0
+    },
+    "servingSize": 85,
+    "servingLabel": "1 can",
+    "barcode": null
+  },
+  {
+    "id": "usda_100",
+    "name": "Herring, raw",
+    "per100g": {
+      "calories": 158,
+      "protein": 17.9,
+      "carbs": 0,
+      "fat": 9,
+      "fibre": 0
+    },
+    "servingSize": 150,
+    "servingLabel": "1 fillet",
+    "barcode": null
+  },
+  {
+    "id": "usda_101",
+    "name": "Anchovies, canned in oil",
+    "per100g": {
+      "calories": 210,
+      "protein": 28.9,
+      "carbs": 0,
+      "fat": 9.7,
+      "fibre": 0
+    },
+    "servingSize": 50,
+    "servingLabel": "½ can",
+    "barcode": null
+  },
+  {
+    "id": "usda_102",
+    "name": "Scallops, raw",
+    "per100g": {
+      "calories": 88,
+      "protein": 17,
+      "carbs": 3.2,
+      "fat": 0.8,
+      "fibre": 0
+    },
+    "servingSize": 100,
+    "servingLabel": "4 large",
+    "barcode": null
+  },
+  {
+    "id": "usda_103",
+    "name": "Mussels, raw",
+    "per100g": {
+      "calories": 86,
+      "protein": 11.9,
+      "carbs": 3.7,
+      "fat": 2.2,
+      "fibre": 0
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "usda_104",
+    "name": "Crab, raw",
+    "per100g": {
+      "calories": 83,
+      "protein": 18.1,
+      "carbs": 0,
+      "fat": 0.6,
+      "fibre": 0
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "usda_105",
+    "name": "Mahi-Mahi, raw",
+    "per100g": {
+      "calories": 85,
+      "protein": 18.5,
+      "carbs": 0,
+      "fat": 0.7,
+      "fibre": 0
+    },
+    "servingSize": 170,
+    "servingLabel": "1 fillet",
+    "barcode": null
+  },
+  {
+    "id": "usda_106",
+    "name": "Prawns / Shrimp, cooked",
+    "per100g": {
+      "calories": 99,
+      "protein": 20.9,
+      "carbs": 0.9,
+      "fat": 1.1,
+      "fibre": 0
+    },
+    "servingSize": 85,
+    "servingLabel": "6 large",
+    "barcode": null
+  },
+  {
+    "id": "usda_107",
+    "name": "Pork Tenderloin, raw",
+    "per100g": {
+      "calories": 109,
+      "protein": 21.9,
+      "carbs": 0,
+      "fat": 2.4,
+      "fibre": 0
+    },
+    "servingSize": 150,
+    "servingLabel": "150g",
+    "barcode": null
+  },
+  {
+    "id": "usda_108",
+    "name": "Pork Belly, raw",
+    "per100g": {
+      "calories": 518,
+      "protein": 9.3,
+      "carbs": 0,
+      "fat": 53.1,
+      "fibre": 0
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "usda_109",
+    "name": "Pork Chop, raw",
+    "per100g": {
+      "calories": 187,
+      "protein": 20,
+      "carbs": 0,
+      "fat": 12,
+      "fibre": 0
+    },
+    "servingSize": 150,
+    "servingLabel": "1 chop",
+    "barcode": null
+  },
+  {
+    "id": "usda_110",
+    "name": "Lamb Leg, raw",
+    "per100g": {
+      "calories": 191,
+      "protein": 20.3,
+      "carbs": 0,
+      "fat": 11.8,
+      "fibre": 0
+    },
+    "servingSize": 150,
+    "servingLabel": "150g",
+    "barcode": null
+  },
+  {
+    "id": "usda_111",
+    "name": "Lamb Mince, raw",
+    "per100g": {
+      "calories": 282,
+      "protein": 16.6,
+      "carbs": 0,
+      "fat": 23.8,
+      "fibre": 0
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "usda_112",
+    "name": "Duck Breast, raw",
+    "per100g": {
+      "calories": 133,
+      "protein": 19.7,
+      "carbs": 0,
+      "fat": 5.9,
+      "fibre": 0
+    },
+    "servingSize": 200,
+    "servingLabel": "1 breast",
+    "barcode": null
+  },
+  {
+    "id": "usda_113",
+    "name": "Turkey Breast, raw",
+    "per100g": {
+      "calories": 104,
+      "protein": 23.2,
+      "carbs": 0,
+      "fat": 1,
+      "fibre": 0
+    },
+    "servingSize": 150,
+    "servingLabel": "150g",
+    "barcode": null
+  },
+  {
+    "id": "usda_114",
+    "name": "Chicken Wings, raw",
+    "per100g": {
+      "calories": 203,
+      "protein": 18.3,
+      "carbs": 0,
+      "fat": 13.7,
+      "fibre": 0
+    },
+    "servingSize": 110,
+    "servingLabel": "2 wings",
+    "barcode": null
+  },
+  {
+    "id": "usda_115",
+    "name": "Bacon, raw",
+    "per100g": {
+      "calories": 541,
+      "protein": 12.6,
+      "carbs": 0.7,
+      "fat": 54.6,
+      "fibre": 0
+    },
+    "servingSize": 30,
+    "servingLabel": "2 rashers",
+    "barcode": null
+  },
+  {
+    "id": "usda_116",
+    "name": "Ham, cooked",
+    "per100g": {
+      "calories": 145,
+      "protein": 21.5,
+      "carbs": 1.5,
+      "fat": 5.5,
+      "fibre": 0
+    },
+    "servingSize": 60,
+    "servingLabel": "2 slices",
+    "barcode": null
+  },
+  {
+    "id": "usda_117",
+    "name": "Salami",
+    "per100g": {
+      "calories": 336,
+      "protein": 21,
+      "carbs": 1.1,
+      "fat": 27.8,
+      "fibre": 0
+    },
+    "servingSize": 30,
+    "servingLabel": "3 slices",
+    "barcode": null
+  },
+  {
+    "id": "usda_118",
+    "name": "Pepperoni",
+    "per100g": {
+      "calories": 494,
+      "protein": 19.2,
+      "carbs": 1.9,
+      "fat": 45.4,
+      "fibre": 0
+    },
+    "servingSize": 30,
+    "servingLabel": "6 slices",
+    "barcode": null
+  },
+  {
+    "id": "usda_119",
+    "name": "Sausage, pork",
+    "per100g": {
+      "calories": 268,
+      "protein": 13.6,
+      "carbs": 1.5,
+      "fat": 23.2,
+      "fibre": 0
+    },
+    "servingSize": 85,
+    "servingLabel": "1 sausage",
+    "barcode": null
+  },
+  {
+    "id": "usda_120",
+    "name": "Liver, chicken, raw",
+    "per100g": {
+      "calories": 119,
+      "protein": 16.9,
+      "carbs": 1.2,
+      "fat": 4.8,
+      "fibre": 0
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "usda_121",
+    "name": "Parmesan, grated",
+    "per100g": {
+      "calories": 431,
+      "protein": 38.5,
+      "carbs": 3.2,
+      "fat": 28.6,
+      "fibre": 0
+    },
+    "servingSize": 10,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_122",
+    "name": "Feta Cheese",
+    "per100g": {
+      "calories": 264,
+      "protein": 14.2,
+      "carbs": 4.1,
+      "fat": 21.3,
+      "fibre": 0
+    },
+    "servingSize": 30,
+    "servingLabel": "30g",
+    "barcode": null
+  },
+  {
+    "id": "usda_123",
+    "name": "Gouda Cheese",
+    "per100g": {
+      "calories": 356,
+      "protein": 24.9,
+      "carbs": 2.2,
+      "fat": 27.4,
+      "fibre": 0
+    },
+    "servingSize": 28,
+    "servingLabel": "1 slice",
+    "barcode": null
+  },
+  {
+    "id": "usda_124",
+    "name": "Ricotta, whole milk",
+    "per100g": {
+      "calories": 174,
+      "protein": 11.3,
+      "carbs": 3,
+      "fat": 13,
+      "fibre": 0
+    },
+    "servingSize": 125,
+    "servingLabel": "½ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_125",
+    "name": "Heavy Cream",
+    "per100g": {
+      "calories": 340,
+      "protein": 2.1,
+      "carbs": 2.8,
+      "fat": 36,
+      "fibre": 0
+    },
+    "servingSize": 15,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_126",
+    "name": "Half and Half",
+    "per100g": {
+      "calories": 130,
+      "protein": 3.1,
+      "carbs": 4.3,
+      "fat": 11.5,
+      "fibre": 0
+    },
+    "servingSize": 30,
+    "servingLabel": "2 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_127",
+    "name": "Greek Yogurt, full fat",
+    "per100g": {
+      "calories": 97,
+      "protein": 9,
+      "carbs": 3.6,
+      "fat": 5,
+      "fibre": 0
+    },
+    "servingSize": 170,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_128",
+    "name": "Kefir, plain",
+    "per100g": {
+      "calories": 52,
+      "protein": 3.6,
+      "carbs": 4.5,
+      "fat": 1.9,
+      "fibre": 0
+    },
+    "servingSize": 240,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_129",
+    "name": "Swiss Cheese",
+    "per100g": {
+      "calories": 380,
+      "protein": 26.9,
+      "carbs": 5.4,
+      "fat": 27.8,
+      "fibre": 0
+    },
+    "servingSize": 28,
+    "servingLabel": "1 slice",
+    "barcode": null
+  },
+  {
+    "id": "usda_130",
+    "name": "Blue Cheese",
+    "per100g": {
+      "calories": 353,
+      "protein": 21.4,
+      "carbs": 2.3,
+      "fat": 28.7,
+      "fibre": 0
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz",
+    "barcode": null
+  },
+  {
+    "id": "usda_131",
+    "name": "Brie Cheese",
+    "per100g": {
+      "calories": 334,
+      "protein": 20.8,
+      "carbs": 0.5,
+      "fat": 27.7,
+      "fibre": 0
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz",
+    "barcode": null
+  },
+  {
+    "id": "usda_132",
+    "name": "Cottage Cheese, full fat",
+    "per100g": {
+      "calories": 206,
+      "protein": 11.1,
+      "carbs": 2.7,
+      "fat": 9,
+      "fibre": 0
+    },
+    "servingSize": 113,
+    "servingLabel": "½ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_133",
+    "name": "Bulgur Wheat, dry",
+    "per100g": {
+      "calories": 342,
+      "protein": 12.3,
+      "carbs": 75.9,
+      "fat": 1.3,
+      "fibre": 18.3
+    },
+    "servingSize": 60,
+    "servingLabel": "60g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_134",
+    "name": "Spelt, dry",
+    "per100g": {
+      "calories": 338,
+      "protein": 14.6,
+      "carbs": 70.2,
+      "fat": 2.4,
+      "fibre": 10.7
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_135",
+    "name": "Buckwheat Groats, dry",
+    "per100g": {
+      "calories": 343,
+      "protein": 13.3,
+      "carbs": 71.5,
+      "fat": 3.4,
+      "fibre": 10
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_136",
+    "name": "Amaranth, dry",
+    "per100g": {
+      "calories": 371,
+      "protein": 13.6,
+      "carbs": 65.3,
+      "fat": 7,
+      "fibre": 6.7
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_137",
+    "name": "Teff, dry",
+    "per100g": {
+      "calories": 367,
+      "protein": 13.3,
+      "carbs": 73,
+      "fat": 2.4,
+      "fibre": 8
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_138",
+    "name": "Almond Flour",
+    "per100g": {
+      "calories": 576,
+      "protein": 21.4,
+      "carbs": 21.6,
+      "fat": 49.9,
+      "fibre": 10.7
+    },
+    "servingSize": 28,
+    "servingLabel": "¼ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_139",
+    "name": "Coconut Flour",
+    "per100g": {
+      "calories": 400,
+      "protein": 18,
+      "carbs": 60,
+      "fat": 13,
+      "fibre": 38
+    },
+    "servingSize": 30,
+    "servingLabel": "¼ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_140",
+    "name": "Polenta / Cornmeal, dry",
+    "per100g": {
+      "calories": 362,
+      "protein": 8.1,
+      "carbs": 76.9,
+      "fat": 3.6,
+      "fibre": 7.3
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_141",
+    "name": "Whole Wheat Flour",
+    "per100g": {
+      "calories": 340,
+      "protein": 13.2,
+      "carbs": 72,
+      "fat": 2.5,
+      "fibre": 10.7
+    },
+    "servingSize": 30,
+    "servingLabel": "2 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_142",
+    "name": "Rye Bread",
+    "per100g": {
+      "calories": 259,
+      "protein": 8.5,
+      "carbs": 48.3,
+      "fat": 3.3,
+      "fibre": 5.8
+    },
+    "servingSize": 32,
+    "servingLabel": "1 slice",
+    "barcode": null
+  },
+  {
+    "id": "usda_143",
+    "name": "Sourdough Bread",
+    "per100g": {
+      "calories": 289,
+      "protein": 8.8,
+      "carbs": 53.4,
+      "fat": 2.6,
+      "fibre": 2.4
+    },
+    "servingSize": 50,
+    "servingLabel": "1 thick slice",
+    "barcode": null
+  },
+  {
+    "id": "usda_144",
+    "name": "Pita Bread",
+    "per100g": {
+      "calories": 275,
+      "protein": 9.1,
+      "carbs": 55.7,
+      "fat": 1.2,
+      "fibre": 2.2
+    },
+    "servingSize": 60,
+    "servingLabel": "1 pita",
+    "barcode": null
+  },
+  {
+    "id": "usda_145",
+    "name": "Rice Cakes, plain",
+    "per100g": {
+      "calories": 387,
+      "protein": 8.2,
+      "carbs": 81.6,
+      "fat": 2.8,
+      "fibre": 2.2
+    },
+    "servingSize": 10,
+    "servingLabel": "1 cake",
+    "barcode": null
+  },
+  {
+    "id": "usda_146",
+    "name": "Freekeh, dry",
+    "per100g": {
+      "calories": 340,
+      "protein": 12,
+      "carbs": 72,
+      "fat": 1.5,
+      "fibre": 14
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_147",
+    "name": "Farro, dry",
+    "per100g": {
+      "calories": 340,
+      "protein": 13,
+      "carbs": 72,
+      "fat": 1,
+      "fibre": 8
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_148",
+    "name": "Oat Bran, dry",
+    "per100g": {
+      "calories": 246,
+      "protein": 17.3,
+      "carbs": 66.2,
+      "fat": 7,
+      "fibre": 15.4
+    },
+    "servingSize": 30,
+    "servingLabel": "30g",
+    "barcode": null
+  },
+  {
+    "id": "usda_149",
+    "name": "Muesli, no added sugar",
+    "per100g": {
+      "calories": 354,
+      "protein": 10.7,
+      "carbs": 62.4,
+      "fat": 7.4,
+      "fibre": 7.5
+    },
+    "servingSize": 60,
+    "servingLabel": "60g",
+    "barcode": null
+  },
+  {
+    "id": "usda_150",
+    "name": "Barley, pearled, dry",
+    "per100g": {
+      "calories": 352,
+      "protein": 9.9,
+      "carbs": 77.7,
+      "fat": 1.2,
+      "fibre": 15.6
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_151",
+    "name": "Mango",
+    "per100g": {
+      "calories": 60,
+      "protein": 0.8,
+      "carbs": 15,
+      "fat": 0.4,
+      "fibre": 1.6
+    },
+    "servingSize": 200,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_152",
+    "name": "Grapes, red",
+    "per100g": {
+      "calories": 69,
+      "protein": 0.6,
+      "carbs": 18,
+      "fat": 0.2,
+      "fibre": 0.9
+    },
+    "servingSize": 150,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_153",
+    "name": "Peach",
+    "per100g": {
+      "calories": 39,
+      "protein": 0.9,
+      "carbs": 9.5,
+      "fat": 0.3,
+      "fibre": 1.5
+    },
+    "servingSize": 150,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_154",
+    "name": "Plum",
+    "per100g": {
+      "calories": 46,
+      "protein": 0.7,
+      "carbs": 11.4,
+      "fat": 0.3,
+      "fibre": 1.4
+    },
+    "servingSize": 66,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_155",
+    "name": "Cherries, sweet",
+    "per100g": {
+      "calories": 50,
+      "protein": 1,
+      "carbs": 12.2,
+      "fat": 0.3,
+      "fibre": 1.6
+    },
+    "servingSize": 145,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_156",
+    "name": "Medjool Dates",
+    "per100g": {
+      "calories": 277,
+      "protein": 1.8,
+      "carbs": 75,
+      "fat": 0.2,
+      "fibre": 6.7
+    },
+    "servingSize": 24,
+    "servingLabel": "1 date",
+    "barcode": null
+  },
+  {
+    "id": "usda_157",
+    "name": "Fig, fresh",
+    "per100g": {
+      "calories": 74,
+      "protein": 0.8,
+      "carbs": 19.2,
+      "fat": 0.3,
+      "fibre": 2.9
+    },
+    "servingSize": 50,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_158",
+    "name": "Grapefruit",
+    "per100g": {
+      "calories": 42,
+      "protein": 0.8,
+      "carbs": 10.7,
+      "fat": 0.1,
+      "fibre": 1.6
+    },
+    "servingSize": 230,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_159",
+    "name": "Cantaloupe / Rockmelon",
+    "per100g": {
+      "calories": 34,
+      "protein": 0.8,
+      "carbs": 8.2,
+      "fat": 0.2,
+      "fibre": 0.9
+    },
+    "servingSize": 156,
+    "servingLabel": "1 cup cubed",
+    "barcode": null
+  },
+  {
+    "id": "usda_160",
+    "name": "Raspberries",
+    "per100g": {
+      "calories": 52,
+      "protein": 1.2,
+      "carbs": 11.9,
+      "fat": 0.7,
+      "fibre": 6.5
+    },
+    "servingSize": 123,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_161",
+    "name": "Blackberries",
+    "per100g": {
+      "calories": 43,
+      "protein": 1.4,
+      "carbs": 9.6,
+      "fat": 0.5,
+      "fibre": 5.3
+    },
+    "servingSize": 144,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_162",
+    "name": "Nectarine",
+    "per100g": {
+      "calories": 44,
+      "protein": 1.1,
+      "carbs": 10.6,
+      "fat": 0.3,
+      "fibre": 1.7
+    },
+    "servingSize": 142,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_163",
+    "name": "Honeydew Melon",
+    "per100g": {
+      "calories": 36,
+      "protein": 0.5,
+      "carbs": 9.1,
+      "fat": 0.1,
+      "fibre": 0.8
+    },
+    "servingSize": 177,
+    "servingLabel": "1 cup cubed",
+    "barcode": null
+  },
+  {
+    "id": "usda_164",
+    "name": "Lemon",
+    "per100g": {
+      "calories": 29,
+      "protein": 1.1,
+      "carbs": 9.3,
+      "fat": 0.3,
+      "fibre": 2.8
+    },
+    "servingSize": 58,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_165",
+    "name": "Lime",
+    "per100g": {
+      "calories": 30,
+      "protein": 0.7,
+      "carbs": 10.5,
+      "fat": 0.2,
+      "fibre": 2.8
+    },
+    "servingSize": 67,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_166",
+    "name": "Passion Fruit",
+    "per100g": {
+      "calories": 97,
+      "protein": 2.2,
+      "carbs": 23.4,
+      "fat": 0.7,
+      "fibre": 10.4
+    },
+    "servingSize": 18,
+    "servingLabel": "1 fruit",
+    "barcode": null
+  },
+  {
+    "id": "usda_167",
+    "name": "Cranberries, fresh",
+    "per100g": {
+      "calories": 46,
+      "protein": 0.4,
+      "carbs": 12.2,
+      "fat": 0.1,
+      "fibre": 4.6
+    },
+    "servingSize": 110,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_168",
+    "name": "Pomelo",
+    "per100g": {
+      "calories": 38,
+      "protein": 0.8,
+      "carbs": 9.6,
+      "fat": 0.1,
+      "fibre": 1
+    },
+    "servingSize": 612,
+    "servingLabel": "1 large",
+    "barcode": null
+  },
+  {
+    "id": "usda_169",
+    "name": "Celery, raw",
+    "per100g": {
+      "calories": 16,
+      "protein": 0.7,
+      "carbs": 3,
+      "fat": 0.2,
+      "fibre": 1.6
+    },
+    "servingSize": 40,
+    "servingLabel": "1 stalk",
+    "barcode": null
+  },
+  {
+    "id": "usda_170",
+    "name": "Beetroot, raw",
+    "per100g": {
+      "calories": 43,
+      "protein": 1.6,
+      "carbs": 9.6,
+      "fat": 0.2,
+      "fibre": 2.8
+    },
+    "servingSize": 82,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_171",
+    "name": "Leek, raw",
+    "per100g": {
+      "calories": 61,
+      "protein": 1.5,
+      "carbs": 14.2,
+      "fat": 0.3,
+      "fibre": 1.8
+    },
+    "servingSize": 89,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_172",
+    "name": "Fennel Bulb, raw",
+    "per100g": {
+      "calories": 31,
+      "protein": 1.2,
+      "carbs": 7.3,
+      "fat": 0.2,
+      "fibre": 3.1
+    },
+    "servingSize": 87,
+    "servingLabel": "½ bulb",
+    "barcode": null
+  },
+  {
+    "id": "usda_173",
+    "name": "Bok Choy, raw",
+    "per100g": {
+      "calories": 13,
+      "protein": 1.5,
+      "carbs": 2.2,
+      "fat": 0.2,
+      "fibre": 1
+    },
+    "servingSize": 70,
+    "servingLabel": "1 cup shredded",
+    "barcode": null
+  },
+  {
+    "id": "usda_174",
+    "name": "Arugula / Rocket, raw",
+    "per100g": {
+      "calories": 25,
+      "protein": 2.6,
+      "carbs": 3.7,
+      "fat": 0.7,
+      "fibre": 1.6
+    },
+    "servingSize": 20,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_175",
+    "name": "Swiss Chard, raw",
+    "per100g": {
+      "calories": 19,
+      "protein": 1.8,
+      "carbs": 3.7,
+      "fat": 0.2,
+      "fibre": 1.6
+    },
+    "servingSize": 36,
+    "servingLabel": "1 cup chopped",
+    "barcode": null
+  },
+  {
+    "id": "usda_176",
+    "name": "Sugar Snap Peas, raw",
+    "per100g": {
+      "calories": 42,
+      "protein": 2.8,
+      "carbs": 7.6,
+      "fat": 0.2,
+      "fibre": 2.5
+    },
+    "servingSize": 63,
+    "servingLabel": "½ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_177",
+    "name": "Butternut Squash, raw",
+    "per100g": {
+      "calories": 45,
+      "protein": 1,
+      "carbs": 11.7,
+      "fat": 0.1,
+      "fibre": 2
+    },
+    "servingSize": 205,
+    "servingLabel": "1 cup cubed",
+    "barcode": null
+  },
+  {
+    "id": "usda_178",
+    "name": "Artichoke, raw",
+    "per100g": {
+      "calories": 47,
+      "protein": 3.3,
+      "carbs": 10.5,
+      "fat": 0.2,
+      "fibre": 5.4
+    },
+    "servingSize": 128,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_179",
+    "name": "Watercress, raw",
+    "per100g": {
+      "calories": 11,
+      "protein": 2.3,
+      "carbs": 1.3,
+      "fat": 0.1,
+      "fibre": 0.5
+    },
+    "servingSize": 34,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_180",
+    "name": "Parsnip, raw",
+    "per100g": {
+      "calories": 75,
+      "protein": 1.2,
+      "carbs": 17.9,
+      "fat": 0.3,
+      "fibre": 4.9
+    },
+    "servingSize": 133,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_181",
+    "name": "Turnip, raw",
+    "per100g": {
+      "calories": 28,
+      "protein": 0.9,
+      "carbs": 6.4,
+      "fat": 0.1,
+      "fibre": 1.8
+    },
+    "servingSize": 122,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_182",
+    "name": "Radish, raw",
+    "per100g": {
+      "calories": 16,
+      "protein": 0.7,
+      "carbs": 3.4,
+      "fat": 0.1,
+      "fibre": 1.6
+    },
+    "servingSize": 10,
+    "servingLabel": "4 radishes",
+    "barcode": null
+  },
+  {
+    "id": "usda_183",
+    "name": "Corn on the Cob, kernels",
+    "per100g": {
+      "calories": 86,
+      "protein": 3.3,
+      "carbs": 19,
+      "fat": 1.4,
+      "fibre": 2.4
+    },
+    "servingSize": 90,
+    "servingLabel": "1 ear",
+    "barcode": null
+  },
+  {
+    "id": "usda_184",
+    "name": "Acorn Squash, raw",
+    "per100g": {
+      "calories": 40,
+      "protein": 0.8,
+      "carbs": 10.4,
+      "fat": 0.1,
+      "fibre": 1.5
+    },
+    "servingSize": 200,
+    "servingLabel": "½ squash",
+    "barcode": null
+  },
+  {
+    "id": "usda_185",
+    "name": "Collard Greens, raw",
+    "per100g": {
+      "calories": 32,
+      "protein": 3,
+      "carbs": 5.7,
+      "fat": 0.6,
+      "fibre": 4
+    },
+    "servingSize": 36,
+    "servingLabel": "1 cup chopped",
+    "barcode": null
+  },
+  {
+    "id": "usda_186",
+    "name": "Endive / Chicory, raw",
+    "per100g": {
+      "calories": 17,
+      "protein": 1.3,
+      "carbs": 3.4,
+      "fat": 0.2,
+      "fibre": 3.1
+    },
+    "servingSize": 50,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_187",
+    "name": "Radicchio, raw",
+    "per100g": {
+      "calories": 23,
+      "protein": 1.4,
+      "carbs": 4.5,
+      "fat": 0.3,
+      "fibre": 0.9
+    },
+    "servingSize": 40,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_188",
+    "name": "Kohlrabi, raw",
+    "per100g": {
+      "calories": 27,
+      "protein": 1.7,
+      "carbs": 6.2,
+      "fat": 0.1,
+      "fibre": 3.6
+    },
+    "servingSize": 135,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_189",
+    "name": "Snap Peas, cooked",
+    "per100g": {
+      "calories": 42,
+      "protein": 2.8,
+      "carbs": 7.6,
+      "fat": 0.2,
+      "fibre": 2.5
+    },
+    "servingSize": 63,
+    "servingLabel": "½ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_190",
+    "name": "Rutabaga / Swede, raw",
+    "per100g": {
+      "calories": 37,
+      "protein": 1.1,
+      "carbs": 8.6,
+      "fat": 0.2,
+      "fibre": 2.3
+    },
+    "servingSize": 140,
+    "servingLabel": "1 cup cubed",
+    "barcode": null
+  },
+  {
+    "id": "usda_191",
+    "name": "Pecans",
+    "per100g": {
+      "calories": 691,
+      "protein": 9.2,
+      "carbs": 13.9,
+      "fat": 71.9,
+      "fibre": 9.6
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz (~19 halves)",
+    "barcode": null
+  },
+  {
+    "id": "usda_192",
+    "name": "Macadamia Nuts",
+    "per100g": {
+      "calories": 718,
+      "protein": 7.9,
+      "carbs": 13.8,
+      "fat": 75.8,
+      "fibre": 8.6
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz",
+    "barcode": null
+  },
+  {
+    "id": "usda_193",
+    "name": "Hazelnuts / Filberts",
+    "per100g": {
+      "calories": 628,
+      "protein": 15,
+      "carbs": 16.7,
+      "fat": 60.8,
+      "fibre": 9.7
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz",
+    "barcode": null
+  },
+  {
+    "id": "usda_194",
+    "name": "Pine Nuts",
+    "per100g": {
+      "calories": 673,
+      "protein": 13.7,
+      "carbs": 13.1,
+      "fat": 68.4,
+      "fibre": 3.7
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz",
+    "barcode": null
+  },
+  {
+    "id": "usda_195",
+    "name": "Brazil Nuts",
+    "per100g": {
+      "calories": 659,
+      "protein": 14.3,
+      "carbs": 12.3,
+      "fat": 67.1,
+      "fibre": 7.5
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz (~6 nuts)",
+    "barcode": null
+  },
+  {
+    "id": "usda_196",
+    "name": "Pumpkin Seeds, raw",
+    "per100g": {
+      "calories": 559,
+      "protein": 30.2,
+      "carbs": 10.7,
+      "fat": 49.1,
+      "fibre": 6
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz",
+    "barcode": null
+  },
+  {
+    "id": "usda_197",
+    "name": "Sunflower Seeds, raw",
+    "per100g": {
+      "calories": 584,
+      "protein": 20.8,
+      "carbs": 20,
+      "fat": 51.5,
+      "fibre": 8.6
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz",
+    "barcode": null
+  },
+  {
+    "id": "usda_198",
+    "name": "Sesame Seeds",
+    "per100g": {
+      "calories": 573,
+      "protein": 17.7,
+      "carbs": 23.5,
+      "fat": 49.7,
+      "fibre": 11.8
+    },
+    "servingSize": 15,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_199",
+    "name": "Poppy Seeds",
+    "per100g": {
+      "calories": 525,
+      "protein": 17.9,
+      "carbs": 28.1,
+      "fat": 41.6,
+      "fibre": 19.5
+    },
+    "servingSize": 10,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_200",
+    "name": "Cashews, raw",
+    "per100g": {
+      "calories": 553,
+      "protein": 18.2,
+      "carbs": 30.2,
+      "fat": 43.9,
+      "fibre": 3.3
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz",
+    "barcode": null
+  },
+  {
+    "id": "usda_201",
+    "name": "Mayonnaise",
+    "per100g": {
+      "calories": 680,
+      "protein": 1,
+      "carbs": 0.6,
+      "fat": 74.8,
+      "fibre": 0
+    },
+    "servingSize": 14,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_202",
+    "name": "Ketchup",
+    "per100g": {
+      "calories": 101,
+      "protein": 1.4,
+      "carbs": 26.8,
+      "fat": 0.1,
+      "fibre": 0.3
+    },
+    "servingSize": 17,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_203",
+    "name": "Yellow Mustard",
+    "per100g": {
+      "calories": 66,
+      "protein": 3.7,
+      "carbs": 6.4,
+      "fat": 4,
+      "fibre": 2.7
+    },
+    "servingSize": 5,
+    "servingLabel": "1 tsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_204",
+    "name": "Dijon Mustard",
+    "per100g": {
+      "calories": 77,
+      "protein": 4,
+      "carbs": 5.6,
+      "fat": 4.7,
+      "fibre": 0
+    },
+    "servingSize": 5,
+    "servingLabel": "1 tsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_205",
+    "name": "Soy Sauce",
+    "per100g": {
+      "calories": 53,
+      "protein": 8.1,
+      "carbs": 4.9,
+      "fat": 0.1,
+      "fibre": 0.3
+    },
+    "servingSize": 16,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_206",
+    "name": "Fish Sauce",
+    "per100g": {
+      "calories": 35,
+      "protein": 5,
+      "carbs": 3.6,
+      "fat": 0,
+      "fibre": 0
+    },
+    "servingSize": 16,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_207",
+    "name": "Tahini",
+    "per100g": {
+      "calories": 595,
+      "protein": 17.8,
+      "carbs": 21.2,
+      "fat": 53.8,
+      "fibre": 9.3
+    },
+    "servingSize": 15,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_208",
+    "name": "Apple Cider Vinegar",
+    "per100g": {
+      "calories": 21,
+      "protein": 0,
+      "carbs": 0.9,
+      "fat": 0,
+      "fibre": 0
+    },
+    "servingSize": 15,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_209",
+    "name": "Balsamic Vinegar",
+    "per100g": {
+      "calories": 88,
+      "protein": 0.5,
+      "carbs": 17.3,
+      "fat": 0,
+      "fibre": 0
+    },
+    "servingSize": 16,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_210",
+    "name": "Tomato Paste",
+    "per100g": {
+      "calories": 82,
+      "protein": 4.3,
+      "carbs": 18.9,
+      "fat": 0.5,
+      "fibre": 4.2
+    },
+    "servingSize": 30,
+    "servingLabel": "2 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_211",
+    "name": "Sriracha Hot Sauce",
+    "per100g": {
+      "calories": 93,
+      "protein": 2,
+      "carbs": 15.7,
+      "fat": 2.6,
+      "fibre": 0
+    },
+    "servingSize": 6,
+    "servingLabel": "1 tsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_212",
+    "name": "Hoisin Sauce",
+    "per100g": {
+      "calories": 220,
+      "protein": 4.5,
+      "carbs": 42,
+      "fat": 4,
+      "fibre": 1.2
+    },
+    "servingSize": 16,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_213",
+    "name": "Worcestershire Sauce",
+    "per100g": {
+      "calories": 78,
+      "protein": 0,
+      "carbs": 19.5,
+      "fat": 0,
+      "fibre": 0
+    },
+    "servingSize": 17,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_214",
+    "name": "Oyster Sauce",
+    "per100g": {
+      "calories": 51,
+      "protein": 0.8,
+      "carbs": 10.8,
+      "fat": 0.3,
+      "fibre": 0
+    },
+    "servingSize": 16,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_215",
+    "name": "Hot Sauce (Tabasco-style)",
+    "per100g": {
+      "calories": 12,
+      "protein": 0,
+      "carbs": 0.8,
+      "fat": 0.4,
+      "fibre": 0
+    },
+    "servingSize": 5,
+    "servingLabel": "1 tsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_216",
+    "name": "Coconut Aminos",
+    "per100g": {
+      "calories": 44,
+      "protein": 0.2,
+      "carbs": 9.5,
+      "fat": 0.2,
+      "fibre": 0
+    },
+    "servingSize": 15,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_217",
+    "name": "Ranch Dressing",
+    "per100g": {
+      "calories": 263,
+      "protein": 1,
+      "carbs": 6.8,
+      "fat": 26.2,
+      "fibre": 0
+    },
+    "servingSize": 30,
+    "servingLabel": "2 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_218",
+    "name": "Salsa, fresh",
+    "per100g": {
+      "calories": 36,
+      "protein": 1.7,
+      "carbs": 7.7,
+      "fat": 0.4,
+      "fibre": 1.8
+    },
+    "servingSize": 65,
+    "servingLabel": "¼ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_219",
+    "name": "Pesto",
+    "per100g": {
+      "calories": 421,
+      "protein": 4.3,
+      "carbs": 3.1,
+      "fat": 45,
+      "fibre": 1.5
+    },
+    "servingSize": 15,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_220",
+    "name": "Red Wine Vinegar",
+    "per100g": {
+      "calories": 19,
+      "protein": 0.1,
+      "carbs": 0.3,
+      "fat": 0,
+      "fibre": 0
+    },
+    "servingSize": 15,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_221",
+    "name": "Tempeh",
+    "per100g": {
+      "calories": 193,
+      "protein": 19,
+      "carbs": 9.4,
+      "fat": 10.8,
+      "fibre": 0
+    },
+    "servingSize": 85,
+    "servingLabel": "3 oz",
+    "barcode": null
+  },
+  {
+    "id": "usda_222",
+    "name": "Seitan (wheat gluten)",
+    "per100g": {
+      "calories": 370,
+      "protein": 75,
+      "carbs": 14,
+      "fat": 1.9,
+      "fibre": 0.6
+    },
+    "servingSize": 85,
+    "servingLabel": "3 oz",
+    "barcode": null
+  },
+  {
+    "id": "usda_223",
+    "name": "Red Lentils, dry",
+    "per100g": {
+      "calories": 352,
+      "protein": 24.6,
+      "carbs": 63.3,
+      "fat": 1.1,
+      "fibre": 10.6
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_224",
+    "name": "Green Lentils, dry",
+    "per100g": {
+      "calories": 353,
+      "protein": 25.8,
+      "carbs": 60.1,
+      "fat": 1.1,
+      "fibre": 10.7
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_225",
+    "name": "Kidney Beans, dried",
+    "per100g": {
+      "calories": 337,
+      "protein": 22.9,
+      "carbs": 61.3,
+      "fat": 1.1,
+      "fibre": 24.9
+    },
+    "servingSize": 100,
+    "servingLabel": "100g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_226",
+    "name": "Navy Beans, dried",
+    "per100g": {
+      "calories": 337,
+      "protein": 22.3,
+      "carbs": 60.7,
+      "fat": 1.5,
+      "fibre": 24.4
+    },
+    "servingSize": 100,
+    "servingLabel": "100g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_227",
+    "name": "Mung Beans, dried",
+    "per100g": {
+      "calories": 347,
+      "protein": 23.9,
+      "carbs": 62.6,
+      "fat": 1.2,
+      "fibre": 16.3
+    },
+    "servingSize": 100,
+    "servingLabel": "100g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_228",
+    "name": "Black-Eyed Peas, dried",
+    "per100g": {
+      "calories": 336,
+      "protein": 23.5,
+      "carbs": 59.9,
+      "fat": 1.3,
+      "fibre": 10.6
+    },
+    "servingSize": 100,
+    "servingLabel": "100g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_229",
+    "name": "Adzuki Beans, dried",
+    "per100g": {
+      "calories": 329,
+      "protein": 19.9,
+      "carbs": 62.9,
+      "fat": 0.5,
+      "fibre": 12.7
+    },
+    "servingSize": 100,
+    "servingLabel": "100g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_230",
+    "name": "Split Peas, dry",
+    "per100g": {
+      "calories": 341,
+      "protein": 24.6,
+      "carbs": 60.4,
+      "fat": 1,
+      "fibre": 25.5
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_231",
+    "name": "Soybeans, dry",
+    "per100g": {
+      "calories": 446,
+      "protein": 36.5,
+      "carbs": 30.2,
+      "fat": 19.9,
+      "fibre": 9.3
+    },
+    "servingSize": 100,
+    "servingLabel": "100g dry",
+    "barcode": null
+  },
+  {
+    "id": "usda_232",
+    "name": "Almond Milk, unsweetened",
+    "per100g": {
+      "calories": 15,
+      "protein": 0.5,
+      "carbs": 0.3,
+      "fat": 1.2,
+      "fibre": 0.2
+    },
+    "servingSize": 240,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_233",
+    "name": "Oat Milk, unsweetened",
+    "per100g": {
+      "calories": 40,
+      "protein": 1,
+      "carbs": 6.5,
+      "fat": 1.3,
+      "fibre": 0.5
+    },
+    "servingSize": 240,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_234",
+    "name": "Soy Milk, unsweetened",
+    "per100g": {
+      "calories": 30,
+      "protein": 3,
+      "carbs": 1.5,
+      "fat": 1.6,
+      "fibre": 0
+    },
+    "servingSize": 240,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_235",
+    "name": "Coconut Milk, canned",
+    "per100g": {
+      "calories": 197,
+      "protein": 2,
+      "carbs": 2.8,
+      "fat": 21.3,
+      "fibre": 0.2
+    },
+    "servingSize": 240,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_236",
+    "name": "Coconut Milk Drink, carton",
+    "per100g": {
+      "calories": 24,
+      "protein": 0.4,
+      "carbs": 2.3,
+      "fat": 2.2,
+      "fibre": 0
+    },
+    "servingSize": 240,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_237",
+    "name": "Green Tea, brewed",
+    "per100g": {
+      "calories": 1,
+      "protein": 0,
+      "carbs": 0.2,
+      "fat": 0,
+      "fibre": 0
+    },
+    "servingSize": 240,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_238",
+    "name": "Kombucha",
+    "per100g": {
+      "calories": 16,
+      "protein": 0.2,
+      "carbs": 3.3,
+      "fat": 0,
+      "fibre": 0
+    },
+    "servingSize": 240,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_239",
+    "name": "Tomato Juice",
+    "per100g": {
+      "calories": 17,
+      "protein": 0.9,
+      "carbs": 3.5,
+      "fat": 0.1,
+      "fibre": 0.4
+    },
+    "servingSize": 240,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_240",
+    "name": "Sparkling Water",
+    "per100g": {
+      "calories": 0,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0,
+      "fibre": 0
+    },
+    "servingSize": 330,
+    "servingLabel": "1 can",
+    "barcode": null
+  },
+  {
+    "id": "usda_241",
+    "name": "Nutritional Yeast",
+    "per100g": {
+      "calories": 325,
+      "protein": 50,
+      "carbs": 37.5,
+      "fat": 7.5,
+      "fibre": 6.3
+    },
+    "servingSize": 16,
+    "servingLabel": "2 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_242",
+    "name": "Cocoa Powder, unsweetened",
+    "per100g": {
+      "calories": 228,
+      "protein": 19.6,
+      "carbs": 57.9,
+      "fat": 13.7,
+      "fibre": 33.2
+    },
+    "servingSize": 10,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_243",
+    "name": "Collagen Peptides",
+    "per100g": {
+      "calories": 360,
+      "protein": 90,
+      "carbs": 0,
+      "fat": 0,
+      "fibre": 0
+    },
+    "servingSize": 10,
+    "servingLabel": "1 scoop",
+    "barcode": null
+  },
+  {
+    "id": "usda_244",
+    "name": "Spirulina, dried",
+    "per100g": {
+      "calories": 290,
+      "protein": 57.5,
+      "carbs": 23.9,
+      "fat": 7.7,
+      "fibre": 3.6
+    },
+    "servingSize": 5,
+    "servingLabel": "1 tsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_245",
+    "name": "Matcha Powder",
+    "per100g": {
+      "calories": 324,
+      "protein": 29.6,
+      "carbs": 50.2,
+      "fat": 5.3,
+      "fibre": 35
+    },
+    "servingSize": 2,
+    "servingLabel": "½ tsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_246",
+    "name": "Plant Protein Powder",
+    "per100g": {
+      "calories": 385,
+      "protein": 70,
+      "carbs": 25,
+      "fat": 7.5,
+      "fibre": 3
+    },
+    "servingSize": 30,
+    "servingLabel": "1 scoop",
+    "barcode": null
+  },
+  {
+    "id": "usda_247",
+    "name": "Cacao Nibs",
+    "per100g": {
+      "calories": 480,
+      "protein": 14,
+      "carbs": 34.7,
+      "fat": 43.3,
+      "fibre": 26.7
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz",
+    "barcode": null
+  },
+  {
+    "id": "usda_248",
+    "name": "Maple Syrup",
+    "per100g": {
+      "calories": 260,
+      "protein": 0,
+      "carbs": 67,
+      "fat": 0.1,
+      "fibre": 0
+    },
+    "servingSize": 20,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_249",
+    "name": "Agave Nectar",
+    "per100g": {
+      "calories": 310,
+      "protein": 0,
+      "carbs": 76,
+      "fat": 0.5,
+      "fibre": 0
+    },
+    "servingSize": 21,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_250",
+    "name": "Stevia, powdered",
+    "per100g": {
+      "calories": 0,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0,
+      "fibre": 0
+    },
+    "servingSize": 1,
+    "servingLabel": "1 packet",
+    "barcode": null
+  },
+  {
+    "id": "usda_251",
+    "name": "Miso Paste",
+    "per100g": {
+      "calories": 199,
+      "protein": 11.7,
+      "carbs": 26.5,
+      "fat": 6,
+      "fibre": 5.4
+    },
+    "servingSize": 17,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_252",
+    "name": "Coconut Cream, canned",
+    "per100g": {
+      "calories": 330,
+      "protein": 2.1,
+      "carbs": 6.5,
+      "fat": 34,
+      "fibre": 0.2
+    },
+    "servingSize": 60,
+    "servingLabel": "¼ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_253",
+    "name": "Egg, fried",
+    "per100g": {
+      "calories": 196,
+      "protein": 13.6,
+      "carbs": 0.4,
+      "fat": 14.9,
+      "fibre": 0
+    },
+    "servingSize": 46,
+    "servingLabel": "1 large",
+    "barcode": null
+  },
+  {
+    "id": "usda_254",
+    "name": "Egg, scrambled",
+    "per100g": {
+      "calories": 149,
+      "protein": 10,
+      "carbs": 1.6,
+      "fat": 11.4,
+      "fibre": 0
+    },
+    "servingSize": 61,
+    "servingLabel": "1 large",
+    "barcode": null
+  },
+  {
+    "id": "usda_255",
+    "name": "Egg Yolk",
+    "per100g": {
+      "calories": 322,
+      "protein": 15.9,
+      "carbs": 3.6,
+      "fat": 26.5,
+      "fibre": 0
+    },
+    "servingSize": 17,
+    "servingLabel": "1 yolk",
+    "barcode": null
+  },
+  {
+    "id": "usda_256",
+    "name": "Egg White, cooked",
+    "per100g": {
+      "calories": 52,
+      "protein": 10.9,
+      "carbs": 0.7,
+      "fat": 0.2,
+      "fibre": 0
+    },
+    "servingSize": 33,
+    "servingLabel": "1 white",
+    "barcode": null
+  },
+  {
+    "id": "usda_257",
+    "name": "Duck Egg, raw",
+    "per100g": {
+      "calories": 185,
+      "protein": 12.8,
+      "carbs": 1.4,
+      "fat": 13.8,
+      "fibre": 0
+    },
+    "servingSize": 70,
+    "servingLabel": "1 egg",
+    "barcode": null
+  },
+  {
+    "id": "usda_258",
+    "name": "Canned Chickpeas, drained",
+    "per100g": {
+      "calories": 139,
+      "protein": 7.3,
+      "carbs": 22.5,
+      "fat": 2.4,
+      "fibre": 6.3
+    },
+    "servingSize": 130,
+    "servingLabel": "½ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_259",
+    "name": "Canned Black Beans, drained",
+    "per100g": {
+      "calories": 132,
+      "protein": 8.9,
+      "carbs": 23.7,
+      "fat": 0.5,
+      "fibre": 8.7
+    },
+    "servingSize": 130,
+    "servingLabel": "½ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_260",
+    "name": "Canned Kidney Beans",
+    "per100g": {
+      "calories": 127,
+      "protein": 8.7,
+      "carbs": 22.8,
+      "fat": 0.5,
+      "fibre": 5.5
+    },
+    "servingSize": 130,
+    "servingLabel": "½ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_261",
+    "name": "Canned Corn, drained",
+    "per100g": {
+      "calories": 72,
+      "protein": 2.4,
+      "carbs": 14.9,
+      "fat": 0.9,
+      "fibre": 1.9
+    },
+    "servingSize": 130,
+    "servingLabel": "½ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_262",
+    "name": "Canned Tuna, in olive oil",
+    "per100g": {
+      "calories": 198,
+      "protein": 23.5,
+      "carbs": 0,
+      "fat": 11.5,
+      "fibre": 0
+    },
+    "servingSize": 85,
+    "servingLabel": "1 can",
+    "barcode": null
+  },
+  {
+    "id": "usda_263",
+    "name": "Protein Bar, high-protein",
+    "per100g": {
+      "calories": 350,
+      "protein": 30,
+      "carbs": 35,
+      "fat": 10,
+      "fibre": 2
+    },
+    "servingSize": 70,
+    "servingLabel": "1 bar",
+    "barcode": null
+  },
+  {
+    "id": "usda_264",
+    "name": "Rice Protein Powder",
+    "per100g": {
+      "calories": 370,
+      "protein": 78,
+      "carbs": 12,
+      "fat": 3.5,
+      "fibre": 1
+    },
+    "servingSize": 30,
+    "servingLabel": "1 scoop",
+    "barcode": null
+  },
+  {
+    "id": "usda_265",
+    "name": "Colby Jack Cheese",
+    "per100g": {
+      "calories": 393,
+      "protein": 24.6,
+      "carbs": 2.5,
+      "fat": 32.1,
+      "fibre": 0
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz",
+    "barcode": null
+  },
+  {
+    "id": "usda_266",
+    "name": "Cabbage, raw",
+    "per100g": {
+      "calories": 25,
+      "protein": 1.3,
+      "carbs": 5.8,
+      "fat": 0.1,
+      "fibre": 2.5
+    },
+    "servingSize": 89,
+    "servingLabel": "1 cup shredded",
+    "barcode": null
+  },
+  {
+    "id": "usda_272",
+    "name": "Eggplant / Aubergine, raw",
+    "per100g": {
+      "calories": 25,
+      "protein": 1,
+      "carbs": 5.9,
+      "fat": 0.2,
+      "fibre": 3
+    },
+    "servingSize": 100,
+    "servingLabel": "1 cup cubed",
+    "barcode": null
+  },
+  {
+    "id": "usda_273",
+    "name": "Cherry Tomatoes",
+    "per100g": {
+      "calories": 18,
+      "protein": 0.9,
+      "carbs": 3.9,
+      "fat": 0.2,
+      "fibre": 1.2
+    },
+    "servingSize": 85,
+    "servingLabel": "½ cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_274",
+    "name": "Roma Tomato",
+    "per100g": {
+      "calories": 18,
+      "protein": 0.9,
+      "carbs": 3.9,
+      "fat": 0.2,
+      "fibre": 1.2
+    },
+    "servingSize": 91,
+    "servingLabel": "1 tomato",
+    "barcode": null
+  },
+  {
+    "id": "usda_275",
+    "name": "Portobello Mushroom",
+    "per100g": {
+      "calories": 22,
+      "protein": 2.1,
+      "carbs": 4.1,
+      "fat": 0.4,
+      "fibre": 1.3
+    },
+    "servingSize": 84,
+    "servingLabel": "1 cap",
+    "barcode": null
+  },
+  {
+    "id": "usda_276",
+    "name": "Shiitake Mushroom, raw",
+    "per100g": {
+      "calories": 34,
+      "protein": 2.2,
+      "carbs": 6.8,
+      "fat": 0.5,
+      "fibre": 2.5
+    },
+    "servingSize": 70,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_277",
+    "name": "Sweet Potato, cooked",
+    "per100g": {
+      "calories": 103,
+      "protein": 2.3,
+      "carbs": 24.0,
+      "fat": 0.1,
+      "fibre": 3.8
+    },
+    "servingSize": 130,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_278",
+    "name": "Broccoli, cooked",
+    "per100g": {
+      "calories": 35,
+      "protein": 2.4,
+      "carbs": 7.1,
+      "fat": 0.4,
+      "fibre": 3.3
+    },
+    "servingSize": 91,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_279",
+    "name": "Spinach, cooked",
+    "per100g": {
+      "calories": 23,
+      "protein": 3,
+      "carbs": 3.8,
+      "fat": 0.4,
+      "fibre": 2.4
+    },
+    "servingSize": 180,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_280",
+    "name": "Green Onion / Scallion",
+    "per100g": {
+      "calories": 32,
+      "protein": 1.8,
+      "carbs": 7.3,
+      "fat": 0.2,
+      "fibre": 2.6
+    },
+    "servingSize": 15,
+    "servingLabel": "3 stalks",
+    "barcode": null
+  },
+  {
+    "id": "usda_281",
+    "name": "Pineapple, fresh",
+    "per100g": {
+      "calories": 50,
+      "protein": 0.5,
+      "carbs": 13.1,
+      "fat": 0.1,
+      "fibre": 1.4
+    },
+    "servingSize": 165,
+    "servingLabel": "1 cup chunks",
+    "barcode": null
+  },
+  {
+    "id": "usda_282",
+    "name": "Watermelon, fresh",
+    "per100g": {
+      "calories": 30,
+      "protein": 0.6,
+      "carbs": 7.6,
+      "fat": 0.2,
+      "fibre": 0.4
+    },
+    "servingSize": 280,
+    "servingLabel": "2 cups",
+    "barcode": null
+  },
+  {
+    "id": "usda_283",
+    "name": "Kiwi",
+    "per100g": {
+      "calories": 61,
+      "protein": 1.1,
+      "carbs": 14.7,
+      "fat": 0.5,
+      "fibre": 3
+    },
+    "servingSize": 76,
+    "servingLabel": "1 medium",
+    "barcode": null
+  },
+  {
+    "id": "usda_284",
+    "name": "Pomegranate Seeds",
+    "per100g": {
+      "calories": 83,
+      "protein": 1.7,
+      "carbs": 18.7,
+      "fat": 1.2,
+      "fibre": 4
+    },
+    "servingSize": 174,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_285",
+    "name": "Mango, fresh",
+    "per100g": {
+      "calories": 60,
+      "protein": 0.8,
+      "carbs": 15,
+      "fat": 0.4,
+      "fibre": 1.6
+    },
+    "servingSize": 165,
+    "servingLabel": "1 cup sliced",
+    "barcode": null
+  },
+  {
+    "id": "usda_286",
+    "name": "Oats, rolled, cooked",
+    "per100g": {
+      "calories": 71,
+      "protein": 2.5,
+      "carbs": 12,
+      "fat": 1.4,
+      "fibre": 1.7
+    },
+    "servingSize": 240,
+    "servingLabel": "1 cup cooked",
+    "barcode": null
+  },
+  {
+    "id": "usda_287",
+    "name": "Brown Rice, cooked",
+    "per100g": {
+      "calories": 111,
+      "protein": 2.6,
+      "carbs": 23,
+      "fat": 0.9,
+      "fibre": 1.8
+    },
+    "servingSize": 195,
+    "servingLabel": "1 cup cooked",
+    "barcode": null
+  },
+  {
+    "id": "usda_288",
+    "name": "Pasta, cooked",
+    "per100g": {
+      "calories": 131,
+      "protein": 5,
+      "carbs": 25.1,
+      "fat": 1.1,
+      "fibre": 1.8
+    },
+    "servingSize": 140,
+    "servingLabel": "1 cup cooked",
+    "barcode": null
+  },
+  {
+    "id": "usda_289",
+    "name": "Quinoa, cooked",
+    "per100g": {
+      "calories": 120,
+      "protein": 4.4,
+      "carbs": 21.3,
+      "fat": 1.9,
+      "fibre": 2.8
+    },
+    "servingSize": 185,
+    "servingLabel": "1 cup cooked",
+    "barcode": null
+  },
+  {
+    "id": "usda_290",
+    "name": "Lentils, cooked",
+    "per100g": {
+      "calories": 116,
+      "protein": 9,
+      "carbs": 20,
+      "fat": 0.4,
+      "fibre": 7.9
+    },
+    "servingSize": 198,
+    "servingLabel": "1 cup cooked",
+    "barcode": null
+  },
+  {
+    "id": "usda_291",
+    "name": "Chickpeas, cooked",
+    "per100g": {
+      "calories": 164,
+      "protein": 8.9,
+      "carbs": 27.4,
+      "fat": 2.6,
+      "fibre": 7.6
+    },
+    "servingSize": 164,
+    "servingLabel": "1 cup cooked",
+    "barcode": null
+  },
+  {
+    "id": "usda_292",
+    "name": "Black Beans, cooked",
+    "per100g": {
+      "calories": 132,
+      "protein": 8.9,
+      "carbs": 23.7,
+      "fat": 0.5,
+      "fibre": 8.7
+    },
+    "servingSize": 172,
+    "servingLabel": "1 cup cooked",
+    "barcode": null
+  },
+  {
+    "id": "usda_293",
+    "name": "Eggs, whole, boiled",
+    "per100g": {
+      "calories": 155,
+      "protein": 12.6,
+      "carbs": 1.1,
+      "fat": 10.6,
+      "fibre": 0
+    },
+    "servingSize": 50,
+    "servingLabel": "1 large",
+    "barcode": null
+  },
+  {
+    "id": "usda_294",
+    "name": "Eggs, poached",
+    "per100g": {
+      "calories": 143,
+      "protein": 12.5,
+      "carbs": 0.7,
+      "fat": 9.5,
+      "fibre": 0
+    },
+    "servingSize": 50,
+    "servingLabel": "1 large",
+    "barcode": null
+  },
+  {
+    "id": "usda_295",
+    "name": "Omelette, plain (2 eggs)",
+    "per100g": {
+      "calories": 154,
+      "protein": 11.4,
+      "carbs": 0.9,
+      "fat": 11.5,
+      "fibre": 0
+    },
+    "servingSize": 100,
+    "servingLabel": "1 omelette",
+    "barcode": null
+  },
+  {
+    "id": "usda_296",
+    "name": "String Cheese, mozzarella",
+    "per100g": {
+      "calories": 228,
+      "protein": 28,
+      "carbs": 2.8,
+      "fat": 12.1,
+      "fibre": 0
+    },
+    "servingSize": 28,
+    "servingLabel": "1 stick",
+    "barcode": null
+  },
+  {
+    "id": "usda_297",
+    "name": "Cream Cheese, full fat",
+    "per100g": {
+      "calories": 342,
+      "protein": 5.9,
+      "carbs": 4.1,
+      "fat": 34.2,
+      "fibre": 0
+    },
+    "servingSize": 29,
+    "servingLabel": "2 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "usda_298",
+    "name": "Provolone",
+    "per100g": {
+      "calories": 352,
+      "protein": 25.6,
+      "carbs": 2.1,
+      "fat": 26.6,
+      "fibre": 0
+    },
+    "servingSize": 28,
+    "servingLabel": "1 slice",
+    "barcode": null
+  },
+  {
+    "id": "usda_299",
+    "name": "Matcha Latte (with oat milk, unsweetened)",
+    "per100g": {
+      "calories": 50,
+      "protein": 1.5,
+      "carbs": 7.5,
+      "fat": 1.5,
+      "fibre": 0.5
+    },
+    "servingSize": 240,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "usda_300",
+    "name": "Protein Shake (whey + water)",
+    "per100g": {
+      "calories": 120,
+      "protein": 25,
+      "carbs": 3,
+      "fat": 1.5,
+      "fibre": 0
+    },
+    "servingSize": 300,
+    "servingLabel": "1 shake",
+    "barcode": null
   }
 ]

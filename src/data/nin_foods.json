@@ -1172,7 +1172,7 @@
       "fibre": 11.2
     },
     "servingSize": 30,
-    "servingLabel": "\u00bc cup",
+    "servingLabel": "¼ cup",
     "barcode": null
   },
   {
@@ -1186,7 +1186,7 @@
       "fibre": 2.7
     },
     "servingSize": 30,
-    "servingLabel": "\u00bc cup",
+    "servingLabel": "¼ cup",
     "barcode": null
   },
   {
@@ -2054,7 +2054,7 @@
       "fibre": 4
     },
     "servingSize": 100,
-    "servingLabel": "\u00bd cup arils",
+    "servingLabel": "½ cup arils",
     "barcode": null
   },
   {
@@ -2740,7 +2740,7 @@
       "fibre": 0.5
     },
     "servingSize": 150,
-    "servingLabel": "\u00bd cucumber",
+    "servingLabel": "½ cucumber",
     "barcode": null
   },
   {
@@ -2852,7 +2852,7 @@
       "fibre": 5.1
     },
     "servingSize": 80,
-    "servingLabel": "\u00bd cup",
+    "servingLabel": "½ cup",
     "barcode": null
   },
   {
@@ -2866,7 +2866,7 @@
       "fibre": 2.4
     },
     "servingSize": 100,
-    "servingLabel": "\u00bd cup kernels",
+    "servingLabel": "½ cup kernels",
     "barcode": null
   },
   {
@@ -3034,7 +3034,7 @@
       "fibre": 10.6
     },
     "servingSize": 40,
-    "servingLabel": "\u00bd cup dry",
+    "servingLabel": "½ cup dry",
     "barcode": null
   },
   {
@@ -3048,6 +3048,1280 @@
       "fibre": 0
     },
     "servingSize": 250,
+    "servingLabel": "1 glass",
+    "barcode": null
+  },
+  {
+    "id": "nin_219",
+    "name": "Amul Ghee",
+    "per100g": {
+      "calories": 900,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 99.8,
+      "fibre": 0
+    },
+    "servingSize": 10,
+    "servingLabel": "1 tsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_220",
+    "name": "Amul Taaza Milk (full fat)",
+    "per100g": {
+      "calories": 62,
+      "protein": 3.2,
+      "carbs": 4.7,
+      "fat": 3.5,
+      "fibre": 0
+    },
+    "servingSize": 200,
+    "servingLabel": "1 glass",
+    "barcode": null
+  },
+  {
+    "id": "nin_221",
+    "name": "Amul Toned Milk",
+    "per100g": {
+      "calories": 46,
+      "protein": 3.5,
+      "carbs": 4.7,
+      "fat": 1.5,
+      "fibre": 0
+    },
+    "servingSize": 200,
+    "servingLabel": "1 glass",
+    "barcode": null
+  },
+  {
+    "id": "nin_222",
+    "name": "Amul Slim & Trim Milk",
+    "per100g": {
+      "calories": 33,
+      "protein": 3.5,
+      "carbs": 4.7,
+      "fat": 0.1,
+      "fibre": 0
+    },
+    "servingSize": 200,
+    "servingLabel": "1 glass",
+    "barcode": null
+  },
+  {
+    "id": "nin_223",
+    "name": "Amul Mozzarella",
+    "per100g": {
+      "calories": 280,
+      "protein": 18,
+      "carbs": 2.5,
+      "fat": 22,
+      "fibre": 0
+    },
+    "servingSize": 30,
+    "servingLabel": "30g",
+    "barcode": null
+  },
+  {
+    "id": "nin_224",
+    "name": "Amul Processed Cheese Slice",
+    "per100g": {
+      "calories": 280,
+      "protein": 14,
+      "carbs": 5,
+      "fat": 23,
+      "fibre": 0
+    },
+    "servingSize": 25,
+    "servingLabel": "1 slice",
+    "barcode": null
+  },
+  {
+    "id": "nin_225",
+    "name": "Amul Kool Flavoured Milk",
+    "per100g": {
+      "calories": 69,
+      "protein": 3.1,
+      "carbs": 11.4,
+      "fat": 1.4,
+      "fibre": 0
+    },
+    "servingSize": 200,
+    "servingLabel": "1 carton",
+    "barcode": null
+  },
+  {
+    "id": "nin_226",
+    "name": "Amul Cream (25% fat)",
+    "per100g": {
+      "calories": 235,
+      "protein": 2,
+      "carbs": 3.6,
+      "fat": 25,
+      "fibre": 0
+    },
+    "servingSize": 30,
+    "servingLabel": "2 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_227",
+    "name": "Deep Frozen Roti",
+    "per100g": {
+      "calories": 270,
+      "protein": 7.8,
+      "carbs": 52,
+      "fat": 4,
+      "fibre": 2.5
+    },
+    "servingSize": 40,
+    "servingLabel": "1 roti",
+    "barcode": null
+  },
+  {
+    "id": "nin_228",
+    "name": "Deep Frozen Paratha (Plain)",
+    "per100g": {
+      "calories": 330,
+      "protein": 7,
+      "carbs": 52,
+      "fat": 11,
+      "fibre": 2
+    },
+    "servingSize": 80,
+    "servingLabel": "1 paratha",
+    "barcode": null
+  },
+  {
+    "id": "nin_229",
+    "name": "Deep Frozen Methi Paratha",
+    "per100g": {
+      "calories": 310,
+      "protein": 8,
+      "carbs": 50,
+      "fat": 10,
+      "fibre": 2.5
+    },
+    "servingSize": 80,
+    "servingLabel": "1 paratha",
+    "barcode": null
+  },
+  {
+    "id": "nin_230",
+    "name": "Deep Samosa (frozen, fried)",
+    "per100g": {
+      "calories": 258,
+      "protein": 4.5,
+      "carbs": 34,
+      "fat": 12,
+      "fibre": 2
+    },
+    "servingSize": 65,
+    "servingLabel": "1 samosa",
+    "barcode": null
+  },
+  {
+    "id": "nin_231",
+    "name": "Deep Papad (roasted)",
+    "per100g": {
+      "calories": 60,
+      "protein": 3.3,
+      "carbs": 8,
+      "fat": 1.5,
+      "fibre": 0.4
+    },
+    "servingSize": 10,
+    "servingLabel": "1 papad",
+    "barcode": null
+  },
+  {
+    "id": "nin_232",
+    "name": "Deep Khakhra (plain)",
+    "per100g": {
+      "calories": 400,
+      "protein": 12,
+      "carbs": 66,
+      "fat": 10,
+      "fibre": 4
+    },
+    "servingSize": 25,
+    "servingLabel": "2 pieces",
+    "barcode": null
+  },
+  {
+    "id": "nin_233",
+    "name": "Deep Frozen Paneer",
+    "per100g": {
+      "calories": 260,
+      "protein": 18,
+      "carbs": 4,
+      "fat": 19.5,
+      "fibre": 0
+    },
+    "servingSize": 50,
+    "servingLabel": "50g",
+    "barcode": null
+  },
+  {
+    "id": "nin_234",
+    "name": "Deep Imli Chutney",
+    "per100g": {
+      "calories": 185,
+      "protein": 0.4,
+      "carbs": 46,
+      "fat": 0.2,
+      "fibre": 0.5
+    },
+    "servingSize": 20,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_235",
+    "name": "Chana Dal, dry",
+    "per100g": {
+      "calories": 360,
+      "protein": 22,
+      "carbs": 61.5,
+      "fat": 5.1,
+      "fibre": 7.6
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "nin_236",
+    "name": "Moong Dal (yellow), dry",
+    "per100g": {
+      "calories": 347,
+      "protein": 23.8,
+      "carbs": 59.9,
+      "fat": 1.2,
+      "fibre": 16.3
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "nin_238",
+    "name": "Urad Dal (black), dry",
+    "per100g": {
+      "calories": 347,
+      "protein": 25.2,
+      "carbs": 58.9,
+      "fat": 1.6,
+      "fibre": 18.3
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "nin_239",
+    "name": "Rajma (kidney beans), dry",
+    "per100g": {
+      "calories": 333,
+      "protein": 22.9,
+      "carbs": 60.1,
+      "fat": 1.3,
+      "fibre": 24.9
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "nin_240",
+    "name": "Moth Dal, dry",
+    "per100g": {
+      "calories": 343,
+      "protein": 23.6,
+      "carbs": 61.5,
+      "fat": 1.5,
+      "fibre": 10.5
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "nin_241",
+    "name": "Sabudana / Tapioca Pearls",
+    "per100g": {
+      "calories": 352,
+      "protein": 0.2,
+      "carbs": 86.7,
+      "fat": 0.2,
+      "fibre": 0.9
+    },
+    "servingSize": 80,
+    "servingLabel": "80g dry",
+    "barcode": null
+  },
+  {
+    "id": "nin_242",
+    "name": "Suji / Semolina, dry",
+    "per100g": {
+      "calories": 360,
+      "protein": 12.7,
+      "carbs": 73.8,
+      "fat": 1.1,
+      "fibre": 3.9
+    },
+    "servingSize": 50,
+    "servingLabel": "50g dry",
+    "barcode": null
+  },
+  {
+    "id": "nin_243",
+    "name": "Besan / Gram Flour (fine)",
+    "per100g": {
+      "calories": 387,
+      "protein": 22.4,
+      "carbs": 57.1,
+      "fat": 6.7,
+      "fibre": 7.5
+    },
+    "servingSize": 30,
+    "servingLabel": "30g",
+    "barcode": null
+  },
+  {
+    "id": "nin_244",
+    "name": "Maida / Refined Flour",
+    "per100g": {
+      "calories": 362,
+      "protein": 9.5,
+      "carbs": 79.6,
+      "fat": 1.2,
+      "fibre": 2.7
+    },
+    "servingSize": 30,
+    "servingLabel": "30g",
+    "barcode": null
+  },
+  {
+    "id": "nin_245",
+    "name": "Rice Flour",
+    "per100g": {
+      "calories": 360,
+      "protein": 5.9,
+      "carbs": 79.3,
+      "fat": 0.5,
+      "fibre": 2.4
+    },
+    "servingSize": 30,
+    "servingLabel": "30g",
+    "barcode": null
+  },
+  {
+    "id": "nin_246",
+    "name": "Jowar Flour",
+    "per100g": {
+      "calories": 349,
+      "protein": 8.1,
+      "carbs": 72.6,
+      "fat": 3.3,
+      "fibre": 6.3
+    },
+    "servingSize": 40,
+    "servingLabel": "40g",
+    "barcode": null
+  },
+  {
+    "id": "nin_247",
+    "name": "Bajra / Pearl Millet Flour",
+    "per100g": {
+      "calories": 361,
+      "protein": 11.6,
+      "carbs": 67.5,
+      "fat": 5,
+      "fibre": 11.5
+    },
+    "servingSize": 40,
+    "servingLabel": "40g",
+    "barcode": null
+  },
+  {
+    "id": "nin_248",
+    "name": "Ragi / Finger Millet Flour",
+    "per100g": {
+      "calories": 328,
+      "protein": 7.7,
+      "carbs": 72.9,
+      "fat": 1.5,
+      "fibre": 11.2
+    },
+    "servingSize": 40,
+    "servingLabel": "40g",
+    "barcode": null
+  },
+  {
+    "id": "nin_249",
+    "name": "Basmati Rice, cooked",
+    "per100g": {
+      "calories": 130,
+      "protein": 2.7,
+      "carbs": 28.2,
+      "fat": 0.3,
+      "fibre": 0.4
+    },
+    "servingSize": 150,
+    "servingLabel": "1 katori cooked",
+    "barcode": null
+  },
+  {
+    "id": "nin_250",
+    "name": "White Rice, cooked",
+    "per100g": {
+      "calories": 130,
+      "protein": 2.7,
+      "carbs": 28.2,
+      "fat": 0.3,
+      "fibre": 0.3
+    },
+    "servingSize": 150,
+    "servingLabel": "1 katori cooked",
+    "barcode": null
+  },
+  {
+    "id": "nin_251",
+    "name": "Poha / Flattened Rice, dry",
+    "per100g": {
+      "calories": 350,
+      "protein": 7.4,
+      "carbs": 76.9,
+      "fat": 0.5,
+      "fibre": 1.6
+    },
+    "servingSize": 60,
+    "servingLabel": "60g dry",
+    "barcode": null
+  },
+  {
+    "id": "nin_252",
+    "name": "Methi / Fenugreek Leaves",
+    "per100g": {
+      "calories": 49,
+      "protein": 4.4,
+      "carbs": 8,
+      "fat": 0.9,
+      "fibre": 7.2
+    },
+    "servingSize": 50,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "nin_253",
+    "name": "Drumstick / Moringa Pods",
+    "per100g": {
+      "calories": 64,
+      "protein": 9.4,
+      "carbs": 8.3,
+      "fat": 1.4,
+      "fibre": 2
+    },
+    "servingSize": 100,
+    "servingLabel": "2 pods",
+    "barcode": null
+  },
+  {
+    "id": "nin_254",
+    "name": "Ridge Gourd / Turai (raw)",
+    "per100g": {
+      "calories": 18,
+      "protein": 1.1,
+      "carbs": 3.7,
+      "fat": 0.2,
+      "fibre": 0.5
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "nin_255",
+    "name": "Ash Gourd / Winter Melon",
+    "per100g": {
+      "calories": 13,
+      "protein": 0.4,
+      "carbs": 3,
+      "fat": 0.2,
+      "fibre": 0.6
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "nin_256",
+    "name": "Tindora / Ivy Gourd",
+    "per100g": {
+      "calories": 18,
+      "protein": 1.6,
+      "carbs": 3,
+      "fat": 0.1,
+      "fibre": 1.6
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "nin_257",
+    "name": "Cluster Beans / Gavar",
+    "per100g": {
+      "calories": 16,
+      "protein": 1,
+      "carbs": 2.8,
+      "fat": 0.2,
+      "fibre": 0.9
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "nin_258",
+    "name": "Raw Banana / Green Plantain",
+    "per100g": {
+      "calories": 122,
+      "protein": 1.3,
+      "carbs": 31.9,
+      "fat": 0.4,
+      "fibre": 2.3
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "nin_259",
+    "name": "Tendli / Kundru",
+    "per100g": {
+      "calories": 18,
+      "protein": 0.8,
+      "carbs": 3.5,
+      "fat": 0.1,
+      "fibre": 1.4
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "nin_260",
+    "name": "Suran / Yam (raw)",
+    "per100g": {
+      "calories": 118,
+      "protein": 1.5,
+      "carbs": 27.9,
+      "fat": 0.1,
+      "fibre": 4.1
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "nin_261",
+    "name": "Arbi / Colocasia (raw)",
+    "per100g": {
+      "calories": 112,
+      "protein": 1.8,
+      "carbs": 26.5,
+      "fat": 0.1,
+      "fibre": 4.1
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "nin_262",
+    "name": "Green Papaya (raw)",
+    "per100g": {
+      "calories": 32,
+      "protein": 1.4,
+      "carbs": 7.6,
+      "fat": 0.1,
+      "fibre": 1.8
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "nin_263",
+    "name": "Chawli / Snake Gourd",
+    "per100g": {
+      "calories": 20,
+      "protein": 1.3,
+      "carbs": 4.2,
+      "fat": 0.2,
+      "fibre": 0.8
+    },
+    "servingSize": 100,
+    "servingLabel": "100g",
+    "barcode": null
+  },
+  {
+    "id": "nin_264",
+    "name": "Corn / Sweet Corn (raw)",
+    "per100g": {
+      "calories": 86,
+      "protein": 3.3,
+      "carbs": 19,
+      "fat": 1.4,
+      "fibre": 2.4
+    },
+    "servingSize": 80,
+    "servingLabel": "½ cup kernels",
+    "barcode": null
+  },
+  {
+    "id": "nin_265",
+    "name": "Curry Leaves (fresh)",
+    "per100g": {
+      "calories": 108,
+      "protein": 6.1,
+      "carbs": 18.7,
+      "fat": 1,
+      "fibre": 6.4
+    },
+    "servingSize": 5,
+    "servingLabel": "small handful",
+    "barcode": null
+  },
+  {
+    "id": "nin_266",
+    "name": "Coriander / Dhania Leaves",
+    "per100g": {
+      "calories": 23,
+      "protein": 2.1,
+      "carbs": 3.7,
+      "fat": 0.5,
+      "fibre": 2.8
+    },
+    "servingSize": 15,
+    "servingLabel": "small bunch",
+    "barcode": null
+  },
+  {
+    "id": "nin_267",
+    "name": "Green Chilli (raw)",
+    "per100g": {
+      "calories": 40,
+      "protein": 2,
+      "carbs": 9.5,
+      "fat": 0.2,
+      "fibre": 1.5
+    },
+    "servingSize": 10,
+    "servingLabel": "1 chilli",
+    "barcode": null
+  },
+  {
+    "id": "nin_268",
+    "name": "Jaggery / Gur",
+    "per100g": {
+      "calories": 383,
+      "protein": 0.4,
+      "carbs": 98.5,
+      "fat": 0.1,
+      "fibre": 0
+    },
+    "servingSize": 20,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_269",
+    "name": "Tamarind, raw",
+    "per100g": {
+      "calories": 239,
+      "protein": 2.8,
+      "carbs": 62.5,
+      "fat": 0.6,
+      "fibre": 5.1
+    },
+    "servingSize": 15,
+    "servingLabel": "1 tbsp pulp",
+    "barcode": null
+  },
+  {
+    "id": "nin_270",
+    "name": "Kokum",
+    "per100g": {
+      "calories": 45,
+      "protein": 0.3,
+      "carbs": 11.5,
+      "fat": 0,
+      "fibre": 0.5
+    },
+    "servingSize": 5,
+    "servingLabel": "2-3 pieces",
+    "barcode": null
+  },
+  {
+    "id": "nin_271",
+    "name": "Amla / Indian Gooseberry",
+    "per100g": {
+      "calories": 44,
+      "protein": 0.9,
+      "carbs": 10.2,
+      "fat": 0.6,
+      "fibre": 4.3
+    },
+    "servingSize": 100,
+    "servingLabel": "2 medium",
+    "barcode": null
+  },
+  {
+    "id": "nin_272",
+    "name": "Desiccated Coconut",
+    "per100g": {
+      "calories": 604,
+      "protein": 6.9,
+      "carbs": 25.2,
+      "fat": 57.2,
+      "fibre": 13.7
+    },
+    "servingSize": 20,
+    "servingLabel": "2 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_273",
+    "name": "Coconut Milk, canned",
+    "per100g": {
+      "calories": 197,
+      "protein": 2,
+      "carbs": 2.8,
+      "fat": 21.3,
+      "fibre": 0.2
+    },
+    "servingSize": 65,
+    "servingLabel": "¼ cup",
+    "barcode": null
+  },
+  {
+    "id": "nin_274",
+    "name": "Moringa Powder",
+    "per100g": {
+      "calories": 263,
+      "protein": 26.6,
+      "carbs": 34.7,
+      "fat": 6.4,
+      "fibre": 19.2
+    },
+    "servingSize": 3,
+    "servingLabel": "1 tsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_275",
+    "name": "Chyawanprash",
+    "per100g": {
+      "calories": 246,
+      "protein": 1.5,
+      "carbs": 54.1,
+      "fat": 4.2,
+      "fibre": 1
+    },
+    "servingSize": 15,
+    "servingLabel": "1 tsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_276",
+    "name": "Puffed Lotus Seeds / Makhana (plain)",
+    "per100g": {
+      "calories": 347,
+      "protein": 9.7,
+      "carbs": 76.9,
+      "fat": 0.1,
+      "fibre": 14.5
+    },
+    "servingSize": 30,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "nin_277",
+    "name": "Roasted Chana (unsalted)",
+    "per100g": {
+      "calories": 375,
+      "protein": 22,
+      "carbs": 59,
+      "fat": 7,
+      "fibre": 17
+    },
+    "servingSize": 30,
+    "servingLabel": "30g",
+    "barcode": null
+  },
+  {
+    "id": "nin_278",
+    "name": "Peanut Chutney",
+    "per100g": {
+      "calories": 400,
+      "protein": 13,
+      "carbs": 11,
+      "fat": 35,
+      "fibre": 4
+    },
+    "servingSize": 30,
+    "servingLabel": "2 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_279",
+    "name": "Imli / Tamarind Chutney",
+    "per100g": {
+      "calories": 185,
+      "protein": 0.4,
+      "carbs": 46,
+      "fat": 0.2,
+      "fibre": 0.5
+    },
+    "servingSize": 15,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_280",
+    "name": "Green Chutney (mint-coriander)",
+    "per100g": {
+      "calories": 40,
+      "protein": 1.5,
+      "carbs": 5.5,
+      "fat": 1.5,
+      "fibre": 2
+    },
+    "servingSize": 20,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_281",
+    "name": "Dried Figs / Anjeer",
+    "per100g": {
+      "calories": 249,
+      "protein": 3.3,
+      "carbs": 63.9,
+      "fat": 0.9,
+      "fibre": 9.8
+    },
+    "servingSize": 50,
+    "servingLabel": "3-4 figs",
+    "barcode": null
+  },
+  {
+    "id": "nin_282",
+    "name": "Dried Apricots",
+    "per100g": {
+      "calories": 241,
+      "protein": 3.4,
+      "carbs": 62.6,
+      "fat": 0.5,
+      "fibre": 7.3
+    },
+    "servingSize": 40,
+    "servingLabel": "5 pieces",
+    "barcode": null
+  },
+  {
+    "id": "nin_283",
+    "name": "Kishmish / Raisins",
+    "per100g": {
+      "calories": 299,
+      "protein": 3.1,
+      "carbs": 79.2,
+      "fat": 0.5,
+      "fibre": 3.7
+    },
+    "servingSize": 30,
+    "servingLabel": "30g",
+    "barcode": null
+  },
+  {
+    "id": "nin_284",
+    "name": "Black Raisins",
+    "per100g": {
+      "calories": 303,
+      "protein": 3.3,
+      "carbs": 80.8,
+      "fat": 0.5,
+      "fibre": 5.1
+    },
+    "servingSize": 30,
+    "servingLabel": "30g",
+    "barcode": null
+  },
+  {
+    "id": "nin_285",
+    "name": "Kirkland Rolled Oats",
+    "per100g": {
+      "calories": 379,
+      "protein": 13.2,
+      "carbs": 68,
+      "fat": 6.9,
+      "fibre": 10.1
+    },
+    "servingSize": 80,
+    "servingLabel": "1 cup dry",
+    "barcode": null
+  },
+  {
+    "id": "nin_286",
+    "name": "Kirkland Mixed Nuts (salted)",
+    "per100g": {
+      "calories": 607,
+      "protein": 16.2,
+      "carbs": 22,
+      "fat": 55.3,
+      "fibre": 7.5
+    },
+    "servingSize": 28,
+    "servingLabel": "1 oz",
+    "barcode": null
+  },
+  {
+    "id": "nin_287",
+    "name": "Kirkland Almond Butter",
+    "per100g": {
+      "calories": 614,
+      "protein": 20.5,
+      "carbs": 18.8,
+      "fat": 55.7,
+      "fibre": 10.7
+    },
+    "servingSize": 32,
+    "servingLabel": "2 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_288",
+    "name": "Kirkland Extra Virgin Olive Oil",
+    "per100g": {
+      "calories": 884,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 100,
+      "fibre": 0
+    },
+    "servingSize": 14,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_289",
+    "name": "Kirkland Greek Yogurt (plain)",
+    "per100g": {
+      "calories": 77,
+      "protein": 9.1,
+      "carbs": 5.5,
+      "fat": 1.9,
+      "fibre": 0
+    },
+    "servingSize": 170,
+    "servingLabel": "170g cup",
+    "barcode": null
+  },
+  {
+    "id": "nin_290",
+    "name": "Kirkland Quinoa",
+    "per100g": {
+      "calories": 368,
+      "protein": 14.1,
+      "carbs": 64.2,
+      "fat": 6.1,
+      "fibre": 7
+    },
+    "servingSize": 85,
+    "servingLabel": "85g dry",
+    "barcode": null
+  },
+  {
+    "id": "nin_291",
+    "name": "Kirkland Organic Eggs (large)",
+    "per100g": {
+      "calories": 143,
+      "protein": 12.6,
+      "carbs": 0.7,
+      "fat": 9.5,
+      "fibre": 0
+    },
+    "servingSize": 50,
+    "servingLabel": "1 egg",
+    "barcode": null
+  },
+  {
+    "id": "nin_292",
+    "name": "Kirkland Chia Seeds",
+    "per100g": {
+      "calories": 486,
+      "protein": 16.5,
+      "carbs": 42.1,
+      "fat": 30.7,
+      "fibre": 34.4
+    },
+    "servingSize": 15,
+    "servingLabel": "1 tbsp",
+    "barcode": null
+  },
+  {
+    "id": "nin_293",
+    "name": "Kirkland Protein Bar",
+    "per100g": {
+      "calories": 190,
+      "protein": 21,
+      "carbs": 17,
+      "fat": 7,
+      "fibre": 2
+    },
+    "servingSize": 50,
+    "servingLabel": "1 bar",
+    "barcode": null
+  },
+  {
+    "id": "nin_294",
+    "name": "Kirkland Organic Almond Milk",
+    "per100g": {
+      "calories": 30,
+      "protein": 1,
+      "carbs": 1,
+      "fat": 2.5,
+      "fibre": 0.5
+    },
+    "servingSize": 240,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "nin_295",
+    "name": "Murmura / Puffed Rice, plain",
+    "per100g": {
+      "calories": 330,
+      "protein": 6.3,
+      "carbs": 76.5,
+      "fat": 0.5,
+      "fibre": 0.9
+    },
+    "servingSize": 30,
+    "servingLabel": "1 cup",
+    "barcode": null
+  },
+  {
+    "id": "nin_296",
+    "name": "Chirwa / Thin Poha",
+    "per100g": {
+      "calories": 350,
+      "protein": 7.4,
+      "carbs": 76.9,
+      "fat": 0.5,
+      "fibre": 1.6
+    },
+    "servingSize": 60,
+    "servingLabel": "60g dry",
+    "barcode": null
+  },
+  {
+    "id": "nin_297",
+    "name": "Makhana, roasted with ghee",
+    "per100g": {
+      "calories": 375,
+      "protein": 9.8,
+      "carbs": 75.5,
+      "fat": 1.2,
+      "fibre": 14.4
+    },
+    "servingSize": 30,
+    "servingLabel": "30g",
+    "barcode": null
+  },
+  {
+    "id": "nin_298",
+    "name": "Peanuts, roasted (salted)",
+    "per100g": {
+      "calories": 567,
+      "protein": 25.8,
+      "carbs": 21.5,
+      "fat": 49.2,
+      "fibre": 8.4
+    },
+    "servingSize": 30,
+    "servingLabel": "30g",
+    "barcode": null
+  },
+  {
+    "id": "nin_299",
+    "name": "Dry Fruit Mix (almonds, cashews, raisins)",
+    "per100g": {
+      "calories": 520,
+      "protein": 12,
+      "carbs": 42,
+      "fat": 37,
+      "fibre": 5
+    },
+    "servingSize": 30,
+    "servingLabel": "30g",
+    "barcode": null
+  },
+  {
+    "id": "nin_300",
+    "name": "Oats, quick-cook",
+    "per100g": {
+      "calories": 389,
+      "protein": 16.9,
+      "carbs": 66.3,
+      "fat": 6.9,
+      "fibre": 10.6
+    },
+    "servingSize": 40,
+    "servingLabel": "40g dry",
+    "barcode": null
+  },
+  {
+    "id": "nin_301",
+    "name": "Quinoa, cooked",
+    "per100g": {
+      "calories": 120,
+      "protein": 4.4,
+      "carbs": 21.3,
+      "fat": 1.9,
+      "fibre": 2.8
+    },
+    "servingSize": 150,
+    "servingLabel": "150g cooked",
+    "barcode": null
+  },
+  {
+    "id": "nin_302",
+    "name": "Brown Rice, cooked",
+    "per100g": {
+      "calories": 111,
+      "protein": 2.6,
+      "carbs": 23,
+      "fat": 0.9,
+      "fibre": 1.8
+    },
+    "servingSize": 150,
+    "servingLabel": "1 katori",
+    "barcode": null
+  },
+  {
+    "id": "nin_303",
+    "name": "Bread, brown / whole wheat",
+    "per100g": {
+      "calories": 247,
+      "protein": 13,
+      "carbs": 41.3,
+      "fat": 3.4,
+      "fibre": 7
+    },
+    "servingSize": 30,
+    "servingLabel": "1 slice",
+    "barcode": null
+  },
+  {
+    "id": "nin_304",
+    "name": "Bread, multigrain",
+    "per100g": {
+      "calories": 265,
+      "protein": 9.8,
+      "carbs": 47,
+      "fat": 4.5,
+      "fibre": 5
+    },
+    "servingSize": 30,
+    "servingLabel": "1 slice",
+    "barcode": null
+  },
+  {
+    "id": "nin_305",
+    "name": "Paneer, full fat",
+    "per100g": {
+      "calories": 321,
+      "protein": 20.2,
+      "carbs": 3.8,
+      "fat": 25.1,
+      "fibre": 0
+    },
+    "servingSize": 50,
+    "servingLabel": "50g",
+    "barcode": null
+  },
+  {
+    "id": "nin_306",
+    "name": "Soy Milk, unsweetened",
+    "per100g": {
+      "calories": 33,
+      "protein": 3.3,
+      "carbs": 1.8,
+      "fat": 1.8,
+      "fibre": 0.5
+    },
+    "servingSize": 200,
+    "servingLabel": "1 glass",
+    "barcode": null
+  },
+  {
+    "id": "nin_307",
+    "name": "Tofu, soft / silken",
+    "per100g": {
+      "calories": 55,
+      "protein": 4.8,
+      "carbs": 2.7,
+      "fat": 2.7,
+      "fibre": 0.3
+    },
+    "servingSize": 85,
+    "servingLabel": "85g",
+    "barcode": null
+  },
+  {
+    "id": "nin_309",
+    "name": "Tempeh",
+    "per100g": {
+      "calories": 193,
+      "protein": 19,
+      "carbs": 9.4,
+      "fat": 10.8,
+      "fibre": 0
+    },
+    "servingSize": 85,
+    "servingLabel": "85g",
+    "barcode": null
+  },
+  {
+    "id": "nin_310",
+    "name": "Curd / Dahi (low fat)",
+    "per100g": {
+      "calories": 62,
+      "protein": 3.1,
+      "carbs": 4.7,
+      "fat": 3.3,
+      "fibre": 0
+    },
+    "servingSize": 150,
+    "servingLabel": "1 katori",
+    "barcode": null
+  },
+  {
+    "id": "nin_311",
+    "name": "Lassi (salted, thin)",
+    "per100g": {
+      "calories": 40,
+      "protein": 2.2,
+      "carbs": 3.9,
+      "fat": 1.8,
+      "fibre": 0
+    },
+    "servingSize": 200,
     "servingLabel": "1 glass",
     "barcode": null
   }

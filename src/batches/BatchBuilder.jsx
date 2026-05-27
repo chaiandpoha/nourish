@@ -24,6 +24,7 @@ export default function BatchBuilder({ onSave, onCancel }) {
   const [manual,       setManual]       = useState({ name:'', grams:'', calories:'', protein:'', carbs:'', fat:'', fibre:'' })
   const [seeded,       setSeeded]       = useState(false)
   const [pendingUnit,  setPendingUnit]  = useState('g')
+  const [pendingMode,  setPendingMode]  = useState('servings') // 'servings' | 'grams'
   const [manualUnit,   setManualUnit]   = useState('g')
   const [yieldUnit,    setYieldUnit]    = useState('g')
   const pendingRef  = useRef(null)
@@ -46,7 +47,9 @@ export default function BatchBuilder({ onSave, onCancel }) {
 
   useEffect(() => {
     if (pending) {
-      setPendingG(String(pending.servingSize || 100))
+      const hasServing = !!pending.servingSize
+      setPendingMode(hasServing ? 'servings' : 'grams')
+      setPendingG(hasServing ? '1' : String(pending.servingSize || 100))
       setPendingError('')
       setTimeout(() => pendingRef.current?.focus(), 100)
     }
@@ -78,7 +81,9 @@ export default function BatchBuilder({ onSave, onCancel }) {
   function confirmIngredient() {
     const raw = parseFloat(pendingG)
     if (!raw || raw <= 0) { setPendingError('Enter a valid amount'); return }
-    const grams = toGrams(raw, pendingUnit)
+    const grams = pendingMode === 'servings'
+      ? raw * (pending.servingSize || 100)
+      : toGrams(raw, pendingUnit)
     setIngredients(prev => [...prev, {
       id:      generateId(),
       name:    pending.name,
@@ -89,6 +94,7 @@ export default function BatchBuilder({ onSave, onCancel }) {
     setPendingG('')
     setPendingError('')
     setPendingUnit('g')
+    setPendingMode('servings')
     setTimeout(() => searchRef.current?.focus(), 50)
   }
 
@@ -244,21 +250,38 @@ export default function BatchBuilder({ onSave, onCancel }) {
           <div style={{ background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:'var(--r-lg)', padding:'12px 14px', display:'flex', flexDirection:'column', gap:'8px' }}>
             <div style={{ fontSize:'15px', fontWeight:'600', color:'var(--text-primary)' }}>{pending.name}</div>
             <div style={{ fontSize:'12px', color:'var(--text-secondary)' }}>{pending.per100g?.calories} kcal per 100g</div>
+            {/* Mode toggle — only for foods with servingSize */}
+            {pending.servingSize && (
+              <div style={{ display:'flex', gap:'4px' }}>
+                {['servings','grams'].map(m => (
+                  <button key={m} type="button" onClick={() => setPendingMode(m)}
+                    style={{ padding:'4px 12px', background: pendingMode === m ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${pendingMode === m ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-full)', fontSize:'12px', fontWeight:'600', color: pendingMode === m ? 'var(--text-inverse)' : 'var(--text-secondary)', cursor:'pointer', textTransform:'capitalize' }}
+                  >{m}</button>
+                ))}
+              </div>
+            )}
             <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
               <input
                 ref={pendingRef}
-                type="number" inputMode="decimal" placeholder="amount"
+                type="number" inputMode="decimal" placeholder={pendingMode === 'servings' ? '1' : 'amount'}
                 value={pendingG} onChange={e => { setPendingG(e.target.value); setPendingError('') }}
                 onKeyDown={e => e.key === 'Enter' && confirmIngredient()}
                 style={{ flex:1, minWidth:'80px', padding:'10px 12px', background:'var(--bg-surface)', border:`1px solid ${pendingError ? 'var(--red)' : 'var(--border-default)'}`, borderRadius:'var(--r-md)', fontSize:'18px', fontWeight:'300', color:'var(--text-primary)', outline:'none' }}
               />
-              {WEIGHT_UNITS.map(u => (
-                <button key={u} type="button" onClick={() => setPendingUnit(u)}
-                  style={{ padding:'6px 8px', background: pendingUnit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${pendingUnit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: pendingUnit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
-                >{u}</button>
-              ))}
+              {pendingMode === 'servings' ? (
+                <span style={{ fontSize:'13px', color:'var(--text-secondary)', fontWeight:'500' }}>
+                  {pending.servingLabel ? pending.servingLabel.replace(/^[\d.]+\s+/, '') : 'serving'}
+                  {' · '}{Math.round((parseFloat(pendingG)||0) * (pending.servingSize||100))}g
+                </span>
+              ) : (
+                WEIGHT_UNITS.map(u => (
+                  <button key={u} type="button" onClick={() => setPendingUnit(u)}
+                    style={{ padding:'6px 8px', background: pendingUnit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${pendingUnit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: pendingUnit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
+                  >{u}</button>
+                ))
+              )}
               <button onClick={confirmIngredient} style={{ padding:'10px 16px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'14px', fontWeight:'600', cursor:'pointer' }}>Add</button>
-              <button onClick={() => { setPending(null); setPendingError(''); setPendingUnit('g') }} style={{ padding:'10px 10px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'14px', cursor:'pointer' }}>✕</button>
+              <button onClick={() => { setPending(null); setPendingError(''); setPendingUnit('g'); setPendingMode('servings') }} style={{ padding:'10px 10px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'14px', cursor:'pointer' }}>✕</button>
             </div>
             {pendingError && <div style={{ fontSize:'12px', color:'var(--red)' }}>{pendingError}</div>}
           </div>

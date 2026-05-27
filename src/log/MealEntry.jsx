@@ -330,7 +330,9 @@ export default function MealEntry({ date, onLogged }) {
                           {food.name}
                         </div>
                         <div style={s.foodMeta}>
-                          {food.per100g?.calories || 0} kcal · {food.per100g?.protein || 0}g P per 100g
+                          {food.servingSize
+                            ? `${Math.round((food.per100g?.calories||0)*food.servingSize/100)} kcal · ${Math.round((food.per100g?.protein||0)*food.servingSize/100*10)/10}g P per ${food.servingLabel || `${food.servingSize}g`}`
+                            : `${food.per100g?.calories || 0} kcal · ${food.per100g?.protein || 0}g P per 100g`}
                           <span style={isPersonal ? s.tagPersonal : s.tag}> · {sourceTag}</span>
                         </div>
                       </div>
@@ -377,20 +379,34 @@ export default function MealEntry({ date, onLogged }) {
   )
 }
 
+// ─── Serving unit label helper ────────────────────────────────────────────────
+function parseServingUnit(label) {
+  if (!label) return 'serving'
+  const m = label.match(/^[\d.]+\s+(.+)$/)
+  return m ? m[1] : label
+}
+
 // ─── Inline Food Entry ────────────────────────────────────────────────────────
 function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, initialUnit }) {
   const isManual = food?.id === "manual"
   const isBatch  = !!batch
   const item     = batch || food
 
-  const [amount,    setAmount]    = useState(initialAmount ?? String(item?.servingSize || 100))
-  const [unit,      setUnit]      = useState(initialUnit   ?? 'g')
-  const [name,      setName]      = useState(isManual ? "" : (item?.name || ""))
-  const [manMacros, setManMacros] = useState({ calories:"", protein:"", carbs:"", fat:"", fibre:"" })
-  const [error,     setError]     = useState("")
+  const hasServingMode = !isManual && !isBatch && !!item?.servingSize
+  const defaultMode    = hasServingMode ? 'servings' : 'grams'
+  const defaultAmount  = hasServingMode ? '1' : String(item?.servingSize || 100)
+
+  const [inputMode,  setInputMode]  = useState(defaultMode)
+  const [amount,     setAmount]     = useState(initialAmount ?? defaultAmount)
+  const [unit,       setUnit]       = useState(initialUnit   ?? 'g')
+  const [name,       setName]       = useState(isManual ? "" : (item?.name || ""))
+  const [manMacros,  setManMacros]  = useState({ calories:"", protein:"", carbs:"", fat:"", fibre:"" })
+  const [error,      setError]      = useState("")
 
   const parsedAmount = parseFloat(amount) || 0
-  const parsedGrams  = toGrams(parsedAmount, unit)  // always in grams for calculations
+  const parsedGrams  = inputMode === 'servings'
+    ? parsedAmount * (item?.servingSize || 100)
+    : toGrams(parsedAmount, unit)
 
   // Calculate macros
   let macros = { calories:0, protein:0, carbs:0, fat:0, fibre:0 }
@@ -444,30 +460,53 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
 
       {/* Amount input + unit picker */}
       <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+        {/* Mode toggle — only for foods with a defined serving size */}
+        {hasServingMode && (
+          <div style={s.modeToggleRow}>
+            <button
+              type="button"
+              onClick={() => setInputMode('servings')}
+              style={{ ...s.modeToggleBtn, ...(inputMode === 'servings' ? s.modeToggleActive : {}) }}
+            >Servings</button>
+            <button
+              type="button"
+              onClick={() => setInputMode('grams')}
+              style={{ ...s.modeToggleBtn, ...(inputMode === 'grams' ? s.modeToggleActive : {}) }}
+            >Grams</button>
+          </div>
+        )}
+
         <div style={s.gramRow}>
           <input
             style={s.gramInput}
             type="number"
             inputMode="decimal"
-            placeholder="100"
+            placeholder={inputMode === 'servings' ? '1' : '100'}
             value={amount}
             onChange={e => setAmount(e.target.value)}
             autoFocus={!isManual}
           />
-          <div style={{ display:'flex', gap:'4px', flexShrink:0 }}>
-            {WEIGHT_UNITS.map(u => (
-              <button
-                key={u}
-                type="button"
-                onClick={() => setUnit(u)}
-                style={{ padding:'6px 8px', background: unit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${unit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: unit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
-              >{u}</button>
-            ))}
-          </div>
+          {inputMode === 'servings' ? (
+            <div style={s.servingUnitInfo}>
+              <span style={s.servingUnitName}>{parseServingUnit(item?.servingLabel)}</span>
+              <span style={s.servingUnitGrams}>{Math.round(parsedGrams)}g</span>
+            </div>
+          ) : (
+            <div style={{ display:'flex', gap:'4px', flexShrink:0 }}>
+              {WEIGHT_UNITS.map(u => (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => setUnit(u)}
+                  style={{ padding:'6px 8px', background: unit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${unit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: unit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
+                >{u}</button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Serving size reference */}
-        {!isManual && item?.servingSize && item?.servingLabel && (
+        {/* Serving size reference in grams mode */}
+        {!isManual && !isBatch && inputMode === 'grams' && item?.servingSize && item?.servingLabel && (
           <button
             style={s.servingHint}
             onClick={() => { setAmount(String(item.servingSize)); setUnit('g') }}
@@ -571,10 +610,16 @@ const s = {
   entryTitle:   { fontSize:"18px", fontWeight:"600", color:"var(--text-primary)", letterSpacing:"-0.02em" },
   batchTag:     { display:"inline-block", fontSize:"11px", fontWeight:"600", background:"var(--accent-dim)", color:"var(--accent)", padding:"3px 10px", borderRadius:"var(--r-full)", letterSpacing:"0.04em", textTransform:"uppercase" },
   nameInput:    { padding:"12px 14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-md)", fontSize:"16px", color:"var(--text-primary)", outline:"none", width:"100%", boxSizing:"border-box" },
-  gramRow:      { display:"flex", alignItems:"center", gap:"10px" },
-  gramInput:    { flex:1, fontSize:"36px", fontWeight:"300", letterSpacing:"-0.03em", padding:"10px 14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-md)", color:"var(--text-primary)", outline:"none" },
-  gramUnit:     { fontSize:"18px", color:"var(--text-tertiary)", fontWeight:"400" },
-  servingHint:  { background:"none", border:"none", color:"var(--accent)", fontSize:"13px", cursor:"pointer", padding:0, textAlign:"left" },
+  gramRow:         { display:"flex", alignItems:"center", gap:"10px" },
+  gramInput:       { flex:1, fontSize:"36px", fontWeight:"300", letterSpacing:"-0.03em", padding:"10px 14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-md)", color:"var(--text-primary)", outline:"none" },
+  gramUnit:        { fontSize:"18px", color:"var(--text-tertiary)", fontWeight:"400" },
+  servingHint:     { background:"none", border:"none", color:"var(--accent)", fontSize:"13px", cursor:"pointer", padding:0, textAlign:"left" },
+  modeToggleRow:   { display:"flex", gap:"4px" },
+  modeToggleBtn:   { padding:"6px 14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-full)", fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", cursor:"pointer" },
+  modeToggleActive:{ background:"var(--text-primary)", borderColor:"var(--text-primary)", color:"var(--text-inverse)" },
+  servingUnitInfo: { display:"flex", flexDirection:"column", alignItems:"flex-end", flexShrink:0, gap:"2px" },
+  servingUnitName: { fontSize:"15px", fontWeight:"500", color:"var(--text-primary)" },
+  servingUnitGrams:{ fontSize:"12px", color:"var(--text-tertiary)", fontFamily:"var(--font-mono)" },
   manualSection:{ display:"flex", flexDirection:"column", gap:"8px" },
   manualLabel:  { fontSize:"11px", fontWeight:"700", color:"var(--text-tertiary)", textTransform:"uppercase", letterSpacing:"0.07em" },
   manualGrid:   { display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"6px" },
