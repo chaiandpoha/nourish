@@ -66,18 +66,20 @@ export default function DayLog({ date, onTotalsChange }) {
   // Compute target date fresh on each load — avoids stale "today" if app is
   // kept open across midnight (date prop wins for calendar past-day views)
   const getTargetDate = useCallback(() => date || localDate(), [date])
+  const isToday = !date || date === localDate()
 
   const loadLogs = useCallback(async () => {
     if (!user) return
-    const today   = getTargetDate()
-    const isToday = today === localDate()
+    const targetDate = getTargetDate()
+    const todayDate  = localDate()
+    const loading_isToday = targetDate === todayDate
     setLoading(true)
-    const entries = await getFoodLogForDate(user.id, today)
+    const entries = await getFoodLogForDate(user.id, targetDate)
     setLogs(entries)
     setLoading(false)
     onTotalsChange?.(sumMacros(entries))
 
-    if (isToday) {
+    if (loading_isToday) {
       const byMeal = MEAL_SLOTS.reduce((acc, m) => {
         acc[m] = entries.filter(l => l.meal === m)
         return acc
@@ -232,7 +234,7 @@ export default function DayLog({ date, onTotalsChange }) {
             ↩ Copy from yesterday
           </button>
           {logs.length > 0 && (
-            <span style={s.dayTotal}>{dayTotals.calories} kcal today</span>
+            <span style={s.dayTotal}>{dayTotals.calories} kcal {isToday ? 'today' : 'total'}</span>
           )}
         </div>
       </div>

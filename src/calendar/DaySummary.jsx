@@ -65,7 +65,7 @@ export default function DaySummary({ date, onBack }) {
       )}
 
       {/* Food log (editable tabs — same as home screen) */}
-      <DayLog date={date} onTotalsChange={setTotals} />
+      <DayLog key={refresh} date={date} onTotalsChange={setTotals} />
 
       {/* Workout */}
       {workoutLogs?.length > 0 && (
