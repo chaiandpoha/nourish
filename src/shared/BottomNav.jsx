@@ -30,7 +30,7 @@ export default function BottomNav() {
               ...styles.tab,
               ...(isActive(tab.path) ? styles.tabActive : {})
             }}
-            onClick={() => navigate(tab.path)}
+            onClick={() => navigate(tab.path, isActive(tab.path) ? { state: { _reset: Date.now() } } : undefined)}
           >
             <span style={styles.icon}>{tab.icon}</span>
             <span style={{

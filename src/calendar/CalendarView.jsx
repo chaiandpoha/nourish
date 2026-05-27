@@ -84,6 +84,7 @@ export default function CalendarView() {
   if (selectedDay) {
     return (
       <DaySummary
+        key={selectedDay}
         date={selectedDay}
         onBack={() => setSelectedDay(null)}
       />
