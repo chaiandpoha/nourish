@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "./useAuth.jsx"
-import { isTokenValid, getUserEmail, getUserName, initiateOAuthFlow } from "../db/driveApi.js"
+import { getUserEmail, getUserName, initiateOAuthFlow } from "../db/driveApi.js"
 
 export default function AuthGate({ children }) {
   const { user, isLoading, loginWithGoogle } = useAuth()
@@ -10,7 +10,9 @@ export default function AuthGate({ children }) {
   useEffect(() => {
     if (isLoading || user) return
     const email = getUserEmail()
-    if (email && isTokenValid()) {
+    // Auto-login whenever we know the user's email — profile is in IndexedDB
+    // so Drive token is not required (Drive sync is optional)
+    if (email) {
       setAutoLoggingIn(true)
       loginWithGoogle(email, getUserName())
         .catch(e => setError(e.message))

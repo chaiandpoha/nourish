@@ -22,6 +22,8 @@ export function setAccessToken(token, expiresInSeconds) {
   _tokenExpiry = Date.now() + (expiresInSeconds - 60) * 1000
   sessionStorage.setItem('drive_token',        token)
   sessionStorage.setItem('drive_token_expiry', String(_tokenExpiry))
+  // Also persist expiry so we can detect stale tokens after PWA relaunch
+  localStorage.setItem('drive_token_expiry', String(_tokenExpiry))
 }
 
 // ─── Admin token (central Drive — persisted in localStorage) ─────────────────
@@ -62,6 +64,9 @@ export function clearAccessToken() {
   sessionStorage.removeItem('drive_token_expiry')
   sessionStorage.removeItem('drive_user_email')
   sessionStorage.removeItem('drive_user_name')
+  localStorage.removeItem('drive_user_email')
+  localStorage.removeItem('drive_user_name')
+  localStorage.removeItem('drive_token_expiry')
 }
 
 /** Clear admin Drive token — only used during factory reset */
@@ -75,9 +80,10 @@ export function clearAdminToken() {
 /** Restore tokens from storage on app startup */
 export function restoreToken() {
   _loadAdminToken()
-  const email = sessionStorage.getItem('drive_user_email')
-  const name  = sessionStorage.getItem('drive_user_name')
-  if (email) { _userEmail = email; _userName = name }
+  // Prefer sessionStorage (same PWA session), fall back to localStorage (survived relaunch)
+  const email = sessionStorage.getItem('drive_user_email') || localStorage.getItem('drive_user_email')
+  const name  = sessionStorage.getItem('drive_user_name')  || localStorage.getItem('drive_user_name')
+  if (email) { _userEmail = email; _userName = name || '' }
   const stored = sessionStorage.getItem('drive_token')
   const expiry = parseInt(sessionStorage.getItem('drive_token_expiry') || '0')
   if (stored && Date.now() < expiry) {
@@ -99,8 +105,14 @@ export async function fetchUserInfo() {
     const info = await res.json()
     _userEmail = info.email || null
     _userName  = info.name  || null
-    if (_userEmail) sessionStorage.setItem('drive_user_email', _userEmail)
-    if (_userName)  sessionStorage.setItem('drive_user_name',  _userName)
+    if (_userEmail) {
+      sessionStorage.setItem('drive_user_email', _userEmail)
+      localStorage.setItem('drive_user_email', _userEmail)
+    }
+    if (_userName) {
+      sessionStorage.setItem('drive_user_name', _userName)
+      localStorage.setItem('drive_user_name', _userName)
+    }
 
     // Persist admin's token as the central Drive token
     const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
