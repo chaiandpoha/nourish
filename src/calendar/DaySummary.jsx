@@ -37,11 +37,6 @@ export default function DaySummary({ date, onBack }) {
       {/* Header */}
       <div style={s.header}>
         <button style={s.backBtn} onClick={onBack}>← Calendar</button>
-        <MealEntry
-          date={date}
-          inline
-          onLogged={() => setRefresh(r => r + 1)}
-        />
       </div>
 
       <h2 style={s.title}>{label}</h2>
@@ -65,7 +60,14 @@ export default function DaySummary({ date, onBack }) {
       )}
 
       {/* Food log (editable tabs — same as home screen) */}
-      <DayLog key={refresh} date={date} onTotalsChange={setTotals} />
+      <DayLog date={date} onTotalsChange={setTotals} reloadTrigger={refresh} />
+
+      {/* Add food button — below the log so it's reachable without scrolling up */}
+      <MealEntry
+        date={date}
+        inline
+        onLogged={() => setRefresh(r => r + 1)}
+      />
 
       {/* Workout */}
       {workoutLogs?.length > 0 && (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { sumMacros } from '../food/macroCalc.js'
@@ -12,9 +13,13 @@ export default function CalendarView() {
   const [selectedDay, setSelectedDay] = useState(null)
   const [loading,    setLoading]    = useState(true)
   const { user } = useAuth()
+  const location = useLocation()
 
   const today     = localDate()
   const monthName = new Date(year, month, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+
+  // Reset to calendar grid whenever user navigates to /calendar (e.g. taps bottom nav)
+  useEffect(() => { setSelectedDay(null) }, [location.key])
 
   useEffect(() => { loadMonthData() }, [user, year, month])
 

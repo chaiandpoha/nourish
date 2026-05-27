@@ -57,10 +57,13 @@ export function smartMealSlot(byMeal) {
 
 // ─── DayLog ───────────────────────────────────────────────────────────────────
 
-export default function DayLog({ date, onTotalsChange }) {
+export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
   const [logs,      setLogs]      = useState([])
   const [loading,   setLoading]   = useState(true)
-  const [activeTab, setActiveTab] = useState(readMealPref() || timeSlot())
+  // Past dates default to breakfast; today uses saved pref or time-based slot
+  const [activeTab, setActiveTab] = useState(() =>
+    (!date || date === localDate()) ? (readMealPref() || timeSlot()) : 'breakfast'
+  )
   const { user } = useAuth()
 
   // Compute target date fresh on each load — avoids stale "today" if app is
@@ -93,7 +96,7 @@ export default function DayLog({ date, onTotalsChange }) {
     }
   }, [user, getTargetDate])
 
-  useEffect(() => { loadLogs() }, [loadLogs])
+  useEffect(() => { loadLogs() }, [loadLogs, reloadTrigger])
 
   // Reload when app comes back to foreground (handles midnight date change)
   useEffect(() => {

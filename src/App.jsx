@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/useAuth.jsx'
 import { BannerProvider, useBanners } from './shared/Banner.jsx'
 import AuthGate from './auth/AuthGate.jsx'
@@ -148,6 +148,7 @@ function AuthCallbackScreen() {
 
 function ProtectedApp() {
   const { user } = useAuth()
+  const { pathname } = useLocation()
   const today = localDate()
 
   function handleGlobalLogged() {
@@ -179,7 +180,7 @@ function ProtectedApp() {
         </Routes>
       </main>
       <BottomNav />
-      {user && <MealEntry date={today} onLogged={handleGlobalLogged} />}
+      {user && pathname !== '/calendar' && <MealEntry date={today} onLogged={handleGlobalLogged} />}
       <InstallPrompt />
     </div>
   )
