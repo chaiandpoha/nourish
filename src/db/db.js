@@ -25,12 +25,12 @@ let _folderIds    = {}   // cached folder IDs per user
  * Called after successful login.
  * Builds Drive folder structure, loads shared data, starts sync interval.
  */
-export async function initStorage(userId, encryptionKey) {
-  console.log('initStorage called for:', userId)
+export async function initStorage(userId, encryptionKey, userEmail) {
+  console.log('initStorage called for:', userEmail || userId)
 
   try {
-    // Build / verify Drive folder structure
-    _folderIds = await ensureFolderStructure(userId)
+    // Build / verify folder structure in admin's Drive (keyed by email)
+    _folderIds = await ensureFolderStructure(userEmail || userId)
     console.log('Drive folders ready:', Object.keys(_folderIds))
   } catch (e) {
     console.error('Failed to create Drive folders:', e)

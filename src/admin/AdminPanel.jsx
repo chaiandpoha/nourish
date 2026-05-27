@@ -450,8 +450,9 @@ function FactoryReset() {
     try {
       // Disconnect Drive token so old data isn't restored on next login
       if (wipeDrive) {
-        const { clearAccessToken } = await import('../db/driveApi.js').catch(() => ({}))
+        const { clearAccessToken, clearAdminToken } = await import('../db/driveApi.js').catch(() => ({}))
         clearAccessToken?.()
+        clearAdminToken?.()
       }
 
       const tables = [

@@ -141,7 +141,7 @@ export function AuthProvider({ children }) {
       if (!isTokenValid()) restoreToken()
       if (isTokenValid()) {
         console.log('Drive token valid — initializing storage')
-        await initStorage(profile.id, key)
+        await initStorage(profile.id, key, profile.email)
       } else {
         console.warn('No Drive token — offline mode')
       }
@@ -215,24 +215,22 @@ export function AuthProvider({ children }) {
 
   async function _tryRestoreByEmail(email) {
     try {
-      const { isTokenValid, findFolder, listFolders, findFile, readFile } = await import('../db/driveApi.js')
+      const { isTokenValid, findFolder, findFile, readFile } = await import('../db/driveApi.js')
       if (!isTokenValid()) return null
+      // Direct lookup — folder is named by email in admin's Drive
       const nourishId = await findFolder('Nourish', 'root')
       if (!nourishId) return null
       const usersId = await findFolder('users', nourishId)
       if (!usersId) return null
-      const userDirs = await listFolders(usersId)
-      for (const dir of userDirs) {
-        const profileFile = await findFile('profile.json', dir.id)
-        if (!profileFile) continue
-        const raw = await readFile(profileFile.id)
-        if (!raw) continue
-        const p = typeof raw === 'string' ? JSON.parse(raw) : raw
-        if ((p.email || '').toLowerCase() === email) {
-          await db.users.put({ ...p, dirty: 0 })
-          return p
-        }
-      }
+      const userDirId = await findFolder(email, usersId)
+      if (!userDirId) return null
+      const profileFile = await findFile('profile.json', userDirId)
+      if (!profileFile) return null
+      const raw = await readFile(profileFile.id)
+      if (!raw) return null
+      const p = typeof raw === 'string' ? JSON.parse(raw) : raw
+      await db.users.put({ ...p, dirty: 0 })
+      return p
     } catch (e) {
       console.warn('Drive profile search failed:', e)
     }
