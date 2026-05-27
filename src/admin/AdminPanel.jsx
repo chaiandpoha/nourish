@@ -19,7 +19,7 @@ export default function AdminPanel() {
     setLoading(true)
     let allBatches = []
     try {
-      allBatches = await sbFetchBatches()
+      allBatches = await sbFetchBatches(user?.householdId)
       await db.batches.bulkPut(allBatches)
     } catch {
       allBatches = await db.batches.toArray()

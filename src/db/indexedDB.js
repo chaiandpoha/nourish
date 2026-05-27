@@ -171,6 +171,11 @@ db.version(3).stores({
   users: '&id, name, email, driveFileId, createdAt',
 })
 
+// Version 4 — householdId index on users
+db.version(4).stores({
+  users: '&id, name, email, driveFileId, householdId, createdAt',
+})
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Mark a record dirty — needs sync to Drive */

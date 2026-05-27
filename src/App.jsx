@@ -27,6 +27,7 @@ import ProgressPhotos from './progress/ProgressPhotos.jsx'
 import Measurements from './progress/Measurements.jsx'
 import InstallPrompt from './shared/InstallPrompt.jsx'
 import MealEntry from './log/MealEntry.jsx'
+import HouseholdScreen from './household/HouseholdScreen.jsx'
 import { getThemePref, setThemePref } from './shared/theme.js'
 
 export default function App() {
@@ -150,6 +151,18 @@ function ProtectedApp() {
 
   function handleGlobalLogged() {
     window.dispatchEvent(new CustomEvent('nourish:food-logged'))
+  }
+
+  if (!user.householdId) {
+    return (
+      <div style={styles.appShell}>
+        <main style={styles.main}>
+          <div style={styles.screen}>
+            <HouseholdScreen />
+          </div>
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -316,6 +329,7 @@ function SettingsScreen() {
 
   const tabs = [
     { id:'profile',      label:'Profile'   },
+    { id:'household',    label:'Household' },
     { id:'supps',        label:'Supps'     },
     { id:'reminders',    label:'Reminders' },
     { id:'progress',     label:'Progress'  },
@@ -353,6 +367,10 @@ function SettingsScreen() {
             <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
           )}
         </>
+      )}
+
+      {tab === 'household' && (
+        <HouseholdScreen />
       )}
 
       {tab === 'supps' && (

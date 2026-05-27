@@ -136,20 +136,21 @@ export default function BatchBuilder({ onSave, onCancel }) {
     setSaving(true)
     try {
       const batch = {
-        id:           generateId(),
-        name:         name.trim(),
-        createdBy:    user.email || user.id,
-        shared:       shared ? 1 : 0,
-        closed:       0,
-        ingredients:  ingredients.map(i => ({ name: i.name, grams: i.grams, per100g: i.per100g })),
-        yieldGrams:   yieldG,
+        id:            generateId(),
+        name:          name.trim(),
+        createdBy:     user.email || user.id,
+        shared:        shared ? 1 : 0,
+        closed:        0,
+        ingredients:   ingredients.map(i => ({ name: i.name, grams: i.grams, per100g: i.per100g })),
+        yieldGrams:    yieldG,
         macrosPer100g: per100g,
-        createdAt:    new Date().toISOString(),
-        updatedAt:    new Date().toISOString(),
-        dirty:        0,
+        householdId:   user.householdId || null,
+        createdAt:     new Date().toISOString(),
+        updatedAt:     new Date().toISOString(),
+        dirty:         0,
       }
       // Write to Supabase (source of truth) + local cache
-      await sbSaveBatch(batch, user.email)
+      await sbSaveBatch(batch, user.email, user.householdId)
       await db.batches.put(batch)
       onSave?.(batch)
     } catch (e) {

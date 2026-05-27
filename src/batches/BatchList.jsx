@@ -18,7 +18,7 @@ export default function BatchList({ onLogged }) {
   async function loadBatches() {
     if (!user) return
     try {
-      const data = await sbFetchBatches()
+      const data = await sbFetchBatches(user.householdId)
       // Cache in IndexedDB for offline
       await db.batches.bulkPut(data)
       setBatches(data.filter(b => !b.closed).sort((a, b) => {
