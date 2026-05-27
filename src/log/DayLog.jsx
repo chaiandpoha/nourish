@@ -63,19 +63,20 @@ export default function DayLog({ date, onTotalsChange }) {
   const [activeTab, setActiveTab] = useState(readMealPref() || timeSlot())
   const { user } = useAuth()
 
-  const today = date || localDate()
-  const prev  = yesterday(today)
-  const isToday = today === localDate()
+  // Compute target date fresh on each load — avoids stale "today" if app is
+  // kept open across midnight (date prop wins for calendar past-day views)
+  const getTargetDate = useCallback(() => date || localDate(), [date])
 
   const loadLogs = useCallback(async () => {
     if (!user) return
+    const today   = getTargetDate()
+    const isToday = today === localDate()
     setLoading(true)
     const entries = await getFoodLogForDate(user.id, today)
     setLogs(entries)
     setLoading(false)
     onTotalsChange?.(sumMacros(entries))
 
-    // On today's view: compute smart slot and persist so + button uses it
     if (isToday) {
       const byMeal = MEAL_SLOTS.reduce((acc, m) => {
         acc[m] = entries.filter(l => l.meal === m)
@@ -88,9 +89,16 @@ export default function DayLog({ date, onTotalsChange }) {
         saveMealPref(smart)
       }
     }
-  }, [user, today])
+  }, [user, getTargetDate])
 
   useEffect(() => { loadLogs() }, [loadLogs])
+
+  // Reload when app comes back to foreground (handles midnight date change)
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') loadLogs() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [loadLogs])
 
   function handleTabChange(meal) {
     setActiveTab(meal)
@@ -109,6 +117,8 @@ export default function DayLog({ date, onTotalsChange }) {
 
   async function handleCopyFromYesterday() {
     if (!user) return
+    const today   = getTargetDate()
+    const prev    = yesterday(today)
     const prevLogs = await getFoodLogForDate(user.id, prev)
     const slotLogs = prevLogs.filter(l => l.meal === activeTab)
     if (!slotLogs.length) return

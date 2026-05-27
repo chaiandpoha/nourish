@@ -61,7 +61,7 @@ function parseVoiceInput(text) {
   return { qty: null, unit: 'g', foodName: t }
 }
 
-export default function MealEntry({ date, onLogged }) {
+export default function MealEntry({ date, onLogged, inline = false }) {
   const [open,       setOpen]       = useState(false)
   const [screen,     setScreen]     = useState("list") // list | entry | scan | barcode
   const [selected,   setSelected]   = useState(null)
@@ -206,8 +206,11 @@ export default function MealEntry({ date, onLogged }) {
 
   return (
     <>
-      {/* Floating + button */}
-      <button style={s.fab} onClick={openSheet}>+</button>
+      {/* Trigger: FAB (global) or inline button (past-day view) */}
+      {inline
+        ? <button style={s.inlineAddBtn} onClick={openSheet}>+ Add food</button>
+        : <button style={s.fab} onClick={openSheet}>+</button>
+      }
 
       {/* Overlay */}
       {open && <div style={s.overlay} onClick={closeSheet} />}
@@ -583,6 +586,7 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = {
   fab:          { position:"fixed", bottom:"calc(80px + env(safe-area-inset-bottom) + 16px)", right:"20px", width:"56px", height:"56px", borderRadius:"50%", background:"var(--text-primary)", color:"var(--text-inverse)", fontSize:"28px", fontWeight:"300", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(28,24,20,0.18)", zIndex:90 },
+  inlineAddBtn: { padding:"10px 20px", background:"var(--text-primary)", color:"var(--text-inverse)", border:"none", borderRadius:"var(--r-lg)", fontSize:"14px", fontWeight:"600", cursor:"pointer", alignSelf:"flex-start" },
   overlay:      { position:"fixed", inset:0, background:"rgba(28,24,20,0.35)", zIndex:150, backdropFilter:"blur(2px)" },
   sheet:        { position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-surface)", borderRadius:"22px 22px 0 0", borderTop:"0.5px solid var(--border-subtle)", padding:"12px 16px calc(16px + env(safe-area-inset-bottom))", zIndex:151, maxHeight:"92dvh", overflowY:"auto", animation:"sheetUp 0.3s cubic-bezier(0.16,1,0.3,1) both" },
   handle:       { width:"32px", height:"3px", background:"var(--border-strong)", borderRadius:"99px", margin:"0 auto 16px" },

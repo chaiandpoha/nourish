@@ -3,6 +3,7 @@ import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { sumMacros } from '../food/macroCalc.js'
 import DaySummary from './DaySummary.jsx'
+import { localDate } from '../log/DayLog.jsx'
 
 export default function CalendarView() {
   const [year,       setYear]       = useState(new Date().getFullYear())
@@ -12,7 +13,7 @@ export default function CalendarView() {
   const [loading,    setLoading]    = useState(true)
   const { user } = useAuth()
 
-  const today     = new Date().toISOString().slice(0, 10)
+  const today     = localDate()
   const monthName = new Date(year, month, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
   useEffect(() => { loadMonthData() }, [user, year, month])
@@ -21,8 +22,8 @@ export default function CalendarView() {
     if (!user) return
     setLoading(true)
 
-    const firstDay = new Date(year, month, 1).toISOString().slice(0, 10)
-    const lastDay  = new Date(year, month + 1, 0).toISOString().slice(0, 10)
+    const firstDay = localDate(new Date(year, month, 1))
+    const lastDay  = localDate(new Date(year, month + 1, 0))
 
     const [foodLogs, workoutLogs, weights] = await Promise.all([
       db.foodLogs.where('[userId+date]').between([user.id, firstDay], [user.id, lastDay], true, true).toArray(),
