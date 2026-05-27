@@ -5,6 +5,7 @@ import {
   sbCreateHousehold, sbJoinHousehold, sbFetchHousehold,
   sbUpdateHousehold, sbLeaveHousehold,
 } from '../db/supabase.js'
+import { HOUSEHOLD } from '../config.js'
 
 export default function HouseholdScreen() {
   const { user, refreshUser } = useAuth()
@@ -231,7 +232,7 @@ function HouseholdManager({ user, onDone }) {
       {error && <p style={s.error}>{error}</p>}
 
       {/* Members list */}
-      <div style={s.sectionLabel}>Members ({household.members.length}/4)</div>
+      <div style={s.sectionLabel}>Members ({household.members.length}/{HOUSEHOLD.maxMembers})</div>
       <div style={s.memberCard}>
         {household.members.map((m, i) => {
           const isLast  = i === household.members.length - 1

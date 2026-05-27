@@ -35,6 +35,11 @@ export const AUTH = {
   backgroundLockMinutes: 5,   // lock if app backgrounded longer than this
 }
 
+// ─── Household ───────────────────────────────────────────────────────────────
+export const HOUSEHOLD = {
+  maxMembers: parseInt(import.meta.env.VITE_MAX_HOUSEHOLD_MEMBERS || '4', 10),
+}
+
 // ─── Google Drive ────────────────────────────────────────────────────────────
 export const DRIVE = {
   rootFolderName:       'Nourish',

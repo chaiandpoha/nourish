@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { HOUSEHOLD } from '../config.js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -112,7 +113,7 @@ export async function sbJoinHousehold(code, email, name) {
     .eq('code', code.trim().toUpperCase())
     .single()
   if (error || !household) throw new Error('Household not found — check your code')
-  if (household.members.length >= 4) throw new Error('Household is full (max 4 members)')
+  if (household.members.length >= HOUSEHOLD.maxMembers) throw new Error(`Household is full (max ${HOUSEHOLD.maxMembers} members)`)
   if (household.members.some(m => m.email === email)) {
     return fromHouseholdRow(household)
   }
