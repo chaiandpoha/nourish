@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/useAuth.jsx'
 import { BannerProvider, useBanners } from './shared/Banner.jsx'
 import AuthGate from './auth/AuthGate.jsx'
@@ -115,28 +115,40 @@ function AppRoutes() {
 }
 
 function OnboardingScreen() {
-  const { user, refreshUser } = useAuth()
-  if (!user) { window.location.hash = '#/'; return null }
+  const { user, isLoading, refreshUser } = useAuth()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!isLoading && !user) navigate('/', { replace: true })
+  }, [isLoading, user])
+
+  if (isLoading || !user) return null
   return (
     <Onboarding
-      onComplete={() => { refreshUser(); window.location.hash = '#/' }}
+      onComplete={() => { refreshUser(); navigate('/', { replace: true }) }}
     />
   )
 }
 
 function AuthCallbackScreen() {
-  const { loginWithGoogle } = useAuth()
+  const { loginWithGoogle, isLoading } = useAuth()
+  const navigate = useNavigate()
 
+  // Wait for isLoading=false so restoreToken() has run and getUserEmail() is populated
   useEffect(() => {
-    import('./db/driveApi.js').then(({ getUserEmail, getUserName, isTokenValid }) => {
+    if (isLoading) return
+    ;(async () => {
+      const { getUserEmail, getUserName } = await import('./db/driveApi.js')
       const email = getUserEmail()
-      const name  = getUserName()
-      if (!email || !isTokenValid()) { window.location.hash = '#/'; return }
-      loginWithGoogle(email, name)
-        .then(profile => { window.location.hash = profile._isNew ? '#/onboarding' : '#/' })
-        .catch(() => { window.location.hash = '#/' })
-    })
-  }, [])
+      if (!email) { navigate('/', { replace: true }); return }
+      try {
+        const profile = await loginWithGoogle(email, getUserName())
+        navigate(profile._isNew ? '/onboarding' : '/', { replace: true })
+      } catch {
+        navigate('/', { replace: true })
+      }
+    })()
+  }, [isLoading])
 
   return (
     <div style={styles.splash}>
