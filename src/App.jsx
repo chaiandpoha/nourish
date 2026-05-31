@@ -140,12 +140,17 @@ function AuthCallbackScreen() {
     ;(async () => {
       const { getUserEmail, getUserName } = await import('./db/driveApi.js')
       const email = getUserEmail()
-      if (!email) { navigate('/', { replace: true }); return }
+      if (!email) {
+        // OAuth was interrupted (Google security prompts, user navigated away, etc.)
+        // Pass a flag so the sign-in screen can show a helpful message
+        navigate('/', { replace: true, state: { signInInterrupted: true } })
+        return
+      }
       try {
         const profile = await loginWithGoogle(email, getUserName())
         navigate(profile._isNew ? '/onboarding' : '/', { replace: true })
       } catch {
-        navigate('/', { replace: true })
+        navigate('/', { replace: true, state: { signInInterrupted: true } })
       }
     })()
   }, [isLoading])
