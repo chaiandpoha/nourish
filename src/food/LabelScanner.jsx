@@ -10,7 +10,9 @@ import { AI } from '../config.js'
 // 4. User reviews extracted macros
 // 5. Saved to shared food database
 
-export default function LabelScanner({ onSaved, onCancel, userId }) {
+// mode='save' (default) — saves to shared food DB
+// mode='ingredient'     — skips DB, returns food directly via onSaved
+export default function LabelScanner({ onSaved, onCancel, userId, mode = 'save' }) {
   const [screen,    setScreen]    = useState('pick')   // pick | review | saving
   const [extracted, setExtracted] = useState(null)
   const [edited,    setEdited]    = useState(null)
@@ -136,35 +138,35 @@ All numeric values per 100g. If a value is not listed, use 0. Return only the JS
     setLoading(false)
   }
 
-  // ── Step 4 — save to food database ────────────────────────────────────────
+  // ── Step 4 — save / return food ────────────────────────────────────────────
   async function handleSave() {
     if (!edited.name.trim()) { setError('Food name is required'); return }
     setScreen('saving')
 
-    try {
-      const food = {
-        id:           generateId(),
-        name:         edited.brand
-          ? `${edited.name.trim()}, ${edited.brand.trim()}`
-          : edited.name.trim(),
-        source:       'scanned',
-        barcode:      null,
-        servingSize:  parseFloat(edited.servingSize)  || 100,
-        servingLabel: edited.servingLabel || '100g',
-        per100g: {
-          calories:    parseFloat(edited.calories)    || 0,
-          protein:     parseFloat(edited.protein)     || 0,
-          carbs:       parseFloat(edited.carbs)       || 0,
-          fat:         parseFloat(edited.fat)         || 0,
-          fibre:       parseFloat(edited.fibre)       || 0,
-          sodium:      parseFloat(edited.sodium)      || 0,
-          sugar:       0,
-          saturatedFat:0,
-        },
-        updatedAt: new Date().toISOString(),
-      }
+    const food = {
+      id:           generateId(),
+      name:         edited.brand
+        ? `${edited.name.trim()}, ${edited.brand.trim()}`
+        : edited.name.trim(),
+      source:       'scanned',
+      barcode:      null,
+      servingSize:  parseFloat(edited.servingSize)  || 100,
+      servingLabel: edited.servingLabel || '100g',
+      per100g: {
+        calories:    parseFloat(edited.calories)    || 0,
+        protein:     parseFloat(edited.protein)     || 0,
+        carbs:       parseFloat(edited.carbs)       || 0,
+        fat:         parseFloat(edited.fat)         || 0,
+        fibre:       parseFloat(edited.fibre)       || 0,
+        sodium:      parseFloat(edited.sodium)      || 0,
+        sugar:       0,
+        saturatedFat:0,
+      },
+      updatedAt: new Date().toISOString(),
+    }
 
-      await saveFood(food)
+    try {
+      if (mode !== 'ingredient') await saveFood(food)
       onSaved?.(food)
     } catch (e) {
       setError(e.message)
@@ -319,7 +321,7 @@ All numeric values per 100g. If a value is not listed, use 0. Return only the JS
               Rescan
             </button>
             <button style={st.saveBtn} onClick={handleSave}>
-              Save to Foods
+              {mode === 'ingredient' ? 'Use as Ingredient' : 'Save to Foods'}
             </button>
           </div>
         </div>

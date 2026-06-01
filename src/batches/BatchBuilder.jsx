@@ -6,6 +6,7 @@ import { calcBatchMacrosPer100g } from './batchCalc.js'
 import { sbSaveBatch } from '../db/supabase.js'
 import { generateId } from '../auth/crypto.js'
 import { toGrams, WEIGHT_UNITS } from '../food/macroCalc.js'
+import LabelScanner from '../food/LabelScanner.jsx'
 
 export default function BatchBuilder({ onSave, onCancel }) {
   const [name,        setName]        = useState('')
@@ -17,10 +18,14 @@ export default function BatchBuilder({ onSave, onCancel }) {
   const [results,     setResults]     = useState([])
   const [errors,      setErrors]      = useState([])
   const [saving,      setSaving]      = useState(false)
-  const [showManual,  setShowManual]  = useState(false)
-  const [manualError, setManualError] = useState('')
-  const [manual,      setManual]      = useState({ name:'', grams:'', calories:'', protein:'', carbs:'', fat:'', fibre:'' })
-  const [manualUnit,  setManualUnit]  = useState('g')
+  const [showManual,    setShowManual]    = useState(false)
+  const [manualError,   setManualError]   = useState('')
+  const [manual,        setManual]        = useState({ name:'', grams:'', calories:'', protein:'', carbs:'', fat:'', fibre:'' })
+  const [manualUnit,    setManualUnit]    = useState('g')
+  const [manualMode,    setManualMode]    = useState('weight')  // 'weight' | 'servings'
+  const [servingSize,   setServingSize]   = useState('')        // g per serving
+  const [servingCount,  setServingCount]  = useState('')        // how many servings used
+  const [showScanner,   setShowScanner]   = useState(false)
   const [seeded,      setSeeded]      = useState(false)
   const [ownBatches,  setOwnBatches]  = useState([])
   const searchRef = useRef(null)
@@ -82,23 +87,43 @@ export default function BatchBuilder({ onSave, onCancel }) {
   }
 
   function confirmManual() {
-    const raw = parseFloat(manual.grams)
     if (!manual.name.trim()) { setManualError('Enter an ingredient name'); return }
-    if (!raw || raw <= 0)    { setManualError('Enter a valid weight'); return }
-    const grams  = toGrams(raw, manualUnit)
-    const factor = grams > 0 ? 100 / grams : 1
-    const m = n => Math.round((parseFloat(n) || 0) * factor * 10) / 10
-    setIngredients(prev => [...prev, {
-      id:    generateId(),
-      name:  manual.name.trim(),
-      grams,
-      per100g: { calories: m(manual.calories), protein: m(manual.protein), carbs: m(manual.carbs), fat: m(manual.fat), fibre: m(manual.fibre) }
-    }])
+
+    let grams, per100g
+    if (manualMode === 'servings') {
+      const sSize  = parseFloat(servingSize)
+      const sCount = parseFloat(servingCount)
+      if (!sSize || sSize <= 0)   { setManualError('Enter a valid serving size'); return }
+      if (!sCount || sCount <= 0) { setManualError('Enter number of servings'); return }
+      grams = sSize * sCount
+      // macros entered per serving → normalize to per 100g
+      const factor = sSize > 0 ? 100 / sSize : 1
+      const m = n => Math.round((parseFloat(n) || 0) * factor * 10) / 10
+      per100g = { calories: m(manual.calories), protein: m(manual.protein), carbs: m(manual.carbs), fat: m(manual.fat), fibre: m(manual.fibre) }
+    } else {
+      const raw = parseFloat(manual.grams)
+      if (!raw || raw <= 0) { setManualError('Enter a valid weight'); return }
+      grams = toGrams(raw, manualUnit)
+      const factor = grams > 0 ? 100 / grams : 1
+      const m = n => Math.round((parseFloat(n) || 0) * factor * 10) / 10
+      per100g = { calories: m(manual.calories), protein: m(manual.protein), carbs: m(manual.carbs), fat: m(manual.fat), fibre: m(manual.fibre) }
+    }
+
+    setIngredients(prev => [...prev, { id: generateId(), name: manual.name.trim(), grams, per100g }])
     setManual({ name:'', grams:'', calories:'', protein:'', carbs:'', fat:'', fibre:'' })
     setManualError('')
     setManualUnit('g')
+    setManualMode('weight')
+    setServingSize('')
+    setServingCount('')
     setShowManual(false)
     setTimeout(() => searchRef.current?.focus(), 50)
+  }
+
+  // Called when LabelScanner returns a scanned food — add directly as ingredient
+  function handleScanned(food) {
+    setShowScanner(false)
+    addFood(food)
   }
 
   async function handleSave() {
@@ -149,6 +174,18 @@ export default function BatchBuilder({ onSave, onCancel }) {
   const matchingBatches = ownBatches.filter(b =>
     !query.trim() || b.name.toLowerCase().includes(query.toLowerCase())
   )
+
+  // Show scanner as a full-screen overlay within the builder
+  if (showScanner) {
+    return (
+      <LabelScanner
+        userId={user?.id}
+        mode="ingredient"
+        onSaved={handleScanned}
+        onCancel={() => setShowScanner(false)}
+      />
+    )
+  }
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:'14px', padding:'0 0 8px' }}>
@@ -269,21 +306,67 @@ export default function BatchBuilder({ onSave, onCancel }) {
             </>
           )}
 
-          {/* Manual entry — out of the way at the bottom */}
+          {/* Scan label button — always visible */}
+          {!showManual && (
+            <button onClick={() => setShowScanner(true)}
+              style={{ display:'flex', alignItems:'center', gap:'8px', padding:'11px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', color:'var(--text-primary)', fontSize:'14px', fontWeight:'600', cursor:'pointer' }}>
+              <span style={{ fontSize:'18px' }}>📷</span>
+              Scan nutrition label
+            </button>
+          )}
+
+          {/* Manual entry with weight or servings mode */}
           {showManual ? (
             <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
               <span style={{ fontSize:'13px', fontWeight:'600', color:'var(--text-primary)' }}>Add manually</span>
               <input style={inp} placeholder="Ingredient name" value={manual.name} onChange={e => setManual(m => ({ ...m, name: e.target.value }))} />
-              <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
-                <input style={{ ...inp, flex:1, minWidth:'80px' }} type="number" inputMode="decimal" placeholder="Weight"
-                  value={manual.grams} onChange={e => { setManual(m => ({ ...m, grams: e.target.value })); setManualError('') }} />
-                {WEIGHT_UNITS.map(u => (
-                  <button key={u} type="button" onClick={() => setManualUnit(u)}
-                    style={{ padding:'6px 8px', background: manualUnit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${manualUnit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: manualUnit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
-                  >{u}</button>
+
+              {/* Mode toggle */}
+              <div style={{ display:'flex', gap:'4px' }}>
+                {[['weight','By total weight'],['servings','By servings']].map(([m, label]) => (
+                  <button key={m} type="button" onClick={() => { setManualMode(m); setManualError('') }}
+                    style={{ flex:1, padding:'8px 6px', background: manualMode === m ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${manualMode === m ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-md)', fontSize:'12px', fontWeight:'600', color: manualMode === m ? 'var(--text-inverse)' : 'var(--text-secondary)', cursor:'pointer' }}>
+                    {label}
+                  </button>
                 ))}
               </div>
-              <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Macros for {manual.grams || '?'}{manualUnit}</span>
+
+              {manualMode === 'weight' ? (
+                <>
+                  <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
+                    <input style={{ ...inp, flex:1, minWidth:'80px' }} type="number" inputMode="decimal" placeholder="Total weight used"
+                      value={manual.grams} onChange={e => { setManual(m => ({ ...m, grams: e.target.value })); setManualError('') }} />
+                    {WEIGHT_UNITS.map(u => (
+                      <button key={u} type="button" onClick={() => setManualUnit(u)}
+                        style={{ padding:'6px 8px', background: manualUnit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${manualUnit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: manualUnit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
+                      >{u}</button>
+                    ))}
+                  </div>
+                  <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Macros for {manual.grams || '?'}{manualUnit}</span>
+                </>
+              ) : (
+                <>
+                  <div style={{ display:'flex', gap:'8px' }}>
+                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:'4px' }}>
+                      <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Serving size (g)</span>
+                      <input style={inp} type="number" inputMode="decimal" placeholder="e.g. 30"
+                        value={servingSize} onChange={e => { setServingSize(e.target.value); setManualError('') }} />
+                    </div>
+                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:'4px' }}>
+                      <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Servings used</span>
+                      <input style={inp} type="number" inputMode="decimal" placeholder="e.g. 3"
+                        value={servingCount} onChange={e => { setServingCount(e.target.value); setManualError('') }} />
+                    </div>
+                  </div>
+                  {servingSize && servingCount && (
+                    <div style={{ fontSize:'12px', color:'var(--accent)', fontWeight:'600' }}>
+                      = {Math.round(parseFloat(servingSize) * parseFloat(servingCount))}g total
+                    </div>
+                  )}
+                  <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Macros per serving ({servingSize || '?'}g)</span>
+                </>
+              )}
+
               <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'6px' }}>
                 {macroFields.map(({ key, label }) => (
                   <div key={key} style={{ display:'flex', flexDirection:'column', gap:'3px' }}>
@@ -296,7 +379,7 @@ export default function BatchBuilder({ onSave, onCancel }) {
               </div>
               {manualError && <div style={{ fontSize:'12px', color:'var(--red)' }}>{manualError}</div>}
               <div style={{ display:'flex', gap:'8px' }}>
-                <button onClick={() => { setShowManual(false); setManualError('') }}
+                <button onClick={() => { setShowManual(false); setManualError(''); setManualMode('weight') }}
                   style={{ flex:1, padding:'11px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'14px', cursor:'pointer' }}>Cancel</button>
                 <button onClick={confirmManual}
                   style={{ flex:2, padding:'11px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'14px', fontWeight:'600', cursor:'pointer' }}>Add Ingredient</button>
