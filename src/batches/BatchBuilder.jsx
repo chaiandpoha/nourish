@@ -27,6 +27,7 @@ export default function BatchBuilder({ onSave, onCancel }) {
   const [pendingMode,  setPendingMode]  = useState('servings') // 'servings' | 'grams'
   const [manualUnit,   setManualUnit]   = useState('g')
   const [yieldUnit,    setYieldUnit]    = useState('g')
+  const [ownBatches,   setOwnBatches]   = useState([])
   const pendingRef  = useRef(null)
   const searchRef   = useRef(null)
   const { user } = useAuth()
@@ -34,6 +35,15 @@ export default function BatchBuilder({ onSave, onCancel }) {
   // Seed food database — idempotent, returns immediately if already seeded
   useEffect(() => {
     seedFoodDatabase().then(() => setSeeded(true))
+  }, [])
+
+  // Load existing batches so they can be used as ingredients
+  useEffect(() => {
+    db.batches.where('closed').equals(0).toArray().then(all => {
+      setOwnBatches(all.filter(b => b.macrosPer100g).sort((a, b) =>
+        new Date(b.createdAt) - new Date(a.createdAt)
+      ))
+    })
   }, [])
 
   useEffect(() => {
@@ -327,7 +337,7 @@ export default function BatchBuilder({ onSave, onCancel }) {
           </div>
         )}
 
-        {/* Search + manual buttons */}
+        {/* Search + batches + manual */}
         {!pending && !showManual && (
           <>
             <input
@@ -338,6 +348,8 @@ export default function BatchBuilder({ onSave, onCancel }) {
               onChange={e => setQuery(e.target.value)}
               disabled={!seeded}
             />
+
+            {/* USDA / NIN search results */}
             {results.map(food => (
               <button key={food.id} onClick={() => selectFood(food)}
                 style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', padding:'10px 12px', background:'transparent', border:'none', borderBottom:'0.5px solid var(--border-subtle)', cursor:'pointer', textAlign:'left' }}>
@@ -345,6 +357,30 @@ export default function BatchBuilder({ onSave, onCancel }) {
                 <span style={{ fontSize:'12px', color:'var(--text-tertiary)' }}>{food.per100g?.calories} kcal/100g</span>
               </button>
             ))}
+
+            {/* Your saved batches as ingredients */}
+            {(() => {
+              const filtered = ownBatches.filter(b =>
+                !query.trim() || b.name.toLowerCase().includes(query.toLowerCase())
+              )
+              if (!filtered.length) return null
+              return (
+                <div style={{ display:'flex', flexDirection:'column', gap:'0', background:'var(--bg-elevated)', borderRadius:'var(--r-md)', border:'0.5px solid var(--border-subtle)', overflow:'hidden', marginTop: results.length ? '4px' : '0' }}>
+                  <div style={{ fontSize:'10px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', padding:'8px 12px 6px', borderBottom:'0.5px solid var(--border-subtle)' }}>
+                    My Batches
+                  </div>
+                  {filtered.map(b => (
+                    <button key={b.id}
+                      onClick={() => selectFood({ id: b.id, name: b.name, per100g: b.macrosPer100g })}
+                      style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', padding:'10px 12px', background:'transparent', border:'none', borderBottom:'0.5px solid var(--border-subtle)', cursor:'pointer', textAlign:'left' }}>
+                      <span style={{ fontSize:'14px', color:'var(--text-primary)', fontStyle:'italic', fontFamily:'var(--font-serif)' }}>{b.name}</span>
+                      <span style={{ fontSize:'12px', color:'var(--accent)', fontWeight:'600' }}>{b.macrosPer100g?.calories} kcal/100g</span>
+                    </button>
+                  ))}
+                </div>
+              )
+            })()}
+
             <button onClick={() => setShowManual(true)}
               style={{ padding:'10px 14px', background:'var(--bg-elevated)', border:'1px dashed var(--border-strong)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'13px', fontWeight:'500', cursor:'pointer', textAlign:'left' }}>
               + Add ingredient manually (enter macros)
