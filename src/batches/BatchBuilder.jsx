@@ -8,36 +8,26 @@ import { generateId } from '../auth/crypto.js'
 import { toGrams, WEIGHT_UNITS } from '../food/macroCalc.js'
 
 export default function BatchBuilder({ onSave, onCancel }) {
-  const [name,         setName]         = useState('')
-  const [shared,       setShared]       = useState(true)
-  const [ingredients,  setIngredients]  = useState([])
-  const [yieldGrams,   setYieldGrams]   = useState('')
-  const [query,        setQuery]        = useState('')
-  const [results,      setResults]      = useState([])
-  const [pending,      setPending]      = useState(null)
-  const [pendingG,     setPendingG]     = useState('')
-  const [pendingError, setPendingError] = useState('')
-  const [errors,       setErrors]       = useState([])
-  const [saving,       setSaving]       = useState(false)
-  const [showManual,   setShowManual]   = useState(false)
-  const [manualError,  setManualError]  = useState('')
-  const [manual,       setManual]       = useState({ name:'', grams:'', calories:'', protein:'', carbs:'', fat:'', fibre:'' })
-  const [seeded,       setSeeded]       = useState(false)
-  const [pendingUnit,  setPendingUnit]  = useState('g')
-  const [pendingMode,  setPendingMode]  = useState('servings') // 'servings' | 'grams'
-  const [manualUnit,   setManualUnit]   = useState('g')
-  const [yieldUnit,    setYieldUnit]    = useState('g')
-  const [ownBatches,   setOwnBatches]   = useState([])
-  const pendingRef  = useRef(null)
-  const searchRef   = useRef(null)
+  const [name,        setName]        = useState('')
+  const [shared,      setShared]      = useState(true)
+  const [ingredients, setIngredients] = useState([])
+  const [yieldGrams,  setYieldGrams]  = useState('')
+  const [yieldUnit,   setYieldUnit]   = useState('g')
+  const [query,       setQuery]       = useState('')
+  const [results,     setResults]     = useState([])
+  const [errors,      setErrors]      = useState([])
+  const [saving,      setSaving]      = useState(false)
+  const [showManual,  setShowManual]  = useState(false)
+  const [manualError, setManualError] = useState('')
+  const [manual,      setManual]      = useState({ name:'', grams:'', calories:'', protein:'', carbs:'', fat:'', fibre:'' })
+  const [manualUnit,  setManualUnit]  = useState('g')
+  const [seeded,      setSeeded]      = useState(false)
+  const [ownBatches,  setOwnBatches]  = useState([])
+  const searchRef = useRef(null)
   const { user } = useAuth()
 
-  // Seed food database — idempotent, returns immediately if already seeded
-  useEffect(() => {
-    seedFoodDatabase().then(() => setSeeded(true))
-  }, [])
+  useEffect(() => { seedFoodDatabase().then(() => setSeeded(true)) }, [])
 
-  // Load existing batches so they can be used as ingredients
   useEffect(() => {
     db.batches.where('closed').equals(0).toArray().then(all => {
       setOwnBatches(all.filter(b => b.macrosPer100g).sort((a, b) =>
@@ -48,22 +38,9 @@ export default function BatchBuilder({ onSave, onCancel }) {
 
   useEffect(() => {
     if (!query.trim() || !seeded) { setResults([]); return }
-    const t = setTimeout(async () => {
-      const r = await searchFoods(query, 6)
-      setResults(r)
-    }, 200)
+    const t = setTimeout(async () => setResults(await searchFoods(query, 8)), 200)
     return () => clearTimeout(t)
   }, [query, seeded])
-
-  useEffect(() => {
-    if (pending) {
-      const hasServing = !!pending.servingSize
-      setPendingMode(hasServing ? 'servings' : 'grams')
-      setPendingG(hasServing ? '1' : String(pending.servingSize || 100))
-      setPendingError('')
-      setTimeout(() => pendingRef.current?.focus(), 100)
-    }
-  }, [pending])
 
   const totalMacros = ingredients.reduce((acc, ing) => ({
     calories: acc.calories + (ing.per100g?.calories || 0) * ing.grams / 100,
@@ -74,38 +51,34 @@ export default function BatchBuilder({ onSave, onCancel }) {
   }), { calories:0, protein:0, carbs:0, fat:0, fibre:0 })
 
   const totalRawWeight = ingredients.reduce((s, i) => s + i.grams, 0)
-  const yieldG         = toGrams(parseFloat(yieldGrams) || 0, yieldUnit)
-  const per100g        = yieldG > 0 ? calcBatchMacrosPer100g(
+  const yieldG = toGrams(parseFloat(yieldGrams) || 0, yieldUnit)
+  const per100g = yieldG > 0 ? calcBatchMacrosPer100g(
     ingredients.map(i => ({ food: { per100g: i.per100g }, grams: i.grams })),
     yieldG
   ) : null
 
   function r1(n) { return Math.round(n * 10) / 10 }
 
-  function selectFood(food) {
-    setPending(food)
-    setQuery('')
-    setResults([])
-  }
-
-  function confirmIngredient() {
-    const raw = parseFloat(pendingG)
-    if (!raw || raw <= 0) { setPendingError('Enter a valid amount'); return }
-    const grams = pendingMode === 'servings'
-      ? raw * (pending.servingSize || 100)
-      : toGrams(raw, pendingUnit)
+  // Tap any food or batch → added immediately at default grams, no confirm step
+  function addFood(food) {
+    const defaultGrams = food.servingSize || 100
     setIngredients(prev => [...prev, {
       id:      generateId(),
-      name:    pending.name,
-      grams,
-      per100g: pending.per100g,
+      name:    food.name,
+      grams:   defaultGrams,
+      per100g: food.per100g,
     }])
-    setPending(null)
-    setPendingG('')
-    setPendingError('')
-    setPendingUnit('g')
-    setPendingMode('servings')
+    setQuery('')
+    setResults([])
     setTimeout(() => searchRef.current?.focus(), 50)
+  }
+
+  function updateGrams(id, val) {
+    setIngredients(prev => prev.map(i => i.id === id ? { ...i, grams: parseFloat(val) || 0 } : i))
+  }
+
+  function removeIngredient(id) {
+    setIngredients(prev => prev.filter(i => i.id !== id))
   }
 
   function confirmManual() {
@@ -113,34 +86,19 @@ export default function BatchBuilder({ onSave, onCancel }) {
     if (!manual.name.trim()) { setManualError('Enter an ingredient name'); return }
     if (!raw || raw <= 0)    { setManualError('Enter a valid weight'); return }
     const grams  = toGrams(raw, manualUnit)
-    // User entered total macros for their amount — normalise to per100g for batch calc
     const factor = grams > 0 ? 100 / grams : 1
-    const r1 = n => Math.round((parseFloat(n) || 0) * factor * 10) / 10
+    const m = n => Math.round((parseFloat(n) || 0) * factor * 10) / 10
     setIngredients(prev => [...prev, {
       id:    generateId(),
       name:  manual.name.trim(),
       grams,
-      per100g: {
-        calories: r1(manual.calories),
-        protein:  r1(manual.protein),
-        carbs:    r1(manual.carbs),
-        fat:      r1(manual.fat),
-        fibre:    r1(manual.fibre),
-      }
+      per100g: { calories: m(manual.calories), protein: m(manual.protein), carbs: m(manual.carbs), fat: m(manual.fat), fibre: m(manual.fibre) }
     }])
     setManual({ name:'', grams:'', calories:'', protein:'', carbs:'', fat:'', fibre:'' })
     setManualError('')
     setManualUnit('g')
     setShowManual(false)
     setTimeout(() => searchRef.current?.focus(), 50)
-  }
-
-  function updateGrams(id, grams) {
-    setIngredients(prev => prev.map(i => i.id === id ? { ...i, grams: parseFloat(grams) || 0 } : i))
-  }
-
-  function removeIngredient(id) {
-    setIngredients(prev => prev.filter(i => i.id !== id))
   }
 
   async function handleSave() {
@@ -165,13 +123,11 @@ export default function BatchBuilder({ onSave, onCancel }) {
         updatedAt:     new Date().toISOString(),
         dirty:         0,
       }
-      // Write to Supabase (source of truth) + local cache
       await sbSaveBatch(batch, user.email, user.householdId)
       await db.batches.put(batch)
       onSave?.(batch)
     } catch (e) {
       setErrors([e.message])
-      return
     } finally {
       setSaving(false)
     }
@@ -185,12 +141,14 @@ export default function BatchBuilder({ onSave, onCancel }) {
   }
 
   const macroFields = [
-    { key:'calories', label:'kcal' },
-    { key:'protein',  label:'P(g)' },
-    { key:'carbs',    label:'C(g)' },
-    { key:'fat',      label:'F(g)' },
-    { key:'fibre',    label:'Fi(g)'},
+    { key:'calories', label:'kcal' }, { key:'protein', label:'P(g)' },
+    { key:'carbs', label:'C(g)' },   { key:'fat', label:'F(g)' },
+    { key:'fibre', label:'Fi(g)' },
   ]
+
+  const matchingBatches = ownBatches.filter(b =>
+    !query.trim() || b.name.toLowerCase().includes(query.toLowerCase())
+  )
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:'14px', padding:'0 0 8px' }}>
@@ -204,196 +162,53 @@ export default function BatchBuilder({ onSave, onCancel }) {
 
       {/* Name */}
       <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
-        <label style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Batch name</label>
+        <label style={lbl}>Batch name</label>
         <input style={inp} placeholder="e.g. Dal Tadka, Chicken Curry" value={name} onChange={e => setName(e.target.value)} />
       </div>
 
       {/* Shared toggle */}
-      <button
-        onClick={() => setShared(v => !v)}
-        style={{ display:'flex', alignItems:'center', gap:'12px', padding:'12px 14px', background: shared ? 'var(--accent-dim)' : 'var(--bg-elevated)', border: shared ? '1px solid var(--accent)' : '1px solid var(--border-default)', borderRadius:'var(--r-lg)', cursor:'pointer', width:'100%', textAlign:'left', fontSize:'20px' }}
-      >
-        <span>{shared ? '👥' : '🔒'}</span>
+      <button onClick={() => setShared(v => !v)} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'12px 14px', background: shared ? 'var(--accent-dim)' : 'var(--bg-elevated)', border: shared ? '1px solid var(--accent)' : '1px solid var(--border-default)', borderRadius:'var(--r-lg)', cursor:'pointer', width:'100%', textAlign:'left' }}>
+        <span style={{ fontSize:'20px' }}>{shared ? '👥' : '🔒'}</span>
         <div style={{ flex:1, display:'flex', flexDirection:'column', gap:'2px' }}>
           <span style={{ fontSize:'14px', fontWeight:'600', color:'var(--text-primary)' }}>{shared ? 'Shared with household' : 'Personal batch'}</span>
           <span style={{ fontSize:'12px', color:'var(--text-secondary)' }}>{shared ? 'All profiles can log from this' : 'Only visible to you'}</span>
         </div>
-        <div style={{ width:'10px', height:'10px', borderRadius:'50%', background: shared ? 'var(--accent)' : 'var(--border-strong)' }} />
+        <div style={{ width:'10px', height:'10px', borderRadius:'50%', background: shared ? 'var(--accent)' : 'var(--border-strong)', flexShrink:0 }} />
       </button>
 
-      {/* Ingredients section */}
-      <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <label style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' }}>
-            Ingredients {ingredients.length > 0 && <span style={{ color:'var(--accent)' }}>{ingredients.length} added</span>}
-          </label>
+      {/* ── INGREDIENTS CARD ─────────────────────────────────────── */}
+      <div style={{ background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', overflow:'hidden' }}>
+
+        {/* Card header */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'0.5px solid var(--border-subtle)' }}>
+          <span style={lbl}>Ingredients</span>
+          {ingredients.length > 0 && (
+            <span style={{ fontSize:'12px', color:'var(--text-tertiary)' }}>{ingredients.length} items · {Math.round(totalRawWeight)}g raw</span>
+          )}
         </div>
 
-        {/* Added list */}
-        {ingredients.length > 0 && (
-          <div style={{ background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', overflow:'hidden' }}>
-            {ingredients.map(ing => (
-              <div key={ing.id} style={{ display:'flex', alignItems:'center', gap:'8px', padding:'10px 14px', borderBottom:'0.5px solid var(--border-subtle)' }}>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:'14px', fontWeight:'500', color:'var(--text-primary)' }}>{ing.name}</div>
-                  <div style={{ fontSize:'11px', color:'var(--text-tertiary)' }}>
-                    {r1((ing.per100g?.calories||0)*ing.grams/100)} kcal · {r1((ing.per100g?.protein||0)*ing.grams/100)}g P
-                  </div>
-                </div>
-                <input
-                  type="number" inputMode="decimal" value={ing.grams}
-                  onChange={e => updateGrams(ing.id, e.target.value)}
-                  style={{ width:'64px', padding:'6px 8px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'14px', color:'var(--text-primary)', outline:'none', textAlign:'right' }}
-                />
-                <span style={{ fontSize:'13px', color:'var(--text-tertiary)' }}>g</span>
-                <button onClick={() => removeIngredient(ing.id)} style={{ background:'none', border:'none', color:'var(--text-tertiary)', fontSize:'14px', cursor:'pointer', padding:'4px' }}>✕</button>
+        {/* Added ingredient rows */}
+        {ingredients.map(ing => (
+          <div key={ing.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'10px 16px', borderBottom:'0.5px solid var(--border-subtle)' }}>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:'14px', fontWeight:'500', color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ing.name}</div>
+              <div style={{ fontSize:'11px', color:'var(--text-tertiary)', marginTop:'1px' }}>
+                {r1((ing.per100g?.calories||0)*ing.grams/100)} kcal · {r1((ing.per100g?.protein||0)*ing.grams/100)}g P
               </div>
-            ))}
-            <div style={{ fontSize:'12px', color:'var(--text-tertiary)', textAlign:'right', padding:'8px 14px' }}>
-              Raw total: {totalRawWeight}g
             </div>
-          </div>
-        )}
-
-        {/* Pending from search */}
-        {pending && !showManual && (
-          <div style={{ background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:'var(--r-lg)', padding:'12px 14px', display:'flex', flexDirection:'column', gap:'8px' }}>
-            <div style={{ fontSize:'15px', fontWeight:'600', color:'var(--text-primary)' }}>{pending.name}</div>
-            <div style={{ fontSize:'12px', color:'var(--text-secondary)' }}>{pending.per100g?.calories} kcal per 100g</div>
-            {/* Mode toggle — only for foods with servingSize */}
-            {pending.servingSize && (
-              <div style={{ display:'flex', gap:'4px' }}>
-                {['servings','grams'].map(m => (
-                  <button key={m} type="button" onClick={() => setPendingMode(m)}
-                    style={{ padding:'4px 12px', background: pendingMode === m ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${pendingMode === m ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-full)', fontSize:'12px', fontWeight:'600', color: pendingMode === m ? 'var(--text-inverse)' : 'var(--text-secondary)', cursor:'pointer', textTransform:'capitalize' }}
-                  >{m}</button>
-                ))}
-              </div>
-            )}
-            <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
-              <input
-                ref={pendingRef}
-                type="number" inputMode="decimal" placeholder={pendingMode === 'servings' ? '1' : 'amount'}
-                value={pendingG} onChange={e => { setPendingG(e.target.value); setPendingError('') }}
-                onKeyDown={e => e.key === 'Enter' && confirmIngredient()}
-                style={{ flex:1, minWidth:'80px', padding:'10px 12px', background:'var(--bg-surface)', border:`1px solid ${pendingError ? 'var(--red)' : 'var(--border-default)'}`, borderRadius:'var(--r-md)', fontSize:'18px', fontWeight:'300', color:'var(--text-primary)', outline:'none' }}
-              />
-              {pendingMode === 'servings' ? (
-                <span style={{ fontSize:'13px', color:'var(--text-secondary)', fontWeight:'500' }}>
-                  {pending.servingLabel ? pending.servingLabel.replace(/^[\d.]+\s+/, '') : 'serving'}
-                  {' · '}{Math.round((parseFloat(pendingG)||0) * (pending.servingSize||100))}g
-                </span>
-              ) : (
-                WEIGHT_UNITS.map(u => (
-                  <button key={u} type="button" onClick={() => setPendingUnit(u)}
-                    style={{ padding:'6px 8px', background: pendingUnit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${pendingUnit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: pendingUnit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
-                  >{u}</button>
-                ))
-              )}
-              <button onClick={confirmIngredient} style={{ padding:'10px 16px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'14px', fontWeight:'600', cursor:'pointer' }}>Add</button>
-              <button onClick={() => { setPending(null); setPendingError(''); setPendingUnit('g'); setPendingMode('servings') }} style={{ padding:'10px 10px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'14px', cursor:'pointer' }}>✕</button>
-            </div>
-            {pendingError && <div style={{ fontSize:'12px', color:'var(--red)' }}>{pendingError}</div>}
-          </div>
-        )}
-
-        {/* Manual entry form */}
-        {showManual && (
-          <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', padding:'14px', display:'flex', flexDirection:'column', gap:'10px' }}>
-            <div style={{ fontSize:'14px', fontWeight:'600', color:'var(--text-primary)' }}>Add ingredient manually</div>
-            <input style={inp} placeholder="Ingredient name" value={manual.name} onChange={e => setManual(m => ({ ...m, name: e.target.value }))} />
-            <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
-              <input
-                style={{ ...inp, flex:1, minWidth:'80px' }}
-                type="number" inputMode="decimal" placeholder="Raw weight"
-                value={manual.grams} onChange={e => { setManual(m => ({ ...m, grams: e.target.value })); setManualError('') }}
-              />
-              {WEIGHT_UNITS.map(u => (
-                <button key={u} type="button" onClick={() => setManualUnit(u)}
-                  style={{ padding:'6px 8px', background: manualUnit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${manualUnit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: manualUnit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
-                >{u}</button>
-              ))}
-            </div>
-            <div style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.07em' }}>
-              Macros for {manual.grams || '?'}{manualUnit}
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'6px' }}>
-              {macroFields.map(({ key, label }) => (
-                <div key={key} style={{ display:'flex', flexDirection:'column', gap:'3px' }}>
-                  <label style={{ fontSize:'10px', color:'var(--text-tertiary)', textAlign:'center' }}>{label}</label>
-                  <input
-                    type="number" inputMode="decimal" placeholder="0"
-                    value={manual[key]} onChange={e => setManual(m => ({ ...m, [key]: e.target.value }))}
-                    style={{ padding:'8px 6px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'14px', color:'var(--text-primary)', outline:'none', textAlign:'center', width:'100%', boxSizing:'border-box' }}
-                  />
-                </div>
-              ))}
-            </div>
-            {manualError && <div style={{ fontSize:'12px', color:'var(--red)' }}>{manualError}</div>}
-            <div style={{ display:'flex', gap:'8px' }}>
-              <button onClick={() => { setShowManual(false); setManualError('') }} style={{ flex:1, padding:'11px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'14px', cursor:'pointer' }}>Cancel</button>
-              <button onClick={confirmManual} style={{ flex:2, padding:'11px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'14px', fontWeight:'600', cursor:'pointer' }}>Add Ingredient</button>
-            </div>
-          </div>
-        )}
-
-        {/* Search + batches + manual */}
-        {!pending && !showManual && (
-          <>
             <input
-              ref={searchRef}
-              style={inp}
-              placeholder={seeded ? "Search ingredient…" : "Loading foods…"}
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              disabled={!seeded}
+              type="number" inputMode="decimal" value={ing.grams}
+              onChange={e => updateGrams(ing.id, e.target.value)}
+              style={{ width:'72px', padding:'8px 10px', background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', fontSize:'16px', fontWeight:'600', fontFamily:'var(--font-mono)', color:'var(--text-primary)', outline:'none', textAlign:'right', flexShrink:0 }}
             />
+            <span style={{ fontSize:'13px', color:'var(--text-tertiary)', flexShrink:0 }}>g</span>
+            <button onClick={() => removeIngredient(ing.id)} style={{ background:'none', border:'none', color:'var(--text-tertiary)', fontSize:'20px', cursor:'pointer', padding:'2px 4px', lineHeight:1, flexShrink:0 }}>×</button>
+          </div>
+        ))}
 
-            {/* USDA / NIN search results */}
-            {results.map(food => (
-              <button key={food.id} onClick={() => selectFood(food)}
-                style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', padding:'10px 12px', background:'transparent', border:'none', borderBottom:'0.5px solid var(--border-subtle)', cursor:'pointer', textAlign:'left' }}>
-                <span style={{ fontSize:'14px', color:'var(--text-primary)' }}>{food.name}</span>
-                <span style={{ fontSize:'12px', color:'var(--text-tertiary)' }}>{food.per100g?.calories} kcal/100g</span>
-              </button>
-            ))}
-
-            {/* Your saved batches as ingredients */}
-            {(() => {
-              const filtered = ownBatches.filter(b =>
-                !query.trim() || b.name.toLowerCase().includes(query.toLowerCase())
-              )
-              if (!filtered.length) return null
-              return (
-                <div style={{ display:'flex', flexDirection:'column', gap:'0', background:'var(--bg-elevated)', borderRadius:'var(--r-md)', border:'0.5px solid var(--border-subtle)', overflow:'hidden', marginTop: results.length ? '4px' : '0' }}>
-                  <div style={{ fontSize:'10px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', padding:'8px 12px 6px', borderBottom:'0.5px solid var(--border-subtle)' }}>
-                    My Batches
-                  </div>
-                  {filtered.map(b => (
-                    <button key={b.id}
-                      onClick={() => selectFood({ id: b.id, name: b.name, per100g: b.macrosPer100g })}
-                      style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', padding:'10px 12px', background:'transparent', border:'none', borderBottom:'0.5px solid var(--border-subtle)', cursor:'pointer', textAlign:'left' }}>
-                      <span style={{ fontSize:'14px', color:'var(--text-primary)', fontStyle:'italic', fontFamily:'var(--font-serif)' }}>{b.name}</span>
-                      <span style={{ fontSize:'12px', color:'var(--accent)', fontWeight:'600' }}>{b.macrosPer100g?.calories} kcal/100g</span>
-                    </button>
-                  ))}
-                </div>
-              )
-            })()}
-
-            <button onClick={() => setShowManual(true)}
-              style={{ padding:'10px 14px', background:'var(--bg-elevated)', border:'1px dashed var(--border-strong)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'13px', fontWeight:'500', cursor:'pointer', textAlign:'left' }}>
-              + Add ingredient manually (enter macros)
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Running total */}
-      {ingredients.length > 0 && (
-        <div style={{ background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', padding:'14px' }}>
-          <div style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'10px' }}>Total raw macros</div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)' }}>
+        {/* Running macro totals — visible while building */}
+        {ingredients.length > 0 && (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', padding:'10px 16px', borderBottom:'0.5px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
             {[
               { label:'kcal', val:r1(totalMacros.calories), color:'var(--text-primary)' },
               { label:'P',    val:r1(totalMacros.protein),  color:'var(--macro-protein)' },
@@ -401,18 +216,104 @@ export default function BatchBuilder({ onSave, onCancel }) {
               { label:'F',    val:r1(totalMacros.fat),      color:'var(--macro-fat)' },
               { label:'Fi',   val:r1(totalMacros.fibre),    color:'var(--macro-fibre)' },
             ].map(({ label, val, color }) => (
-              <div key={label} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'3px' }}>
-                <span style={{ fontSize:'16px', fontWeight:'700', fontFamily:'var(--font-mono)', letterSpacing:'-0.02em', color }}>{val}</span>
-                <span style={{ fontSize:'10px', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.04em' }}>{label}</span>
+              <div key={label} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
+                <span style={{ fontSize:'14px', fontWeight:'700', fontFamily:'var(--font-mono)', letterSpacing:'-0.02em', color }}>{val}</span>
+                <span style={{ fontSize:'9px', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.04em' }}>{label}</span>
               </div>
             ))}
           </div>
+        )}
+
+        {/* ── PICKER ───────────────────────────────────────────────── */}
+        <div style={{ padding:'12px 16px', display:'flex', flexDirection:'column', gap:'10px' }}>
+
+          {/* My Batches chips — shown first so no typing needed */}
+          {matchingBatches.length > 0 && !showManual && (
+            <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+              <span style={lbl}>My Batches</span>
+              <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
+                {matchingBatches.map(b => (
+                  <button key={b.id}
+                    onClick={() => addFood({ id: b.id, name: b.name, per100g: b.macrosPer100g })}
+                    style={{ padding:'7px 12px', background:'var(--accent-dim)', border:'1px solid var(--accent)', borderRadius:'var(--r-full)', fontSize:'13px', fontWeight:'600', color:'var(--accent)', cursor:'pointer', fontStyle:'italic', fontFamily:'var(--font-serif)', whiteSpace:'nowrap' }}>
+                    + {b.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Search box + results */}
+          {!showManual && (
+            <>
+              <input
+                ref={searchRef}
+                style={inp}
+                placeholder={seeded ? 'Search ingredient (dal, chicken, paneer…)' : 'Loading foods…'}
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                disabled={!seeded}
+              />
+              {results.length > 0 && (
+                <div style={{ background:'var(--bg-base)', borderRadius:'var(--r-md)', border:'0.5px solid var(--border-subtle)', overflow:'hidden' }}>
+                  {results.map(food => (
+                    <button key={food.id} onClick={() => addFood(food)}
+                      style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', padding:'11px 14px', background:'transparent', border:'none', borderBottom:'0.5px solid var(--border-subtle)', cursor:'pointer', textAlign:'left', gap:'8px' }}>
+                      <span style={{ fontSize:'14px', color:'var(--text-primary)', flex:1 }}>{food.name}</span>
+                      <span style={{ fontSize:'12px', color:'var(--text-tertiary)', flexShrink:0 }}>{food.per100g?.calories} kcal/100g</span>
+                      <span style={{ fontSize:'20px', color:'var(--accent)', fontWeight:'700', flexShrink:0, lineHeight:1 }}>+</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Manual entry — out of the way at the bottom */}
+          {showManual ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+              <span style={{ fontSize:'13px', fontWeight:'600', color:'var(--text-primary)' }}>Add manually</span>
+              <input style={inp} placeholder="Ingredient name" value={manual.name} onChange={e => setManual(m => ({ ...m, name: e.target.value }))} />
+              <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
+                <input style={{ ...inp, flex:1, minWidth:'80px' }} type="number" inputMode="decimal" placeholder="Weight"
+                  value={manual.grams} onChange={e => { setManual(m => ({ ...m, grams: e.target.value })); setManualError('') }} />
+                {WEIGHT_UNITS.map(u => (
+                  <button key={u} type="button" onClick={() => setManualUnit(u)}
+                    style={{ padding:'6px 8px', background: manualUnit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${manualUnit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: manualUnit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
+                  >{u}</button>
+                ))}
+              </div>
+              <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Macros for {manual.grams || '?'}{manualUnit}</span>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'6px' }}>
+                {macroFields.map(({ key, label }) => (
+                  <div key={key} style={{ display:'flex', flexDirection:'column', gap:'3px' }}>
+                    <label style={{ fontSize:'10px', color:'var(--text-tertiary)', textAlign:'center' }}>{label}</label>
+                    <input type="number" inputMode="decimal" placeholder="0" value={manual[key]}
+                      onChange={e => setManual(m => ({ ...m, [key]: e.target.value }))}
+                      style={{ padding:'8px 6px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'14px', color:'var(--text-primary)', outline:'none', textAlign:'center', width:'100%', boxSizing:'border-box' }} />
+                  </div>
+                ))}
+              </div>
+              {manualError && <div style={{ fontSize:'12px', color:'var(--red)' }}>{manualError}</div>}
+              <div style={{ display:'flex', gap:'8px' }}>
+                <button onClick={() => { setShowManual(false); setManualError('') }}
+                  style={{ flex:1, padding:'11px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'14px', cursor:'pointer' }}>Cancel</button>
+                <button onClick={confirmManual}
+                  style={{ flex:2, padding:'11px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'14px', fontWeight:'600', cursor:'pointer' }}>Add Ingredient</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowManual(true)}
+              style={{ padding:'10px 14px', background:'transparent', border:'1px dashed var(--border-strong)', borderRadius:'var(--r-md)', color:'var(--text-tertiary)', fontSize:'13px', cursor:'pointer', textAlign:'left' }}>
+              + Can't find it? Enter macros manually
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Yield */}
       <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
-        <label style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Cooked yield weight</label>
+        <label style={lbl}>Cooked yield weight</label>
         <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
           <input style={{ ...inp, flex:1, minWidth:'80px' }} type="number" inputMode="decimal" placeholder="e.g. 800" value={yieldGrams} onChange={e => setYieldGrams(e.target.value)} />
           {WEIGHT_UNITS.map(u => (
@@ -424,21 +325,16 @@ export default function BatchBuilder({ onSave, onCancel }) {
         <p style={{ fontSize:'12px', color:'var(--text-tertiary)', margin:0 }}>Weigh the finished dish after cooking</p>
       </div>
 
-      {/* Per 100g summary */}
+      {/* Batch summary */}
       {per100g && (
         <div style={{ background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', padding:'16px', display:'flex', flexDirection:'column', gap:'12px' }}>
           <span style={{ fontSize:'14px', fontWeight:'700', color:'var(--text-primary)' }}>Batch summary</span>
-
           <div style={{ display:'flex', justifyContent:'space-between' }}>
             <span style={{ fontSize:'13px', color:'var(--text-secondary)' }}>Total batch ({yieldG}g)</span>
-            <span style={{ fontSize:'13px', fontWeight:'600', color:'var(--text-primary)', fontFamily:'var(--font-mono)' }}>
-              {r1(totalMacros.calories)} kcal · {r1(totalMacros.protein)}g P
-            </span>
+            <span style={{ fontSize:'13px', fontWeight:'600', color:'var(--text-primary)', fontFamily:'var(--font-mono)' }}>{r1(totalMacros.calories)} kcal · {r1(totalMacros.protein)}g P</span>
           </div>
-
           <div style={{ height:'0.5px', background:'var(--border-subtle)' }} />
-
-          <div style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Per 100g</div>
+          <span style={lbl}>Per 100g</span>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)' }}>
             {[
               { label:'kcal', val:per100g.calories, color:'var(--text-primary)' },
@@ -453,10 +349,8 @@ export default function BatchBuilder({ onSave, onCancel }) {
               </div>
             ))}
           </div>
-
           <div style={{ height:'0.5px', background:'var(--border-subtle)' }} />
-
-          <div style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Example portions</div>
+          <span style={lbl}>Example portions</span>
           {[150,200,250,300].map(g => (
             <div key={g} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'6px 0', borderBottom:'0.5px solid var(--border-subtle)' }}>
               <span style={{ fontSize:'13px', fontWeight:'600', color:'var(--text-primary)', fontFamily:'var(--font-mono)', width:'40px', flexShrink:0 }}>{g}g</span>
@@ -472,10 +366,8 @@ export default function BatchBuilder({ onSave, onCancel }) {
         <div key={i} style={{ fontSize:'13px', color:'var(--red)', background:'rgba(200,80,64,0.08)', padding:'10px 12px', borderRadius:'var(--r-md)' }}>{e}</div>
       ))}
 
-      <button
-        onClick={handleSave} disabled={saving}
-        style={{ width:'100%', padding:'15px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'16px', fontWeight:'600', cursor:'pointer', opacity: saving ? 0.6 : 1 }}
-      >
+      <button onClick={handleSave} disabled={saving}
+        style={{ width:'100%', padding:'15px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'16px', fontWeight:'600', cursor:'pointer', opacity: saving ? 0.6 : 1 }}>
         {saving ? 'Saving…' : 'Save Batch'}
       </button>
 
@@ -483,3 +375,5 @@ export default function BatchBuilder({ onSave, onCancel }) {
     </div>
   )
 }
+
+const lbl = { fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' }
