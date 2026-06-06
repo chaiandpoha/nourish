@@ -12,7 +12,7 @@ export default function RecipeBuilder({ onSaved, onCancel, existingFood, househo
     existingFood?.servingLabel ? existingFood.servingLabel.replace(/^\d+g\s*/, '') : ''
   )
   const [ingredients,   setIngredients]   = useState(
-    () => (existingFood?.ingredients || []).map(i => ({ ...i, gramsInput: String(i.grams) }))
+    () => (existingFood?.ingredients || []).map(i => ({ ...i, gramsInput: String(i.grams), unit: 'g' }))
   )
   const [search,        setSearch]        = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -85,7 +85,7 @@ export default function RecipeBuilder({ onSaved, onCancel, existingFood, househo
   function addIngredient(food) {
     setIngredients(prev => [
       ...prev,
-      { name: food.name, grams: food.servingSize || 100, gramsInput: String(food.servingSize || 100), per100g: food.per100g },
+      { name: food.name, grams: food.servingSize || 100, gramsInput: String(food.servingSize || 100), unit: 'g', per100g: food.per100g },
     ])
     setSearch('')
     setSearchResults([])
@@ -100,7 +100,11 @@ export default function RecipeBuilder({ onSaved, onCancel, existingFood, househo
     setIngredients(prev => prev.map((x, j) => j === i ? { ...x, gramsInput: val } : x))
   }
 
-  // Derived totals
+  function updateUnit(i, unit) {
+    setIngredients(prev => prev.map((x, j) => j === i ? { ...x, unit } : x))
+  }
+
+  // Derived totals — ml treated as 1:1 with g (standard nutrition convention)
   const parsed = ingredients.map(i => ({ ...i, grams: parseFloat(i.gramsInput) || 0 }))
   const totalGrams = parsed.reduce((s, i) => s + i.grams, 0)
 
@@ -126,7 +130,7 @@ export default function RecipeBuilder({ onSaved, onCancel, existingFood, househo
       const label = servingLabel.trim()
         ? `${Math.round(totalGrams)}g ${servingLabel.trim()}`
         : `${Math.round(totalGrams)}g serving`
-      const clean = parsed.map(({ gramsInput, ...rest }) => rest)
+      const clean = parsed.map(({ gramsInput, unit, ...rest }) => rest)
       const food  = await saveFood({
         id:           existingFood?.id || generateId(),
         name:         name.trim(),
@@ -226,7 +230,8 @@ export default function RecipeBuilder({ onSaved, onCancel, existingFood, househo
                   value={ing.gramsInput}
                   onChange={e => updateGrams(i, e.target.value)}
                 />
-                <span style={r.ingUnit}>g</span>
+                <button style={{ ...r.unitBtn, ...((!ing.unit || ing.unit === 'g') ? r.unitBtnActive : {}) }} onClick={() => updateUnit(i, 'g')}>g</button>
+                <button style={{ ...r.unitBtn, ...(ing.unit === 'ml' ? r.unitBtnActive : {}) }} onClick={() => updateUnit(i, 'ml')}>ml</button>
               </div>
             </div>
           ))}
@@ -304,7 +309,8 @@ const r = {
   ingName:      { flex:1, fontSize:'14px', color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
   ingRight:     { display:'flex', alignItems:'center', gap:'4px', flexShrink:0 },
   ingInput:     { width:'60px', padding:'6px 8px', background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', fontSize:'15px', fontWeight:'600', color:'var(--text-primary)', outline:'none', textAlign:'right', fontFamily:'var(--font-mono)' },
-  ingUnit:      { fontSize:'13px', color:'var(--text-tertiary)', fontWeight:'500' },
+  unitBtn:      { padding:'4px 7px', background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'11px', fontWeight:'600', color:'var(--text-tertiary)', cursor:'pointer' },
+  unitBtnActive:{ background:'var(--text-primary)', borderColor:'var(--text-primary)', color:'var(--text-inverse)' },
   totalRow:     { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'var(--bg-surface)' },
   totalLabel:   { fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em' },
   totalVal:     { fontSize:'13px', fontWeight:'600', color:'var(--text-primary)', fontFamily:'var(--font-mono)' },
