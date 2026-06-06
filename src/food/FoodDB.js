@@ -10,6 +10,30 @@ import ninFoodsData  from '../data/nin_foods.json'
 // Data is bundled as static imports — no fetch needed, works offline from
 // the very first load with no service worker dependency.
 
+// Common staples missing from the initial USDA/NIN dataset
+const STAPLE_FOODS = [
+  { id:'staples_001', name:'Sugar, white',         per100g:{ calories:387, protein:0,   carbs:100,  fat:0,    fibre:0   }, servingSize:5,   servingLabel:'1 tsp'    },
+  { id:'staples_002', name:'Sugar, brown',          per100g:{ calories:380, protein:0,   carbs:98,   fat:0,    fibre:0   }, servingSize:5,   servingLabel:'1 tsp'    },
+  { id:'staples_003', name:'Honey',                 per100g:{ calories:304, protein:0.3, carbs:82,   fat:0,    fibre:0.2 }, servingSize:21,  servingLabel:'1 tbsp'   },
+  { id:'staples_004', name:'Coconut Sugar',         per100g:{ calories:375, protein:0,   carbs:94,   fat:0,    fibre:0   }, servingSize:5,   servingLabel:'1 tsp'    },
+  { id:'staples_005', name:'Maple Syrup',           per100g:{ calories:260, protein:0,   carbs:67,   fat:0,    fibre:0   }, servingSize:20,  servingLabel:'1 tbsp'   },
+  { id:'staples_006', name:'Condensed Milk, sweet', per100g:{ calories:321, protein:7.9, carbs:54,   fat:8.7,  fibre:0   }, servingSize:30,  servingLabel:'2 tbsp'   },
+  { id:'staples_007', name:'Coconut Milk',          per100g:{ calories:197, protein:2.3, carbs:2.8,  fat:21,   fibre:0.5 }, servingSize:30,  servingLabel:'2 tbsp'   },
+  { id:'staples_008', name:'Coconut Cream',         per100g:{ calories:330, protein:3.6, carbs:6.7,  fat:34,   fibre:0   }, servingSize:30,  servingLabel:'2 tbsp'   },
+  { id:'staples_009', name:'Olive Oil',             per100g:{ calories:884, protein:0,   carbs:0,    fat:100,  fibre:0   }, servingSize:14,  servingLabel:'1 tbsp'   },
+  { id:'staples_010', name:'Coconut Oil',           per100g:{ calories:892, protein:0,   carbs:0,    fat:99,   fibre:0   }, servingSize:14,  servingLabel:'1 tbsp'   },
+  { id:'staples_011', name:'Salt',                  per100g:{ calories:0,   protein:0,   carbs:0,    fat:0,    fibre:0   }, servingSize:6,   servingLabel:'1 tsp'    },
+  { id:'staples_012', name:'Baking Powder',         per100g:{ calories:53,  protein:0,   carbs:28,   fat:0,    fibre:0   }, servingSize:4,   servingLabel:'1 tsp'    },
+  { id:'staples_013', name:'Corn Starch',           per100g:{ calories:381, protein:0.3, carbs:91,   fat:0.1,  fibre:0.9 }, servingSize:8,   servingLabel:'1 tbsp'   },
+  { id:'staples_014', name:'Mishri / Rock Sugar',   per100g:{ calories:398, protein:0,   carbs:100,  fat:0,    fibre:0   }, servingSize:10,  servingLabel:'2 pieces' },
+  { id:'staples_015', name:'Dates, dried',          per100g:{ calories:282, protein:2.5, carbs:75,   fat:0.4,  fibre:8   }, servingSize:24,  servingLabel:'2 dates'  },
+  { id:'staples_016', name:'Vanilla Extract',       per100g:{ calories:288, protein:0.1, carbs:13,   fat:0.1,  fibre:0   }, servingSize:4,   servingLabel:'1 tsp'    },
+  { id:'staples_017', name:'Cocoa Powder, unsweetened',per100g:{ calories:228, protein:19.6,carbs:57, fat:13.7, fibre:37  }, servingSize:8,   servingLabel:'1 tbsp'   },
+  { id:'staples_018', name:'Milk Powder, full fat', per100g:{ calories:496, protein:26,  carbs:38,   fat:27,   fibre:0   }, servingSize:30,  servingLabel:'3 tbsp'   },
+  { id:'staples_019', name:'Chia Seeds',            per100g:{ calories:486, protein:17,  carbs:42,   fat:31,   fibre:34  }, servingSize:12,  servingLabel:'1 tbsp'   },
+  { id:'staples_020', name:'Flax Seeds',            per100g:{ calories:534, protein:18,  carbs:29,   fat:42,   fibre:27  }, servingSize:10,  servingLabel:'1 tbsp'   },
+]
+
 let _seeded = false
 
 export async function seedFoodDatabase() {
@@ -18,7 +42,16 @@ export async function seedFoodDatabase() {
   try {
     // If usda_001 already exists, data is seeded from a previous session
     const alreadySeeded = await db.foods.get('usda_001')
-    if (alreadySeeded) { _seeded = true; return true }
+    if (alreadySeeded) {
+      _seeded = true
+      // Phase 2: add staple foods missing from initial seed (runs once per device)
+      const hasStaples = await db.foods.get('staples_001')
+      if (!hasStaples) {
+        await db.foods.bulkPut(STAPLE_FOODS.map(f => ({ ...f, source: 'nin', tags: [] })))
+        console.log('FoodDB: added staple foods')
+      }
+      return true
+    }
 
     console.log('FoodDB: seeding from bundle…')
 
@@ -27,6 +60,7 @@ export async function seedFoodDatabase() {
     const all = [
       ...usdaFoodsData.map(f => ({ ...f, source: 'usda', tags: f.tags || [] })),
       ...ninFoodsData.map(f  => ({ ...f, source: 'nin',  tags: f.tags || [] })),
+      ...STAPLE_FOODS.map(f  => ({ ...f, source: 'nin',  tags: [] })),
     ]
 
     await db.foods.bulkPut(all)
