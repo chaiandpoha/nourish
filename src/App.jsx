@@ -454,7 +454,7 @@ function SettingsScreen() {
       )}
 
       {tab === 'health' && (
-        <HealthSyncSettings userId={user?.id} />
+        <HealthSyncSettings user={user} onSaved={refreshUser} />
       )}
 
       {tab === 'progress' && (
@@ -659,9 +659,12 @@ const ALL_DAYS = WEEK_DAYS.map(d => d.id)
 
 // ─── HealthSyncSettings ───────────────────────────────────────────────────────
 
-function HealthSyncSettings({ userId }) {
-  const [copied, setCopied] = useState(false)
-  const origin = window.location.origin
+function HealthSyncSettings({ user, onSaved }) {
+  const [copied,   setCopied]   = useState(false)
+  const [goalInput, setGoalInput] = useState(String(user?.stepGoal || 10000))
+  const [goalSaved, setGoalSaved] = useState(false)
+
+  const origin  = window.location.origin
   const syncUrl = `${origin}/#/health-sync?steps=[Steps Count]&cal=[Active Energy]&date=[Shortcut Date]`
 
   function copyUrl() {
@@ -671,9 +674,41 @@ function HealthSyncSettings({ userId }) {
     })
   }
 
+  async function saveGoal() {
+    const goal = parseInt(goalInput) || 10000
+    await db.users.update(user.id, { stepGoal: goal, dirty:1, updatedAt: new Date().toISOString() })
+    await onSaved()
+    setGoalSaved(true)
+    setTimeout(() => setGoalSaved(false), 2000)
+  }
+
   return (
     <div style={styles.settingsSection}>
       <div style={styles.settingsSectionHeader}>
+        <span style={styles.settingsSectionTitle}>Daily Step Goal</span>
+        <span style={styles.settingsSectionSub}>Set your target steps per day</span>
+      </div>
+
+      <div style={styles.settingsCard}>
+        <div style={{ display:'flex', gap:'10px', alignItems:'center' }}>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={goalInput}
+            onChange={e => { setGoalInput(e.target.value); setGoalSaved(false) }}
+            style={{ flex:1, padding:'12px 14px', background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', color:'var(--text-primary)', outline:'none' }}
+            placeholder="10000"
+          />
+          <button
+            onClick={saveGoal}
+            style={{ padding:'12px 20px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'#fff', fontSize:'15px', fontWeight:'600', cursor:'pointer', flexShrink:0 }}
+          >
+            {goalSaved ? '✓' : 'Save'}
+          </button>
+        </div>
+      </div>
+
+      <div style={{ ...styles.settingsSectionHeader, marginTop:'8px' }}>
         <span style={styles.settingsSectionTitle}>iPhone Health Sync</span>
         <span style={styles.settingsSectionSub}>Auto-sync steps and calories burned from Apple Health via iOS Shortcuts</span>
       </div>

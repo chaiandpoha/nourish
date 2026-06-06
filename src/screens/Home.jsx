@@ -159,6 +159,8 @@ export default function Home() {
 
   const suppCount = supplements.filter(s => suppDone[s]).length
   const goals     = user?.macroGoals || {}
+  const stepGoal  = user?.stepGoal || 10000
+  const stepPct   = stepsData?.steps ? Math.min(1, stepsData.steps / stepGoal) : 0
 
   if (showChat) return <MealChat onClose={() => setShowChat(false)} />
 
@@ -218,7 +220,15 @@ export default function Home() {
         <button style={{ ...styles.statCard, ...styles.statCardBtn }} onClick={openStepsEdit}>
           <div style={styles.statLabel}>Steps</div>
           {stepsData?.steps ? (
-            <div style={styles.statVal}>{stepsData.steps.toLocaleString()}</div>
+            <>
+              <div style={styles.statVal}>{stepsData.steps.toLocaleString()}</div>
+              <div style={styles.progressTrack}>
+                <div style={{ ...styles.progressFill, width: `${stepPct * 100}%`, background: stepPct >= 1 ? 'var(--accent)' : '#4ecdc4' }} />
+              </div>
+              <div style={styles.progressLabel}>
+                {stepPct >= 1 ? 'Goal reached!' : `${stepGoal.toLocaleString()} goal`}
+              </div>
+            </>
           ) : (
             <div style={styles.statEmpty}>Tap to add</div>
           )}
@@ -447,6 +457,23 @@ const styles = {
     fontSize:  '13px',
     color:     'var(--text-tertiary)',
     fontStyle: 'italic',
+  },
+  progressTrack: {
+    height:       '4px',
+    background:   'var(--border-subtle)',
+    borderRadius: '2px',
+    overflow:     'hidden',
+    marginTop:    '10px',
+  },
+  progressFill: {
+    height:       '100%',
+    borderRadius: '2px',
+    transition:   'width 0.4s ease',
+  },
+  progressLabel: {
+    fontSize:   '10px',
+    color:      'var(--text-tertiary)',
+    marginTop:  '4px',
   },
   sectionHeader: {
     display:        'flex',
