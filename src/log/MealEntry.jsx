@@ -100,7 +100,6 @@ export default function MealEntry({ date, onLogged, inline = false }) {
   // Load recents + batches when sheet opens; pick up active tab from DayLog
   useEffect(() => {
     if (!open || !user) return
-    // Use the meal tab the user last tapped in DayLog (or time-based fallback)
     setMeal(readMealPref() || 'breakfast')
     Promise.all([
       getActiveBatches(user.id),
@@ -109,6 +108,12 @@ export default function MealEntry({ date, onLogged, inline = false }) {
       setBatches(b)
       setRecents(r)
     })
+    // Pull latest household foods from Supabase each time the sheet opens
+    if (user.householdId) {
+      import('../food/FoodDB.js').then(({ fetchHouseholdFoods }) => {
+        fetchHouseholdFoods(user.householdId).catch(() => {})
+      })
+    }
   }, [open, user])
 
   // Search as user types

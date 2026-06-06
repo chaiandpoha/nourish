@@ -91,7 +91,9 @@ export async function sbSaveFood(food, householdId) {
       serving_size:  food.servingSize || null,
       serving_label: food.servingLabel || null,
       barcode:       food.barcode || null,
-      tags:          food.tags || [],
+      brand:         food.brand  || null,
+      tags:          food.tags   || [],
+      ingredients:   food.ingredients || [],
       household_id:  householdId,
       updated_at:    new Date().toISOString(),
     })
@@ -107,16 +109,19 @@ export async function sbFetchHouseholdFoods(householdId) {
     .from('household_foods')
     .select('*')
     .eq('household_id', householdId)
+    .order('updated_at', { ascending: false })
   if (error) throw error
   return (data || []).map(row => ({
     id:           row.id,
     name:         row.name,
     source:       row.source || 'saved',
-    per100g:      row.per_100g || null,
-    servingSize:  row.serving_size || null,
+    per100g:      row.per_100g      || null,
+    servingSize:  row.serving_size  || null,
     servingLabel: row.serving_label || null,
-    barcode:      row.barcode || null,
-    tags:         row.tags || [],
+    barcode:      row.barcode       || null,
+    brand:        row.brand         || null,
+    tags:         row.tags          || [],
+    ingredients:  row.ingredients   || [],
   }))
 }
 
