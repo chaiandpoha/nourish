@@ -257,19 +257,17 @@ export default function Home() {
         <>
           <SectionHeader
             title="Supplements"
-            right={`${suppCount} of ${supplements.length} today`}
+            right={`${suppCount} / ${supplements.length}`}
           />
-          <div style={styles.suppCard}>
-            {supplements.map((supp, i) => (
+          <div style={styles.suppGrid}>
+            {supplements.map(supp => (
               <button
                 key={supp}
-                style={{ ...styles.suppRow, ...(i === supplements.length - 1 ? styles.suppRowLast : {}) }}
+                style={{ ...styles.suppChip, ...(suppDone[supp] ? styles.suppChipDone : {}) }}
                 onClick={() => toggleSupplement(supp)}
               >
-                <span style={styles.suppName}>{supp}</span>
-                <div style={{ ...styles.suppCheck, ...(suppDone[supp] ? styles.suppCheckDone : styles.suppCheckTodo) }}>
-                  {suppDone[supp] ? '✓' : ''}
-                </div>
+                {suppDone[supp] && <span style={styles.suppTick}>✓</span>}
+                {supp}
               </button>
             ))}
           </div>
@@ -493,40 +491,35 @@ const styles = {
     color:      'var(--accent)',
     fontWeight: '500',
   },
-  suppCard: {
-    background:   'var(--bg-surface)',
-    border:       '0.5px solid var(--border-subtle)',
-    borderRadius: 'var(--r-xl)',
-    overflow:     'hidden',
+  suppGrid: {
+    display:   'flex',
+    flexWrap:  'wrap',
+    gap:       '8px',
   },
-  suppRow: {
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'space-between',
-    width:          '100%',
-    padding:        '13px 16px',
-    background:     'transparent',
-    border:         'none',
-    borderBottom:   '0.5px solid var(--border-subtle)',
-    cursor:         'pointer',
-    textAlign:      'left',
+  suppChip: {
+    padding:    '8px 14px',
+    background: 'var(--bg-surface)',
+    border:     '1px solid var(--border-default)',
+    borderRadius: 'var(--r-full)',
+    fontSize:   '13px',
+    fontWeight: '500',
+    color:      'var(--text-secondary)',
+    cursor:     'pointer',
+    display:    'flex',
+    alignItems: 'center',
+    gap:        '5px',
+    WebkitTapHighlightColor: 'transparent',
   },
-  suppRowLast: { borderBottom: 'none' },
-  suppName:    { fontSize:'14px', color:'var(--text-primary)', fontWeight:'400' },
-  suppCheck: {
-    width:        '24px',
-    height:       '24px',
-    borderRadius: '50%',
-    display:      'flex',
-    alignItems:   'center',
-    justifyContent:'center',
-    fontSize:     '13px',
-    fontWeight:   '700',
-    flexShrink:   0,
-    transition:   'all 0.15s',
+  suppChipDone: {
+    background:  'var(--accent-dim)',
+    borderColor: 'var(--accent)',
+    color:       'var(--accent)',
+    fontWeight:  '600',
   },
-  suppCheckDone: { background:'var(--accent-dim)', color:'var(--accent)' },
-  suppCheckTodo: { border:'1.5px solid var(--border-default)', background:'transparent', color:'transparent' },
+  suppTick: {
+    fontSize:   '11px',
+    fontWeight: '700',
+  },
   chatBtn: {
     display:      'flex',
     alignItems:   'center',
