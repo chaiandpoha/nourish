@@ -77,6 +77,18 @@ export async function sbDeleteBatch(id) {
   if (error) throw error
 }
 
+export async function sbPushAllBatches(batches, email, householdId) {
+  if (!supabase || !householdId) return 0
+  let pushed = 0
+  for (const batch of batches) {
+    const row = toRow({ ...batch, shared: 1, householdId }, email, householdId)
+    const { error } = await supabase.from('batches').upsert(row)
+    if (!error) pushed++
+    else console.error('sbPushAllBatches failed:', batch.name, error.message)
+  }
+  return pushed
+}
+
 // ─── Household food helpers ───────────────────────────────────────────────────
 
 export async function sbSaveFood(food, householdId) {

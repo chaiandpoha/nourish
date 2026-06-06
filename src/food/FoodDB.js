@@ -267,6 +267,21 @@ export async function pushLocalFoodsToHousehold(householdId) {
   }
 }
 
+// Push all local batches up to Supabase for household sharing
+// Called at login to catch batches created before household was set up
+export async function pushLocalBatchesToHousehold(householdId, email) {
+  if (!householdId) return
+  try {
+    const batches = await db.batches.toArray()
+    if (!batches.length) return
+    const { sbPushAllBatches } = await import('../db/supabase.js')
+    await sbPushAllBatches(batches, email, householdId)
+    await db.batches.toCollection().modify({ shared: 1, householdId })
+  } catch (e) {
+    console.warn('pushLocalBatchesToHousehold error:', e)
+  }
+}
+
 // ─── Active batches ───────────────────────────────────────────────────────────
 
 /**
