@@ -220,7 +220,8 @@ export async function saveFood(food, householdId) {
   // Sync to Supabase for household sharing
   if (householdId) {
     const { sbSaveFood } = await import('../db/supabase.js')
-    await sbSaveFood(entry, householdId).catch(e => console.warn('Supabase food sync error:', e))
+    const err = await sbSaveFood(entry, householdId).catch(e => e)
+    if (err instanceof Error) console.error('Supabase food sync error:', err.message, entry.name)
   }
 
   return entry
@@ -252,7 +253,7 @@ export async function pushLocalFoodsToHousehold(householdId) {
     let pushed = 0
     for (const food of personal) {
       const result = await sbSaveFood(food, householdId).catch(e => {
-        console.warn('pushLocalFoods: failed for', food.name, e.message)
+        console.error('pushLocalFoods failed:', food.name, e.message)
         return null
       })
       if (result) pushed++

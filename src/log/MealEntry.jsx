@@ -108,10 +108,11 @@ export default function MealEntry({ date, onLogged, inline = false }) {
       setBatches(b)
       setRecents(r)
     })
-    // Pull latest household foods from Supabase each time the sheet opens
+    // Sync household foods with Supabase each time the sheet opens
     if (user.householdId) {
-      import('../food/FoodDB.js').then(({ fetchHouseholdFoods }) => {
-        fetchHouseholdFoods(user.householdId).catch(() => {})
+      import('../food/FoodDB.js').then(({ fetchHouseholdFoods, pushLocalFoodsToHousehold }) => {
+        fetchHouseholdFoods(user.householdId).catch(e => console.error('fetch household foods:', e))
+        pushLocalFoodsToHousehold(user.householdId).catch(e => console.error('push household foods:', e))
       })
     }
   }, [open, user])
