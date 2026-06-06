@@ -70,6 +70,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
   const [results,    setResults]    = useState([])
   const [recents,    setRecents]    = useState([])
   const [batches,    setBatches]    = useState([])
+  const [recipes,    setRecipes]    = useState([])
   const [meal,       setMeal]       = useState(readMealPref() || 'breakfast')
   const [seeded,     setSeeded]     = useState(false)
   const [seedFailed, setSeedFailed] = useState(false)
@@ -107,9 +108,11 @@ export default function MealEntry({ date, onLogged, inline = false }) {
     Promise.all([
       getActiveBatches(user.id),
       getRecentFoods(user.id),
-    ]).then(([b, r]) => {
+      import('../db/indexedDB.js').then(({ db }) => db.foods.where('source').equals('recipe').toArray()),
+    ]).then(([b, r, rec]) => {
       setBatches(b)
       setRecents(r)
+      setRecipes(rec.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')))
     })
     // Sync household foods with Supabase each time the sheet opens
     if (user.householdId) {
@@ -425,6 +428,25 @@ export default function MealEntry({ date, onLogged, inline = false }) {
                         <div style={s.foodMeta}>
                           {batch.macrosPer100g?.calories || 0} kcal · {batch.macrosPer100g?.protein || 0}g P per 100g
                           {batch.shared ? <span style={s.tag}> · Shared</span> : ""}
+                        </div>
+                      </div>
+                      <span style={s.chevron}>›</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* My Recipes */}
+              {!query.trim() && recipes.length > 0 && (
+                <div style={s.section}>
+                  <div style={s.sectionLabel}>My Recipes</div>
+                  {recipes.map(food => (
+                    <button key={food.id} style={s.foodRow} onClick={() => selectItem(food, null)}>
+                      <div style={s.foodInfo}>
+                        <div style={{ ...s.foodName, fontWeight: '600' }}>{food.name}</div>
+                        <div style={s.foodMeta}>
+                          {food.servingSize ? `${Math.round((food.per100g?.calories||0)*food.servingSize/100)} kcal · ${Math.round((food.per100g?.protein||0)*food.servingSize/100*10)/10}g P per ${food.servingLabel || `${food.servingSize}g`}` : `${food.per100g?.calories||0} kcal · ${food.per100g?.protein||0}g P per 100g`}
+                          <span style={s.tagPersonal}> · Recipe</span>
                         </div>
                       </div>
                       <span style={s.chevron}>›</span>
