@@ -152,20 +152,34 @@ export async function getFoodByBarcode(barcode) {
 
 // ─── Save scanned / custom food ───────────────────────────────────────────────
 
-export async function saveFood(food) {
+export async function saveFood(food, householdId) {
   const entry = {
-    tags:   [],        // default before spread — prevents Safari *tags index bug
+    tags:   [],
     ...food,
     id:     food.id || `saved_${Date.now()}`,
     source: food.source || 'saved',
   }
   await db.foods.put(entry)
 
-  // Sync shared foods to Drive
-  const { saveSharedFoods } = await import('../db/db.js')
-  await saveSharedFoods().catch(e => console.warn('Drive sync error:', e))
+  // Sync to Supabase for household sharing
+  if (householdId) {
+    const { sbSaveFood } = await import('../db/supabase.js')
+    await sbSaveFood(entry, householdId).catch(e => console.warn('Supabase food sync error:', e))
+  }
 
   return entry
+}
+
+// Pull household foods from Supabase and merge into local DB
+export async function fetchHouseholdFoods(householdId) {
+  if (!householdId) return
+  try {
+    const { sbFetchHouseholdFoods } = await import('../db/supabase.js')
+    const foods = await sbFetchHouseholdFoods(householdId)
+    if (foods.length) await db.foods.bulkPut(foods)
+  } catch (e) {
+    console.warn('fetchHouseholdFoods error:', e)
+  }
 }
 
 // ─── Active batches ───────────────────────────────────────────────────────────

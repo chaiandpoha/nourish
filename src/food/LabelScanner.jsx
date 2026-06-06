@@ -12,7 +12,7 @@ import { AI } from '../config.js'
 
 // mode='save' (default) — saves to shared food DB
 // mode='ingredient'     — skips DB, returns food directly via onSaved
-export default function LabelScanner({ onSaved, onCancel, userId, mode = 'save' }) {
+export default function LabelScanner({ onSaved, onCancel, userId, householdId, mode = 'save' }) {
   const [screen,    setScreen]    = useState('pick')   // pick | review | saving
   const [extracted, setExtracted] = useState(null)
   const [edited,    setEdited]    = useState(null)
@@ -166,7 +166,7 @@ All numeric values per 100g. If a value is not listed, use 0. Return only the JS
     }
 
     try {
-      if (mode !== 'ingredient') await saveFood(food)
+      if (mode !== 'ingredient') await saveFood(food, householdId)
       onSaved?.(food)
     } catch (e) {
       setError(e.message)

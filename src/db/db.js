@@ -25,7 +25,7 @@ let _folderIds    = {}   // cached folder IDs per user
  * Called after successful login.
  * Builds Drive folder structure, loads shared data, starts sync interval.
  */
-export async function initStorage(userId, encryptionKey, userEmail) {
+export async function initStorage(userId, encryptionKey, userEmail, householdId) {
   console.log('initStorage called for:', userEmail || userId)
 
   try {
@@ -48,12 +48,10 @@ export async function initStorage(userId, encryptionKey, userEmail) {
     console.warn('Could not check Drive quota:', e)
   }
 
-  // Load shared foods + batches from Drive into IndexedDB
-  try {
-    await syncSharedDataDown()
-    console.log('Shared data synced from Drive')
-  } catch (e) {
-    console.warn('Could not sync shared data:', e)
+  // Pull household foods from Supabase
+  if (householdId) {
+    const { fetchHouseholdFoods } = await import('../food/FoodDB.js')
+    await fetchHouseholdFoods(householdId).catch(e => console.warn('Household foods sync error:', e))
   }
 
   // Check if this is a new device — restore from Drive if so

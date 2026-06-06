@@ -168,8 +168,13 @@ export default function MealEntry({ date, onLogged, inline = false }) {
     }
 
     recog.onerror = (e) => {
-      if (e.error === 'not-allowed') setVoiceHint('Microphone access denied')
-      else if (e.error !== 'aborted' && e.error !== 'no-speech') setVoiceHint('')
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        setVoiceHint('Microphone access denied — check Settings › Safari › Microphone')
+      } else if (e.error === 'no-speech') {
+        setVoiceHint('No speech detected — tap 🎤 to try again')
+      } else if (e.error !== 'aborted') {
+        setVoiceHint('Voice error — tap 🎤 to try again')
+      }
       setListening(false)
     }
 
@@ -370,6 +375,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
           {screen === "scan" && (
             <LabelScanner
               userId={user?.id}
+              householdId={user?.householdId}
               onSaved={food => selectItem(food, null)}
               onCancel={() => setScreen("list")}
             />
@@ -378,6 +384,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
           {/* Barcode screen */}
           {screen === "barcode" && (
             <BarcodeScanner
+              householdId={user?.householdId}
               onFound={food => selectItem(food, null)}
               onCancel={() => setScreen("list")}
             />
@@ -482,7 +489,7 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
       const label = servingLabel.trim()
         ? `${manGrams}g ${servingLabel.trim()}`
         : `${manGrams}g serving`
-      const saved = await saveFood({ name: name.trim(), per100g, servingSize: manGrams, servingLabel: label, source: 'saved', tags: [] })
+      const saved = await saveFood({ name: name.trim(), per100g, servingSize: manGrams, servingLabel: label, source: 'saved', tags: [] }, user?.householdId)
       foodId = saved.id
     }
 

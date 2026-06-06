@@ -77,6 +77,49 @@ export async function sbDeleteBatch(id) {
   if (error) throw error
 }
 
+// ─── Household food helpers ───────────────────────────────────────────────────
+
+export async function sbSaveFood(food, householdId) {
+  if (!supabase || !householdId) return null
+  const { data, error } = await supabase
+    .from('household_foods')
+    .upsert({
+      id:            food.id,
+      name:          food.name,
+      source:        food.source || 'saved',
+      per_100g:      food.per100g || null,
+      serving_size:  food.servingSize || null,
+      serving_label: food.servingLabel || null,
+      barcode:       food.barcode || null,
+      tags:          food.tags || [],
+      household_id:  householdId,
+      updated_at:    new Date().toISOString(),
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function sbFetchHouseholdFoods(householdId) {
+  if (!supabase || !householdId) return []
+  const { data, error } = await supabase
+    .from('household_foods')
+    .select('*')
+    .eq('household_id', householdId)
+  if (error) throw error
+  return (data || []).map(row => ({
+    id:           row.id,
+    name:         row.name,
+    source:       row.source || 'saved',
+    per100g:      row.per_100g || null,
+    servingSize:  row.serving_size || null,
+    servingLabel: row.serving_label || null,
+    barcode:      row.barcode || null,
+    tags:         row.tags || [],
+  }))
+}
+
 // ─── Household helpers ────────────────────────────────────────────────────────
 
 function fromHouseholdRow(row) {

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { getFoodByBarcode, saveFood } from './FoodDB.js'
 import { generateId } from '../auth/crypto.js'
 
-export default function BarcodeScanner({ onFound, onCancel }) {
+export default function BarcodeScanner({ onFound, onCancel, householdId }) {
   const [screen,  setScreen]  = useState(() => 'BarcodeDetector' in window ? 'scanning' : 'unsupported')
   const [error,   setError]   = useState('')
   const [barcode, setBarcode] = useState('')
@@ -75,7 +75,7 @@ export default function BarcodeScanner({ onFound, onCancel }) {
       const data = await res.json()
       if (data.status === 1 && data.product) {
         const food = mapProduct(data.product, code)
-        await saveFood(food)
+        await saveFood(food, householdId)
         onFound(food)
         return
       }
