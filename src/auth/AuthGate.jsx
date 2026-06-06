@@ -13,6 +13,11 @@ export default function AuthGate({ children }) {
 
   useEffect(() => {
     if (isLoading || user) return
+    // Don't auto-login if the user explicitly logged out this session
+    if (sessionStorage.getItem('nourish_logged_out') === 'true') {
+      sessionStorage.removeItem('nourish_logged_out')
+      return
+    }
     const email = getUserEmail()
     // Auto-login whenever we know the user's email — profile is in IndexedDB
     // so Drive token is not required (Drive sync is optional)

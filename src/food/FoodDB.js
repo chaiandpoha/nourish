@@ -63,18 +63,14 @@ export async function seedFoodDatabase() {
       const hasStaplesV1 = await db.foods.get('staples_001')
       if (!hasStaplesV1) {
         await db.foods.bulkPut(STAPLE_FOODS.map(f => ({ ...f, source: 'nin', tags: [] })))
-        console.log('FoodDB: added staple foods v1')
       }
       const hasStaplesV2 = await db.foods.get('staples_021')
       if (!hasStaplesV2) {
         const v2 = STAPLE_FOODS.filter(f => parseInt(f.id.split('_')[1]) >= 21)
         await db.foods.bulkPut(v2.map(f => ({ ...f, source: 'nin', tags: [] })))
-        console.log('FoodDB: added staple foods v2')
       }
       return true
     }
-
-    console.log('FoodDB: seeding from bundle…')
 
     // tags:[] required — omitting a multi-entry indexed field causes bulkPut
     // to fail silently on Safari iOS (IndexedDB multi-entry index constraint)
@@ -86,7 +82,6 @@ export async function seedFoodDatabase() {
 
     await db.foods.bulkPut(all)
     _seeded = true
-    console.log(`FoodDB: seeded ${all.length} foods`)
     return true
   } catch (e) {
     console.warn('FoodDB seed error:', e)
@@ -234,7 +229,6 @@ export async function fetchHouseholdFoods(householdId) {
     const { sbFetchHouseholdFoods } = await import('../db/supabase.js')
     const foods = await sbFetchHouseholdFoods(householdId)
     if (foods.length) await db.foods.bulkPut(foods)
-    console.log(`fetchHouseholdFoods: pulled ${foods.length} foods`)
   } catch (e) {
     console.warn('fetchHouseholdFoods error:', e)
   }
@@ -258,7 +252,6 @@ export async function pushLocalFoodsToHousehold(householdId) {
       })
       if (result) pushed++
     }
-    console.log(`pushLocalFoodsToHousehold: pushed ${pushed}/${personal.length} foods`)
   } catch (e) {
     console.warn('pushLocalFoodsToHousehold error:', e)
   }

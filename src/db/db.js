@@ -26,12 +26,9 @@ let _folderIds    = {}   // cached folder IDs per user
  * Builds Drive folder structure, loads shared data, starts sync interval.
  */
 export async function initStorage(userId, encryptionKey, userEmail, householdId) {
-  console.log('initStorage called for:', userEmail || userId)
-
   try {
     // Build / verify folder structure in admin's Drive (keyed by email)
     _folderIds = await ensureFolderStructure(userEmail || userId)
-    console.log('Drive folders ready:', Object.keys(_folderIds))
   } catch (e) {
     console.error('Failed to create Drive folders:', e)
     return { quotaWarning: false, error: e.message }
@@ -59,7 +56,6 @@ export async function initStorage(userId, encryptionKey, userEmail, householdId)
   try {
     const localCount = await db.foodLogs.where('userId').equals(userId).count()
     if (localCount === 0) {
-      console.log('No local data — restoring from Drive')
       await restoreFromDrive(userId, encryptionKey, _folderIds)
     }
   } catch (e) {
@@ -69,7 +65,6 @@ export async function initStorage(userId, encryptionKey, userEmail, householdId)
   // Immediately flush any dirty records (including new profile)
   try {
     await flushDirtyRecords(userId, encryptionKey)
-    console.log('Initial flush complete')
   } catch (e) {
     console.warn('Initial flush failed:', e)
   }
@@ -96,7 +91,6 @@ export async function runDailyBackup(userId, encryptionKey) {
   if (!isTokenValid()) return
   if (!await shouldBackup()) return
 
-  console.log('Running daily Drive backup...')
   try {
     await flushDirtyRecords(userId, encryptionKey)
     // Mark all records as dirty to force full backup
@@ -108,7 +102,6 @@ export async function runDailyBackup(userId, encryptionKey) {
     }
     await flushDirtyRecords(userId, encryptionKey)
     markBackupDone()
-    console.log('Daily backup complete')
   } catch (e) {
     console.error('Daily backup failed:', e)
   }
@@ -117,7 +110,6 @@ export async function runDailyBackup(userId, encryptionKey) {
 /** Restore all user data from Drive to IndexedDB */
 export async function restoreFromDrive(userId, encryptionKey, folderIds) {
   if (!isTokenValid()) return false
-  console.log('Restoring from Drive...')
 
   try {
     const fIds = folderIds || await ensureFolderStructure(userId)
@@ -129,7 +121,6 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds) {
       if (data) {
         const profile = typeof data === 'string' ? JSON.parse(data) : data
         await db.users.put({ ...profile, dirty: 0 })
-        console.log('Profile restored')
       }
     }
 
@@ -140,7 +131,6 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds) {
         const data = await readFile(batchesFile.id)
         if (Array.isArray(data)) {
           await db.batches.bulkPut(data)
-          console.log('Batches restored:', data.length)
         }
       }
     }
@@ -185,7 +175,6 @@ async function _restoreMonthlyTable(tableName, folderId, userId) {
       const month   = file.name.slice(tableName.length + 1, -5)
       const syncKey = `${userId}:${tableName}:${month}`
       await db.syncState.put({ key: syncKey, userId, fileId: file.id, lastSyncAt: new Date().toISOString() })
-      console.log(`Restored ${data.length} ${tableName} (${month})`)
     }
   } catch (e) {
     console.warn(`Restore ${tableName} error:`, e)
@@ -202,7 +191,6 @@ async function _restoreSingleTable(tableName, folderId, userId) {
     await db[tableName].bulkPut(data.map(r => ({ ...r, dirty: 0 })))
     const syncKey = `${userId}:${tableName}`
     await db.syncState.put({ key: syncKey, userId, fileId: file.id, lastSyncAt: new Date().toISOString() })
-    console.log(`Restored ${data.length} ${tableName}`)
   } catch (e) {
     console.warn(`Restore ${tableName} error:`, e)
   }

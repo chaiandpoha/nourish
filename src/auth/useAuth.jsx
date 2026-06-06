@@ -140,10 +140,7 @@ export function AuthProvider({ children }) {
       // Try to restore token if not already valid
       if (!isTokenValid()) restoreToken()
       if (isTokenValid()) {
-        console.log('Drive token valid — initializing storage')
         await initStorage(profile.id, key, profile.email, profile.householdId)
-      } else {
-        console.warn('No Drive token — offline mode')
       }
     } catch (e) {
       console.warn('Storage init error:', e.message)
