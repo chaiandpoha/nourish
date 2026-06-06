@@ -84,6 +84,9 @@ export default function RingChart({ current, goal, size = 120 }) {
 // This is the main dashboard widget
 
 import { MACRO_COLORS } from '../config.js'
+import { getExpectedDayPct } from '../food/macroCalc.js'
+
+const PACE_AMBER = '#f59e0b'
 
 export function RingWithMacros({ totals, goals }) {
   const macros = [
@@ -97,6 +100,7 @@ export function RingWithMacros({ totals, goals }) {
   const calCurrent  = Math.round(totals?.calories || 0)
   const remaining   = Math.max(0, calGoal - calCurrent)
   const over        = calCurrent > calGoal
+  const expectedPct = getExpectedDayPct()
 
   return (
     <div style={styles.heroCard}>
@@ -126,10 +130,12 @@ export function RingWithMacros({ totals, goals }) {
       {/* Right — macro bars */}
       <div style={styles.macroCol}>
         {macros.map(({ key, label }) => {
-          const current = Math.round(totals?.[key] || 0)
-          const goal    = goals?.[key] || 0
-          const pct     = goal > 0 ? Math.min(100, (current / goal) * 100) : 0
-          const over    = current > goal
+          const current     = Math.round(totals?.[key] || 0)
+          const goal        = goals?.[key] || 0
+          const pct         = goal > 0 ? Math.min(100, (current / goal) * 100) : 0
+          const over        = current > goal
+          const aheadOfPace = !over && pct > expectedPct + 15
+          const fillColor   = over ? 'var(--red)' : aheadOfPace ? PACE_AMBER : MACRO_COLORS[key]
 
           return (
             <div key={key} style={styles.macroRow}>
@@ -138,12 +144,22 @@ export function RingWithMacros({ totals, goals }) {
                 <div style={{
                   ...styles.macroFill,
                   width:      `${pct}%`,
-                  background: over ? 'var(--red)' : MACRO_COLORS[key],
+                  background: fillColor,
+                }} />
+                <div style={{
+                  position:   'absolute',
+                  left:       `${expectedPct}%`,
+                  top:        '-1px',
+                  height:     'calc(100% + 2px)',
+                  width:      '2px',
+                  background: 'rgba(0,0,0,0.18)',
+                  borderRadius: '1px',
+                  transform:  'translateX(-50%)',
                 }} />
               </div>
               <span style={{
                 ...styles.macroVal,
-                color: over ? 'var(--red)' : MACRO_COLORS[key],
+                color: fillColor,
               }}>
                 {current}<span style={styles.macroGoal}>/{goal}</span>
               </span>
@@ -222,7 +238,7 @@ const styles = {
     height:        '4px',
     background:    'var(--bg-elevated)',
     borderRadius:  '99px',
-    overflow:      'hidden',
+    position:      'relative',
   },
   macroFill: {
     height:        '100%',

@@ -178,6 +178,15 @@ export function toGrams(amount, unit) {
   return n
 }
 
+// ─── Pace ─────────────────────────────────────────────────────────────────────
+
+/** Expected % of daily intake consumed by the current time of day.
+ *  Linear ramp: 0% at 6 am → 100% at 10 pm. */
+export function getExpectedDayPct() {
+  const h = new Date().getHours() + new Date().getMinutes() / 60
+  return Math.min(100, Math.max(0, ((h - 6) / 16) * 100))
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function emptyMacros() {
