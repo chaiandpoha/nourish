@@ -91,11 +91,12 @@ export async function searchFoods(query, limit = 20) {
 
 function sourcePriority(source) {
   switch (source) {
-    case 'saved':   return 0
-    case 'scanned': return 1
-    case 'nin':     return 2
-    case 'usda':    return 3
-    default:        return 4
+    case 'recipe':  return 0
+    case 'saved':   return 1
+    case 'scanned': return 2
+    case 'nin':     return 3
+    case 'usda':    return 4
+    default:        return 5
   }
 }
 

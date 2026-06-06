@@ -5,6 +5,7 @@ import { addFoodLogEntry } from "../db/db.js"
 import { calcMacros, calcBatchMacros, toGrams, WEIGHT_UNITS } from "../food/macroCalc.js"
 import LabelScanner from "../food/LabelScanner.jsx"
 import BarcodeScanner from "../food/BarcodeScanner.jsx"
+import RecipeBuilder from "../food/RecipeBuilder.jsx"
 import { MACRO_COLORS } from "../config.js"
 import { localDate, readMealPref } from "./DayLog.jsx"
 
@@ -63,7 +64,7 @@ function parseVoiceInput(text) {
 
 export default function MealEntry({ date, onLogged, inline = false }) {
   const [open,       setOpen]       = useState(false)
-  const [screen,     setScreen]     = useState("list") // list | entry | scan | barcode
+  const [screen,     setScreen]     = useState("list") // list | entry | scan | barcode | recipe
   const [selected,   setSelected]   = useState(null)
   const [query,      setQuery]      = useState("")
   const [results,    setResults]    = useState([])
@@ -283,8 +284,8 @@ export default function MealEntry({ date, onLogged, inline = false }) {
                 <div style={s.voiceHint}>{voiceHint}</div>
               ) : null}
 
-              {/* Scan + Manual buttons */}
-              <div style={s.actionRow}>
+              {/* Scan + Manual + Recipe buttons */}
+              <div style={s.actionGrid}>
                 <button style={s.actionBtn} onClick={() => setScreen("barcode")}>
                   📲 Barcode
                 </button>
@@ -293,6 +294,9 @@ export default function MealEntry({ date, onLogged, inline = false }) {
                 </button>
                 <button style={s.actionBtn} onClick={() => selectItem({ id:"manual", name:"", per100g:{ calories:0, protein:0, carbs:0, fat:0, fibre:0 }, servingSize:100 }, null)}>
                   ✏️ Manual
+                </button>
+                <button style={s.actionBtn} onClick={() => setScreen("recipe")}>
+                  🍲 Recipe
                 </button>
               </div>
 
@@ -332,9 +336,10 @@ export default function MealEntry({ date, onLogged, inline = false }) {
                 )}
 
                 {displayList.map(food => {
-                  const isPersonal = food.source === 'saved' || food.source === 'scanned'
+                  const isPersonal = food.source === 'saved' || food.source === 'scanned' || food.source === 'recipe'
                   const sourceTag  = food.source === 'scanned' ? 'Your label'
                                    : food.source === 'saved'   ? 'Yours'
+                                   : food.source === 'recipe'  ? '🍲 Recipe'
                                    : food.source === 'nin'     ? 'Indian'
                                    : 'USDA'
                   return (
@@ -366,6 +371,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
               meal={meal}
               onAdd={handleAdd}
               onBack={() => setScreen("list")}
+              onEditRecipe={() => setScreen("recipe")}
               initialAmount={voiceQty ? String(voiceQty) : undefined}
               initialUnit={voiceQty ? voiceUnit : undefined}
             />
@@ -389,6 +395,16 @@ export default function MealEntry({ date, onLogged, inline = false }) {
               onCancel={() => setScreen("list")}
             />
           )}
+
+          {/* Recipe builder screen */}
+          {screen === "recipe" && (
+            <RecipeBuilder
+              existingFood={selected?.food?.source === 'recipe' ? selected.food : null}
+              householdId={user?.householdId}
+              onSaved={food => selectItem(food, null)}
+              onCancel={() => selected?.food?.source === 'recipe' ? setScreen("entry") : setScreen("list")}
+            />
+          )}
         </div>
       )}
     </>
@@ -403,30 +419,34 @@ function parseServingUnit(label) {
 }
 
 // ─── Inline Food Entry ────────────────────────────────────────────────────────
-function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, initialUnit }) {
+function FoodEntryInline({ food, batch, meal, onAdd, onBack, onEditRecipe, initialAmount, initialUnit }) {
+  const { user } = useAuth()
   const isManual = food?.id === "manual"
   const isBatch  = !!batch
+  const isRecipe = !isBatch && food?.source === 'recipe' && Array.isArray(food?.ingredients) && food.ingredients.length > 0
   const item     = batch || food
 
-  const hasServingMode = !isBatch && !!item?.servingSize
-  const defaultMode    = hasServingMode ? 'servings' : 'grams'
-  const defaultAmount  = hasServingMode ? '1' : String(item?.servingSize || 100)
+  const hasServingMode       = !isBatch && !!item?.servingSize
+  const defaultMode          = hasServingMode ? 'servings' : 'grams'
+  const defaultAmount        = hasServingMode ? '1' : String(item?.servingSize || 100)
+  const hasAdjustIngredients = (isBatch && Array.isArray(batch?.ingredients) && batch.ingredients.length > 0) || isRecipe
 
-  const hasBatchIngredients = isBatch && Array.isArray(batch?.ingredients) && batch.ingredients.length > 0
+  const ingredientSrc = isBatch ? (batch?.ingredients || []) : (isRecipe ? (food?.ingredients || []) : [])
 
-  const [inputMode,     setInputMode]     = useState(defaultMode)
-  const [amount,        setAmount]        = useState(initialAmount ?? defaultAmount)
-  const [unit,          setUnit]          = useState(initialUnit   ?? 'g')
-  const [name,          setName]          = useState(isManual ? "" : (item?.name || ""))
-  const [manMacros,     setManMacros]     = useState({ calories:"", protein:"", carbs:"", fat:"", fibre:"" })
-  const [manServings,   setManServings]   = useState('1')
-  const [servingLabel,  setServingLabel]  = useState('')
-  const [saveToFoods,   setSaveToFoods]   = useState(false)
-  const [saving,        setSaving]        = useState(false)
-  const [error,         setError]         = useState("")
-  const [adjustMode,    setAdjustMode]    = useState(false)
+  const [inputMode,      setInputMode]      = useState(defaultMode)
+  const [amount,         setAmount]         = useState(initialAmount ?? defaultAmount)
+  const [unit,           setUnit]           = useState(initialUnit   ?? 'g')
+  const [name,           setName]           = useState(isManual ? "" : (item?.name || ""))
+  const [manMacros,      setManMacros]      = useState({ calories:"", protein:"", carbs:"", fat:"", fibre:"" })
+  const [manServings,    setManServings]    = useState('1')
+  const [servingLabel,   setServingLabel]   = useState('')
+  const [saveToFoods,    setSaveToFoods]    = useState(false)
+  const [saving,         setSaving]         = useState(false)
+  const [error,          setError]          = useState("")
+  const [adjustMode,     setAdjustMode]     = useState(false)
+  const [updateSaved,    setUpdateSaved]    = useState(false)
   const [adjIngredients, setAdjIngredients] = useState(
-    () => (batch?.ingredients || []).map(i => ({ ...i, gramsInput: String(i.grams) }))
+    () => ingredientSrc.map(i => ({ ...i, gramsInput: String(i.grams) }))
   )
 
   const parsedAmount = parseFloat(amount) || 0
@@ -504,6 +524,23 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
     setSaving(false)
   }
 
+  async function handleUpdateRecipe() {
+    if (!isRecipe || !food?.id) return
+    const updated = adjIngredients.map(({ gramsInput, ...rest }) => ({ ...rest, grams: parseFloat(gramsInput) || rest.grams }))
+    const totalG  = updated.reduce((s, i) => s + i.grams, 0)
+    if (!totalG) return
+    let totals = { calories:0, protein:0, carbs:0, fat:0, fibre:0 }
+    for (const ing of updated) {
+      const m = calcMacros({ per100g: ing.per100g }, ing.grams)
+      for (const k of Object.keys(totals)) totals[k] = Math.round(((totals[k]||0) + (m[k]||0)) * 10) / 10
+    }
+    const factor  = 100 / totalG
+    const per100g = Object.fromEntries(Object.entries(totals).map(([k, v]) => [k, Math.round(v * factor * 10) / 10]))
+    await saveFood({ ...food, ingredients: updated, per100g, servingSize: totalG, dirty: 1, updatedAt: new Date().toISOString() }, user?.householdId)
+    setUpdateSaved(true)
+    setTimeout(() => setUpdateSaved(false), 2500)
+  }
+
   return (
     <div style={s.entryContainer}>
       <button style={s.backBtn} onClick={onBack}>← Back</button>
@@ -521,7 +558,13 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
         <div style={s.entryTitle}>{item?.name}</div>
       )}
 
-      {isBatch && <div style={s.batchTag}>From batch</div>}
+      {isBatch   && <div style={s.batchTag}>From batch</div>}
+      {isRecipe  && (
+        <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+          <div style={{ ...s.batchTag, background:'var(--bg-elevated)', color:'var(--text-secondary)', borderColor:'var(--border-default)' }}>Recipe</div>
+          <button style={s.editRecipeLink} onClick={onEditRecipe}>Edit recipe ✏️</button>
+        </div>
+      )}
 
       {/* Amount input + unit picker — hidden when adjusting ingredients */}
       {!adjustMode && (
@@ -565,8 +608,8 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
         </div>
       )}
 
-      {/* Adjust ingredients — batch only */}
-      {hasBatchIngredients && (
+      {/* Adjust ingredients — batch or recipe */}
+      {hasAdjustIngredients && (
         <button
           type="button"
           style={{ ...s.adjustToggle, ...(adjustMode ? s.adjustToggleOn : {}) }}
@@ -599,6 +642,13 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
               </div>
             </div>
           ))}
+          {isRecipe && (
+            <button style={{ ...s.adjRow, borderBottom:'none', justifyContent:'center', cursor:'pointer', background:'none', border:'none', width:'100%' }} onClick={handleUpdateRecipe}>
+              <span style={{ fontSize:'12px', fontWeight:'600', color: updateSaved ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+                {updateSaved ? '✓ Saved as new defaults' : 'Save as new defaults for this recipe'}
+              </span>
+            </button>
+          )}
         </div>
       )}
 
@@ -724,7 +774,8 @@ const s = {
   micActive:    { background:"var(--accent)", borderColor:"var(--accent)", color:"#fff", animation:"micPulse 1s ease-in-out infinite" },
   voiceHint:    { fontSize:"12px", color:"var(--accent)", marginBottom:"8px", paddingLeft:"2px", fontWeight:"500" },
   actionRow:    { display:"flex", gap:"8px", marginBottom:"12px" },
-  actionBtn:    { flex:1, padding:"10px", background:"var(--bg-elevated)", border:"1px dashed var(--border-strong)", borderRadius:"var(--r-md)", color:"var(--text-secondary)", fontSize:"13px", fontWeight:"500", cursor:"pointer" },
+  actionGrid:   { display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px", marginBottom:"12px" },
+  actionBtn:    { padding:"10px", background:"var(--bg-elevated)", border:"1px dashed var(--border-strong)", borderRadius:"var(--r-md)", color:"var(--text-secondary)", fontSize:"13px", fontWeight:"500", cursor:"pointer" },
   section:      { marginBottom:"8px" },
   sectionLabel: { fontSize:"10px", fontWeight:"700", color:"var(--text-tertiary)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"6px", paddingLeft:"2px" },
   foodRow:      { display:"flex", alignItems:"center", width:"100%", padding:"11px 12px", background:"transparent", border:"none", borderBottom:"0.5px solid var(--border-subtle)", cursor:"pointer", textAlign:"left", gap:"8px" },
@@ -739,6 +790,7 @@ const s = {
   backBtn:      { background:"none", border:"none", color:"var(--accent)", fontSize:"15px", cursor:"pointer", padding:0, alignSelf:"flex-start" },
   entryTitle:   { fontSize:"18px", fontWeight:"600", color:"var(--text-primary)", letterSpacing:"-0.02em" },
   batchTag:     { display:"inline-block", fontSize:"11px", fontWeight:"600", background:"var(--accent-dim)", color:"var(--accent)", padding:"3px 10px", borderRadius:"var(--r-full)", letterSpacing:"0.04em", textTransform:"uppercase" },
+  editRecipeLink:{ background:"none", border:"none", color:"var(--accent)", fontSize:"12px", fontWeight:"600", cursor:"pointer", padding:0 },
   nameInput:    { padding:"12px 14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-md)", fontSize:"16px", color:"var(--text-primary)", outline:"none", width:"100%", boxSizing:"border-box" },
   gramRow:         { display:"flex", alignItems:"center", gap:"10px" },
   gramInput:       { flex:1, fontSize:"36px", fontWeight:"300", letterSpacing:"-0.03em", padding:"10px 14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-md)", color:"var(--text-primary)", outline:"none" },
