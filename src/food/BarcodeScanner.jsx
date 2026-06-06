@@ -3,9 +3,11 @@ import { getFoodByBarcode, saveFood } from './FoodDB.js'
 import { generateId } from '../auth/crypto.js'
 
 export default function BarcodeScanner({ onFound, onCancel, householdId }) {
-  const [screen,  setScreen]  = useState(() => 'BarcodeDetector' in window ? 'scanning' : 'unsupported')
-  const [error,   setError]   = useState('')
-  const [barcode, setBarcode] = useState('')
+  const [screen,       setScreen]       = useState(() => 'BarcodeDetector' in window ? 'scanning' : 'manual')
+  const [error,        setError]        = useState('')
+  const [barcode,      setBarcode]      = useState('')
+  const [manualInput,  setManualInput]  = useState('')
+  const [manualError,  setManualError]  = useState('')
 
   const videoRef    = useRef(null)
   const streamRef   = useRef(null)
@@ -71,13 +73,16 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
     if (local) { onFound(local); return }
 
     try {
-      const res  = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`)
-      const data = await res.json()
-      if (data.status === 1 && data.product) {
-        const food = mapProduct(data.product, code)
-        await saveFood(food, householdId)
-        onFound(food)
-        return
+      // Try global DB first, then India-specific DB for better local product coverage
+      for (const base of ['https://world.openfoodfacts.org', 'https://in.openfoodfacts.org']) {
+        const res  = await fetch(`${base}/api/v2/product/${code}.json`)
+        const data = await res.json()
+        if (data.status === 1 && data.product) {
+          const food = mapProduct(data.product, code)
+          await saveFood(food, householdId)
+          onFound(food)
+          return
+        }
       }
     } catch {}
 
@@ -110,17 +115,37 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
     }
   }
 
-  // ─── Unsupported ──────────────────────────────────────────────────────────
-  if (screen === 'unsupported') {
+  async function handleManualLookup() {
+    const code = manualInput.trim().replace(/\s/g, '')
+    if (!code) { setManualError('Enter a barcode number'); return }
+    if (!/^\d{8,14}$/.test(code)) { setManualError('Barcode should be 8–14 digits'); return }
+    setManualError('')
+    await handleDetected(code)
+  }
+
+  // ─── Manual entry (fallback when BarcodeDetector unavailable) ─────────────
+  if (screen === 'manual') {
     return (
       <div style={st.container}>
         <Hdr onCancel={onCancel} />
         <div style={st.center}>
-          <div style={st.icon}>📵</div>
-          <p style={st.bigTitle}>Not supported</p>
-          <p style={st.sub}>{error || 'Barcode scanning requires Chrome on Android or Safari 17+.'}</p>
-          <button style={st.outlineBtn} onClick={onCancel}>Go Back</button>
+          <div style={st.icon}>🔢</div>
+          <p style={st.bigTitle}>Enter barcode</p>
+          <p style={st.sub}>Camera barcode scanning isn't supported on this device. Type the barcode number from the product packaging.</p>
         </div>
+        <input
+          style={st.manualInput}
+          type="number"
+          inputMode="numeric"
+          placeholder="e.g. 8901030851551"
+          value={manualInput}
+          onChange={e => { setManualInput(e.target.value); setManualError('') }}
+          onKeyDown={e => e.key === 'Enter' && handleManualLookup()}
+          autoFocus
+        />
+        {manualError && <p style={st.manualError}>{manualError}</p>}
+        <button style={st.primaryBtn} onClick={handleManualLookup}>Look Up Product</button>
+        <button style={st.outlineBtn} onClick={onCancel}>Go Back</button>
       </div>
     )
   }
@@ -147,10 +172,13 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
         <div style={st.center}>
           <div style={st.icon}>🤷</div>
           <p style={st.bigTitle}>Product not found</p>
-          <p style={st.sub}>Barcode {barcode} wasn't found. Try scanning the nutrition label instead.</p>
-          <button style={st.primaryBtn} onClick={() => setScreen('scanning')}>Try Again</button>
-          <button style={st.outlineBtn} onClick={onCancel}>Go Back</button>
+          <p style={st.sub}>Barcode {barcode} wasn't in the database. Try scanning the nutrition label instead.</p>
         </div>
+        {'BarcodeDetector' in window && (
+          <button style={st.primaryBtn} onClick={() => setScreen('scanning')}>Try Again</button>
+        )}
+        <button style={st.outlineBtn} onClick={() => { setManualInput(barcode); setScreen('manual') }}>Enter Manually</button>
+        <button style={st.outlineBtn} onClick={onCancel}>Go Back</button>
       </div>
     )
   }
@@ -166,6 +194,7 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
         </div>
       </div>
       <p style={st.hint}>Point at a barcode to scan</p>
+      <button style={st.outlineBtn} onClick={() => setScreen('manual')}>Enter barcode manually</button>
     </div>
   )
 }
@@ -196,4 +225,6 @@ const st = {
   sub:          { fontSize: '14px', color: 'var(--text-secondary)', textAlign: 'center', margin: 0, lineHeight: '1.5', maxWidth: '280px' },
   primaryBtn:   { width: '100%', padding: '14px', background: 'var(--text-primary)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
   outlineBtn:   { width: '100%', padding: '13px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', color: 'var(--text-secondary)', fontSize: '15px', fontWeight: '500', cursor: 'pointer' },
+  manualInput:  { width: '100%', padding: '14px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', outline: 'none', textAlign: 'center', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em', boxSizing: 'border-box' },
+  manualError:  { fontSize: '13px', color: 'var(--red)', margin: '0', textAlign: 'center' },
 }
