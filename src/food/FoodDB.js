@@ -178,8 +178,33 @@ export async function fetchHouseholdFoods(householdId) {
     const { sbFetchHouseholdFoods } = await import('../db/supabase.js')
     const foods = await sbFetchHouseholdFoods(householdId)
     if (foods.length) await db.foods.bulkPut(foods)
+    console.log(`fetchHouseholdFoods: pulled ${foods.length} foods`)
   } catch (e) {
     console.warn('fetchHouseholdFoods error:', e)
+  }
+}
+
+// Push all locally saved/scanned/recipe foods up to Supabase for household sharing
+// Called at login to catch any foods created before Supabase table existed
+export async function pushLocalFoodsToHousehold(householdId) {
+  if (!householdId) return
+  try {
+    const personal = await db.foods
+      .where('source').anyOf(['saved', 'scanned', 'recipe'])
+      .toArray()
+    if (!personal.length) return
+    const { sbSaveFood } = await import('../db/supabase.js')
+    let pushed = 0
+    for (const food of personal) {
+      const result = await sbSaveFood(food, householdId).catch(e => {
+        console.warn('pushLocalFoods: failed for', food.name, e.message)
+        return null
+      })
+      if (result) pushed++
+    }
+    console.log(`pushLocalFoodsToHousehold: pushed ${pushed}/${personal.length} foods`)
+  } catch (e) {
+    console.warn('pushLocalFoodsToHousehold error:', e)
   }
 }
 

@@ -48,10 +48,11 @@ export async function initStorage(userId, encryptionKey, userEmail, householdId)
     console.warn('Could not check Drive quota:', e)
   }
 
-  // Pull household foods from Supabase
+  // Sync household foods with Supabase
   if (householdId) {
-    const { fetchHouseholdFoods } = await import('../food/FoodDB.js')
-    await fetchHouseholdFoods(householdId).catch(e => console.warn('Household foods sync error:', e))
+    const { fetchHouseholdFoods, pushLocalFoodsToHousehold } = await import('../food/FoodDB.js')
+    await fetchHouseholdFoods(householdId).catch(e => console.warn('Household foods fetch error:', e))
+    await pushLocalFoodsToHousehold(householdId).catch(e => console.warn('Household foods push error:', e))
   }
 
   // Check if this is a new device — restore from Drive if so
