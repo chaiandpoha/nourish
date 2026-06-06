@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { searchFoods, getRecentFoods, getActiveBatches, seedFoodDatabase } from "../food/FoodDB.js"
+import { searchFoods, getRecentFoods, getActiveBatches, seedFoodDatabase, saveFood } from "../food/FoodDB.js"
 import { useAuth } from "../auth/useAuth.jsx"
 import { addFoodLogEntry } from "../db/db.js"
 import { calcMacros, calcBatchMacros, toGrams, WEIGHT_UNITS } from "../food/macroCalc.js"
@@ -405,12 +405,14 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
   const defaultMode    = hasServingMode ? 'servings' : 'grams'
   const defaultAmount  = hasServingMode ? '1' : String(item?.servingSize || 100)
 
-  const [inputMode,  setInputMode]  = useState(defaultMode)
-  const [amount,     setAmount]     = useState(initialAmount ?? defaultAmount)
-  const [unit,       setUnit]       = useState(initialUnit   ?? 'g')
-  const [name,       setName]       = useState(isManual ? "" : (item?.name || ""))
-  const [manMacros,  setManMacros]  = useState({ calories:"", protein:"", carbs:"", fat:"", fibre:"" })
-  const [error,      setError]      = useState("")
+  const [inputMode,    setInputMode]    = useState(defaultMode)
+  const [amount,       setAmount]       = useState(initialAmount ?? defaultAmount)
+  const [unit,         setUnit]         = useState(initialUnit   ?? 'g')
+  const [name,         setName]         = useState(isManual ? "" : (item?.name || ""))
+  const [manMacros,    setManMacros]    = useState({ calories:"", protein:"", carbs:"", fat:"", fibre:"" })
+  const [saveToFoods,  setSaveToFoods]  = useState(false)
+  const [saving,       setSaving]       = useState(false)
+  const [error,        setError]        = useState("")
 
   const parsedAmount = parseFloat(amount) || 0
   const parsedGrams  = inputMode === 'servings'
@@ -434,18 +436,36 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
     }
   }
 
-  function handleAdd() {
+  async function handleAdd() {
     if (parsedAmount <= 0) { setError("Enter a valid amount"); return }
     if (isManual && !name.trim()) { setError("Enter food name"); return }
+    setSaving(true)
+
+    let foodId = isBatch ? null : (isManual ? null : food.id)
+
+    if (isManual && saveToFoods && name.trim() && parsedGrams > 0) {
+      // Normalise to per-100g for storage
+      const factor = 100 / parsedGrams
+      const per100g = {
+        calories: Math.round((parseFloat(manMacros.calories) || 0) * factor * 10) / 10,
+        protein:  Math.round((parseFloat(manMacros.protein)  || 0) * factor * 10) / 10,
+        carbs:    Math.round((parseFloat(manMacros.carbs)    || 0) * factor * 10) / 10,
+        fat:      Math.round((parseFloat(manMacros.fat)      || 0) * factor * 10) / 10,
+        fibre:    Math.round((parseFloat(manMacros.fibre)    || 0) * factor * 10) / 10,
+      }
+      const saved = await saveFood({ name: name.trim(), per100g, servingSize: parsedGrams, source: 'saved', tags: [] })
+      foodId = saved.id
+    }
 
     onAdd({
-      foodId:  isBatch ? null : (isManual ? null : food.id),
+      foodId,
       batchId: isBatch ? batch.id : null,
       name:    isManual ? name.trim() : item.name,
-      grams:   parsedGrams,  // always stored in grams
-      source:  isBatch ? "batch" : (isManual ? "manual" : food.source),
+      grams:   parsedGrams,
+      source:  isBatch ? "batch" : (isManual ? (saveToFoods ? "saved" : "manual") : food.source),
       ...macros,
     })
+    setSaving(false)
   }
 
   return (
@@ -578,11 +598,24 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
         </div>
       )}
 
+      {isManual && (
+        <button
+          type="button"
+          onClick={() => setSaveToFoods(v => !v)}
+          style={{ ...s.saveToggle, ...(saveToFoods ? s.saveToggleOn : {}) }}
+        >
+          <div style={{ ...s.saveToggleDot, ...(saveToFoods ? s.saveToggleDotOn : {}) }} />
+          <span>Save to my foods (searchable next time)</span>
+        </button>
+      )}
+
       {error && <p style={s.error}>{error}</p>}
 
       <div style={s.actions}>
         <button style={s.cancelBtn} onClick={onBack}>Cancel</button>
-        <button style={s.addBtn} onClick={handleAdd}>Add to log</button>
+        <button style={s.addBtn} onClick={handleAdd} disabled={saving}>
+          {saving ? 'Saving…' : 'Add to log'}
+        </button>
       </div>
     </div>
   )
@@ -645,4 +678,8 @@ const s = {
   actions:      { display:"flex", gap:"10px", marginTop:"4px" },
   cancelBtn:    { flex:1, padding:"14px", background:"transparent", border:"1px solid var(--border-default)", borderRadius:"var(--r-lg)", color:"var(--text-secondary)", fontSize:"15px", fontWeight:"500", cursor:"pointer" },
   addBtn:       { flex:2, padding:"14px", background:"var(--text-primary)", border:"none", borderRadius:"var(--r-lg)", color:"var(--text-inverse)", fontSize:"15px", fontWeight:"600", cursor:"pointer" },
+  saveToggle:   { display:"flex", alignItems:"center", gap:"10px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-lg)", padding:"12px 14px", cursor:"pointer", width:"100%", textAlign:"left", fontSize:"13px", color:"var(--text-secondary)", fontWeight:"500" },
+  saveToggleOn: { borderColor:"var(--accent)", color:"var(--accent)", background:"var(--accent-dim)" },
+  saveToggleDot:{ width:"18px", height:"18px", borderRadius:"50%", border:"2px solid var(--border-default)", flexShrink:0, transition:"all 0.15s" },
+  saveToggleDotOn:{ background:"var(--accent)", borderColor:"var(--accent)" },
 }
