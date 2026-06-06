@@ -29,6 +29,7 @@ import MealEntry from './log/MealEntry.jsx'
 import { localDate } from './log/DayLog.jsx'
 import HouseholdScreen from './household/HouseholdScreen.jsx'
 import RecipeList from './food/RecipeList.jsx'
+import LabelList from './food/LabelList.jsx'
 import { getThemePref, setThemePref } from './shared/theme.js'
 
 export default function App() {
@@ -315,17 +316,13 @@ function FoodScreen() {
     <div style={styles.screen}>
       <h1 style={styles.screenTitle}>Food</h1>
       <div style={{ ...styles.tabBar, marginBottom: '16px' }}>
-        <button
-          style={{ ...styles.tabBtn, ...(tab === 'batches' ? styles.tabBtnActive : {}) }}
-          onClick={() => setTab('batches')}
-        >Batches</button>
-        <button
-          style={{ ...styles.tabBtn, ...(tab === 'recipes' ? styles.tabBtnActive : {}) }}
-          onClick={() => setTab('recipes')}
-        >Recipes</button>
+        <button style={{ ...styles.tabBtn, ...(tab === 'batches' ? styles.tabBtnActive : {}) }} onClick={() => setTab('batches')}>Batches</button>
+        <button style={{ ...styles.tabBtn, ...(tab === 'recipes' ? styles.tabBtnActive : {}) }} onClick={() => setTab('recipes')}>Recipes</button>
+        <button style={{ ...styles.tabBtn, ...(tab === 'labels'  ? styles.tabBtnActive : {}) }} onClick={() => setTab('labels')}>Labels</button>
       </div>
       {tab === 'batches' && <BatchList />}
       {tab === 'recipes' && <RecipeList householdId={user?.householdId} />}
+      {tab === 'labels'  && <LabelList  householdId={user?.householdId} />}
     </div>
   )
 }
