@@ -170,13 +170,17 @@ export default function MealEntry({ date, onLogged, inline = false }) {
 
     const recog = new SR()
     recog.lang             = 'en-US'
-    recog.interimResults   = false
+    recog.interimResults   = true  // needed on iOS — final result may not fire
     recog.maxAlternatives  = 1
     recog.continuous       = false
     recogRef.current       = recog
 
-    recog.onresult = (e) => {
-      const transcript = e.results[0][0].transcript
+    let captured  = ''
+    let processed = false
+
+    const applyResult = (transcript) => {
+      if (processed) return
+      processed = true
       const { qty, unit, foodName } = parseVoiceInput(transcript)
       setQuery(foodName)
       if (qty) {
@@ -187,7 +191,18 @@ export default function MealEntry({ date, onLogged, inline = false }) {
         setVoiceQty(null)
         setVoiceHint(`"${foodName}"`)
       }
-      setListening(false)
+    }
+
+    recog.onresult = (e) => {
+      let t = ''
+      for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript
+      captured = t
+      if (e.results[e.results.length - 1].isFinal) {
+        applyResult(t)
+        setListening(false)
+      } else {
+        setVoiceHint(`Hearing: "${t}"`)
+      }
     }
 
     recog.onerror = (e) => {
@@ -201,7 +216,11 @@ export default function MealEntry({ date, onLogged, inline = false }) {
       setListening(false)
     }
 
-    recog.onend = () => setListening(false)
+    // iOS fallback: onend fires but onresult may not have fired isFinal
+    recog.onend = () => {
+      setListening(false)
+      if (captured) applyResult(captured)
+    }
 
     setListening(true)
     setVoiceHint('')
