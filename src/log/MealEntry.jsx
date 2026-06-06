@@ -401,23 +401,28 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
   const isBatch  = !!batch
   const item     = batch || food
 
-  const hasServingMode = !isManual && !isBatch && !!item?.servingSize
+  const hasServingMode = !isBatch && !!item?.servingSize
   const defaultMode    = hasServingMode ? 'servings' : 'grams'
   const defaultAmount  = hasServingMode ? '1' : String(item?.servingSize || 100)
 
-  const [inputMode,    setInputMode]    = useState(defaultMode)
-  const [amount,       setAmount]       = useState(initialAmount ?? defaultAmount)
-  const [unit,         setUnit]         = useState(initialUnit   ?? 'g')
-  const [name,         setName]         = useState(isManual ? "" : (item?.name || ""))
-  const [manMacros,    setManMacros]    = useState({ calories:"", protein:"", carbs:"", fat:"", fibre:"" })
-  const [saveToFoods,  setSaveToFoods]  = useState(false)
-  const [saving,       setSaving]       = useState(false)
-  const [error,        setError]        = useState("")
+  const [inputMode,     setInputMode]     = useState(defaultMode)
+  const [amount,        setAmount]        = useState(initialAmount ?? defaultAmount)
+  const [unit,          setUnit]          = useState(initialUnit   ?? 'g')
+  const [name,          setName]          = useState(isManual ? "" : (item?.name || ""))
+  const [manMacros,     setManMacros]     = useState({ calories:"", protein:"", carbs:"", fat:"", fibre:"" })
+  const [manServings,   setManServings]   = useState('1')   // serving count for manual entry
+  const [servingLabel,  setServingLabel]  = useState('')    // e.g. "bowl", "scoop"
+  const [saveToFoods,   setSaveToFoods]   = useState(false)
+  const [saving,        setSaving]        = useState(false)
+  const [error,         setError]         = useState("")
 
   const parsedAmount = parseFloat(amount) || 0
   const parsedGrams  = inputMode === 'servings'
     ? parsedAmount * (item?.servingSize || 100)
     : toGrams(parsedAmount, unit)
+
+  const manServingCount = Math.max(parseFloat(manServings) || 1, 0.1)
+  const manGrams = toGrams(parsedAmount, unit)  // grams for 1 serving in manual mode
 
   // Calculate macros
   let macros = { calories:0, protein:0, carbs:0, fat:0, fibre:0 }
@@ -426,26 +431,30 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
   } else if (!isManual && food && parsedGrams > 0) {
     macros = calcMacros(food, parsedGrams)
   } else if (isManual) {
-    // Macros entered directly for the amount specified — no per-100g normalisation
+    // Macros entered are per-serving; multiply by serving count
     macros = {
-      calories: Math.round((parseFloat(manMacros.calories) || 0) * 10) / 10,
-      protein:  Math.round((parseFloat(manMacros.protein)  || 0) * 10) / 10,
-      carbs:    Math.round((parseFloat(manMacros.carbs)    || 0) * 10) / 10,
-      fat:      Math.round((parseFloat(manMacros.fat)      || 0) * 10) / 10,
-      fibre:    Math.round((parseFloat(manMacros.fibre)    || 0) * 10) / 10,
+      calories: Math.round((parseFloat(manMacros.calories) || 0) * manServingCount * 10) / 10,
+      protein:  Math.round((parseFloat(manMacros.protein)  || 0) * manServingCount * 10) / 10,
+      carbs:    Math.round((parseFloat(manMacros.carbs)    || 0) * manServingCount * 10) / 10,
+      fat:      Math.round((parseFloat(manMacros.fat)      || 0) * manServingCount * 10) / 10,
+      fibre:    Math.round((parseFloat(manMacros.fibre)    || 0) * manServingCount * 10) / 10,
     }
   }
 
   async function handleAdd() {
-    if (parsedAmount <= 0) { setError("Enter a valid amount"); return }
+    if (isManual && parsedAmount <= 0) { setError("Enter a valid amount"); return }
+    if (!isManual && parsedAmount <= 0) { setError("Enter a valid amount"); return }
     if (isManual && !name.trim()) { setError("Enter food name"); return }
     setSaving(true)
 
+    // For manual: total grams = 1-serving grams × serving count
+    const totalGrams = isManual ? manGrams * manServingCount : parsedGrams
+
     let foodId = isBatch ? null : (isManual ? null : food.id)
 
-    if (isManual && saveToFoods && name.trim() && parsedGrams > 0) {
-      // Normalise to per-100g for storage
-      const factor = 100 / parsedGrams
+    if (isManual && saveToFoods && name.trim() && manGrams > 0) {
+      // Normalise to per-100g for storage; servingSize = 1-serving grams
+      const factor = 100 / manGrams
       const per100g = {
         calories: Math.round((parseFloat(manMacros.calories) || 0) * factor * 10) / 10,
         protein:  Math.round((parseFloat(manMacros.protein)  || 0) * factor * 10) / 10,
@@ -453,7 +462,10 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
         fat:      Math.round((parseFloat(manMacros.fat)      || 0) * factor * 10) / 10,
         fibre:    Math.round((parseFloat(manMacros.fibre)    || 0) * factor * 10) / 10,
       }
-      const saved = await saveFood({ name: name.trim(), per100g, servingSize: parsedGrams, source: 'saved', tags: [] })
+      const label = servingLabel.trim()
+        ? `${manGrams}g ${servingLabel.trim()}`
+        : `${manGrams}g serving`
+      const saved = await saveFood({ name: name.trim(), per100g, servingSize: manGrams, servingLabel: label, source: 'saved', tags: [] })
       foodId = saved.id
     }
 
@@ -461,7 +473,7 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
       foodId,
       batchId: isBatch ? batch.id : null,
       name:    isManual ? name.trim() : item.name,
-      grams:   parsedGrams,
+      grams:   totalGrams,
       source:  isBatch ? "batch" : (isManual ? (saveToFoods ? "saved" : "manual") : food.source),
       ...macros,
     })
@@ -549,7 +561,7 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
       {isManual && (
         <div style={s.manualSection}>
           <div style={s.manualLabel}>
-            Macros for {parsedAmount > 0 ? parsedAmount : '?'}{unit}
+            Macros for 1 serving ({parsedAmount > 0 ? parsedAmount : '?'}{unit})
           </div>
           <div style={s.manualGrid}>
             {[
@@ -571,6 +583,26 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
                 />
               </div>
             ))}
+          </div>
+
+          {/* Serving count — how many of the above serving did you have? */}
+          <div style={{ display:'flex', alignItems:'center', gap:'10px', marginTop:'4px' }}>
+            <div style={{ flex:1 }}>
+              <div style={s.manualLabel}>Servings eaten</div>
+              <input
+                style={{ ...s.manualInput, textAlign:'left', padding:'8px 10px', fontSize:'16px' }}
+                type="number"
+                inputMode="decimal"
+                placeholder="1"
+                value={manServings}
+                onChange={e => setManServings(e.target.value)}
+              />
+            </div>
+            {manServingCount !== 1 && (
+              <div style={{ fontSize:'12px', color:'var(--text-tertiary)', marginTop:'16px' }}>
+                = {Math.round(manGrams * manServingCount)}g total
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -599,14 +631,24 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
       )}
 
       {isManual && (
-        <button
-          type="button"
-          onClick={() => setSaveToFoods(v => !v)}
-          style={{ ...s.saveToggle, ...(saveToFoods ? s.saveToggleOn : {}) }}
-        >
-          <div style={{ ...s.saveToggleDot, ...(saveToFoods ? s.saveToggleDotOn : {}) }} />
-          <span>Save to my foods (searchable next time)</span>
-        </button>
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+          <button
+            type="button"
+            onClick={() => setSaveToFoods(v => !v)}
+            style={{ ...s.saveToggle, ...(saveToFoods ? s.saveToggleOn : {}) }}
+          >
+            <div style={{ ...s.saveToggleDot, ...(saveToFoods ? s.saveToggleDotOn : {}) }} />
+            <span>Save to my foods (searchable next time)</span>
+          </button>
+          {saveToFoods && (
+            <input
+              style={{ ...s.nameInput, fontSize:'14px', padding:'10px 14px' }}
+              placeholder={`Serving name (optional) — e.g. bowl, scoop, cup`}
+              value={servingLabel}
+              onChange={e => setServingLabel(e.target.value)}
+            />
+          )}
+        </div>
       )}
 
       {error && <p style={s.error}>{error}</p>}
