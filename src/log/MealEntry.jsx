@@ -405,16 +405,22 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
   const defaultMode    = hasServingMode ? 'servings' : 'grams'
   const defaultAmount  = hasServingMode ? '1' : String(item?.servingSize || 100)
 
+  const hasBatchIngredients = isBatch && Array.isArray(batch?.ingredients) && batch.ingredients.length > 0
+
   const [inputMode,     setInputMode]     = useState(defaultMode)
   const [amount,        setAmount]        = useState(initialAmount ?? defaultAmount)
   const [unit,          setUnit]          = useState(initialUnit   ?? 'g')
   const [name,          setName]          = useState(isManual ? "" : (item?.name || ""))
   const [manMacros,     setManMacros]     = useState({ calories:"", protein:"", carbs:"", fat:"", fibre:"" })
-  const [manServings,   setManServings]   = useState('1')   // serving count for manual entry
-  const [servingLabel,  setServingLabel]  = useState('')    // e.g. "bowl", "scoop"
+  const [manServings,   setManServings]   = useState('1')
+  const [servingLabel,  setServingLabel]  = useState('')
   const [saveToFoods,   setSaveToFoods]   = useState(false)
   const [saving,        setSaving]        = useState(false)
   const [error,         setError]         = useState("")
+  const [adjustMode,    setAdjustMode]    = useState(false)
+  const [adjIngredients, setAdjIngredients] = useState(
+    () => (batch?.ingredients || []).map(i => ({ ...i, gramsInput: String(i.grams) }))
+  )
 
   const parsedAmount = parseFloat(amount) || 0
   const parsedGrams  = inputMode === 'servings'
@@ -422,16 +428,26 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
     : toGrams(parsedAmount, unit)
 
   const manServingCount = Math.max(parseFloat(manServings) || 1, 0.1)
-  const manGrams = toGrams(parsedAmount, unit)  // grams for 1 serving in manual mode
+  const manGrams = toGrams(parsedAmount, unit)
+
+  // In adjust mode: sum macros from each adjusted ingredient directly
+  const adjTotalGrams = adjustMode
+    ? adjIngredients.reduce((s, i) => s + (parseFloat(i.gramsInput) || 0), 0)
+    : 0
 
   // Calculate macros
   let macros = { calories:0, protein:0, carbs:0, fat:0, fibre:0 }
-  if (isBatch && parsedGrams > 0) {
+  if (adjustMode && adjIngredients.length > 0) {
+    for (const ing of adjIngredients) {
+      const g = parseFloat(ing.gramsInput) || 0
+      const m = calcMacros({ per100g: ing.per100g }, g)
+      for (const k of ['calories','protein','carbs','fat','fibre']) macros[k] = Math.round(((macros[k]||0) + (m[k]||0)) * 10) / 10
+    }
+  } else if (isBatch && parsedGrams > 0) {
     macros = calcBatchMacros(batch, parsedGrams)
   } else if (!isManual && food && parsedGrams > 0) {
     macros = calcMacros(food, parsedGrams)
   } else if (isManual) {
-    // Macros entered are per-serving; multiply by serving count
     macros = {
       calories: Math.round((parseFloat(manMacros.calories) || 0) * manServingCount * 10) / 10,
       protein:  Math.round((parseFloat(manMacros.protein)  || 0) * manServingCount * 10) / 10,
@@ -447,8 +463,9 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
     if (isManual && !name.trim()) { setError("Enter food name"); return }
     setSaving(true)
 
-    // For manual: total grams = 1-serving grams × serving count
-    const totalGrams = isManual ? manGrams * manServingCount : parsedGrams
+    const totalGrams = adjustMode ? adjTotalGrams
+      : isManual ? manGrams * manServingCount
+      : parsedGrams
 
     let foodId = isBatch ? null : (isManual ? null : food.id)
 
@@ -499,63 +516,84 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, initialAmount, init
 
       {isBatch && <div style={s.batchTag}>From batch</div>}
 
-      {/* Amount input + unit picker */}
-      <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-        {/* Mode toggle — only for foods with a defined serving size */}
-        {hasServingMode && (
-          <div style={s.modeToggleRow}>
-            <button
-              type="button"
-              onClick={() => setInputMode('servings')}
-              style={{ ...s.modeToggleBtn, ...(inputMode === 'servings' ? s.modeToggleActive : {}) }}
-            >Servings</button>
-            <button
-              type="button"
-              onClick={() => setInputMode('grams')}
-              style={{ ...s.modeToggleBtn, ...(inputMode === 'grams' ? s.modeToggleActive : {}) }}
-            >Grams</button>
-          </div>
-        )}
-
-        <div style={s.gramRow}>
-          <input
-            style={s.gramInput}
-            type="number"
-            inputMode="decimal"
-            placeholder={inputMode === 'servings' ? '1' : '100'}
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-            autoFocus={!isManual}
-          />
-          {inputMode === 'servings' ? (
-            <div style={s.servingUnitInfo}>
-              <span style={s.servingUnitName}>{parseServingUnit(item?.servingLabel)}</span>
-              <span style={s.servingUnitGrams}>{Math.round(parsedGrams)}g</span>
-            </div>
-          ) : (
-            <div style={{ display:'flex', gap:'4px', flexShrink:0 }}>
-              {WEIGHT_UNITS.map(u => (
-                <button
-                  key={u}
-                  type="button"
-                  onClick={() => setUnit(u)}
-                  style={{ padding:'6px 8px', background: unit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${unit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: unit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
-                >{u}</button>
-              ))}
+      {/* Amount input + unit picker — hidden when adjusting ingredients */}
+      {!adjustMode && (
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+          {hasServingMode && (
+            <div style={s.modeToggleRow}>
+              <button type="button" onClick={() => setInputMode('servings')} style={{ ...s.modeToggleBtn, ...(inputMode === 'servings' ? s.modeToggleActive : {}) }}>Servings</button>
+              <button type="button" onClick={() => setInputMode('grams')}    style={{ ...s.modeToggleBtn, ...(inputMode === 'grams'    ? s.modeToggleActive : {}) }}>Grams</button>
             </div>
           )}
+          <div style={s.gramRow}>
+            <input
+              style={s.gramInput}
+              type="number"
+              inputMode="decimal"
+              placeholder={inputMode === 'servings' ? '1' : '100'}
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              autoFocus={!isManual}
+            />
+            {inputMode === 'servings' ? (
+              <div style={s.servingUnitInfo}>
+                <span style={s.servingUnitName}>{parseServingUnit(item?.servingLabel)}</span>
+                <span style={s.servingUnitGrams}>{Math.round(parsedGrams)}g</span>
+              </div>
+            ) : (
+              <div style={{ display:'flex', gap:'4px', flexShrink:0 }}>
+                {WEIGHT_UNITS.map(u => (
+                  <button key={u} type="button" onClick={() => setUnit(u)}
+                    style={{ padding:'6px 8px', background: unit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${unit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: unit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
+                  >{u}</button>
+                ))}
+              </div>
+            )}
+          </div>
+          {!isManual && !isBatch && inputMode === 'grams' && item?.servingSize && item?.servingLabel && (
+            <button style={s.servingHint} onClick={() => { setAmount(String(item.servingSize)); setUnit('g') }}>
+              1 serving = {item.servingSize}g ({item.servingLabel}) — tap to use
+            </button>
+          )}
         </div>
+      )}
 
-        {/* Serving size reference in grams mode */}
-        {!isManual && !isBatch && inputMode === 'grams' && item?.servingSize && item?.servingLabel && (
-          <button
-            style={s.servingHint}
-            onClick={() => { setAmount(String(item.servingSize)); setUnit('g') }}
-          >
-            1 serving = {item.servingSize}g ({item.servingLabel}) — tap to use
-          </button>
-        )}
-      </div>
+      {/* Adjust ingredients — batch only */}
+      {hasBatchIngredients && (
+        <button
+          type="button"
+          style={{ ...s.adjustToggle, ...(adjustMode ? s.adjustToggleOn : {}) }}
+          onClick={() => setAdjustMode(v => !v)}
+        >
+          {adjustMode ? '✕ Use standard amount' : '⚖️ Adjust ingredients'}
+        </button>
+      )}
+
+      {adjustMode && (
+        <div style={s.adjCard}>
+          <div style={s.adjHeader}>
+            <span style={s.adjTitle}>Today's quantities</span>
+            <span style={s.adjTotal}>{Math.round(adjTotalGrams)}g total</span>
+          </div>
+          {adjIngredients.map((ing, i) => (
+            <div key={i} style={s.adjRow}>
+              <span style={s.adjName}>{ing.name}</span>
+              <div style={s.adjInputWrap}>
+                <input
+                  style={s.adjInput}
+                  type="number"
+                  inputMode="decimal"
+                  value={ing.gramsInput}
+                  onChange={e => setAdjIngredients(prev =>
+                    prev.map((x, j) => j === i ? { ...x, gramsInput: e.target.value } : x)
+                  )}
+                />
+                <span style={s.adjUnit}>g</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Manual macro input */}
       {isManual && (
@@ -724,4 +762,16 @@ const s = {
   saveToggleOn: { borderColor:"var(--accent)", color:"var(--accent)", background:"var(--accent-dim)" },
   saveToggleDot:{ width:"18px", height:"18px", borderRadius:"50%", border:"2px solid var(--border-default)", flexShrink:0, transition:"all 0.15s" },
   saveToggleDotOn:{ background:"var(--accent)", borderColor:"var(--accent)" },
+  // Adjust ingredients
+  adjustToggle: { display:"flex", alignItems:"center", justifyContent:"center", gap:"6px", padding:"10px 14px", background:"var(--bg-elevated)", border:"1px dashed var(--border-strong)", borderRadius:"var(--r-lg)", fontSize:"13px", fontWeight:"600", color:"var(--text-secondary)", cursor:"pointer", width:"100%" },
+  adjustToggleOn:{ borderStyle:"solid", borderColor:"var(--accent)", color:"var(--accent)", background:"var(--accent-dim)" },
+  adjCard:      { background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-lg)", overflow:"hidden" },
+  adjHeader:    { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px 8px", borderBottom:"0.5px solid var(--border-subtle)" },
+  adjTitle:     { fontSize:"11px", fontWeight:"700", color:"var(--text-tertiary)", textTransform:"uppercase", letterSpacing:"0.08em" },
+  adjTotal:     { fontSize:"12px", fontWeight:"600", color:"var(--accent)", fontFamily:"var(--font-mono)" },
+  adjRow:       { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", borderBottom:"0.5px solid var(--border-subtle)", gap:"12px" },
+  adjName:      { fontSize:"14px", color:"var(--text-primary)", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" },
+  adjInputWrap: { display:"flex", alignItems:"center", gap:"4px", flexShrink:0 },
+  adjInput:     { width:"64px", padding:"6px 8px", background:"var(--bg-base)", border:"1px solid var(--border-default)", borderRadius:"var(--r-md)", fontSize:"15px", fontWeight:"600", color:"var(--text-primary)", outline:"none", textAlign:"right", fontFamily:"var(--font-mono)" },
+  adjUnit:      { fontSize:"13px", color:"var(--text-tertiary)", fontWeight:"500" },
 }
