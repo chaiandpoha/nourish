@@ -32,6 +32,21 @@ const STAPLE_FOODS = [
   { id:'staples_018', name:'Milk Powder, full fat', per100g:{ calories:496, protein:26,  carbs:38,   fat:27,   fibre:0   }, servingSize:30,  servingLabel:'3 tbsp'   },
   { id:'staples_019', name:'Chia Seeds',            per100g:{ calories:486, protein:17,  carbs:42,   fat:31,   fibre:34  }, servingSize:12,  servingLabel:'1 tbsp'   },
   { id:'staples_020', name:'Flax Seeds',            per100g:{ calories:534, protein:18,  carbs:29,   fat:42,   fibre:27  }, servingSize:10,  servingLabel:'1 tbsp'   },
+  // V2 additions
+  { id:'staples_021', name:'Blueberries',           per100g:{ calories:57,  protein:0.7, carbs:14.5, fat:0.3,  fibre:2.4 }, servingSize:100, servingLabel:'handful'  },
+  { id:'staples_022', name:'Raspberries',           per100g:{ calories:52,  protein:1.2, carbs:11.9, fat:0.7,  fibre:6.5 }, servingSize:100, servingLabel:'handful'  },
+  { id:'staples_023', name:'Ginger, fresh',         per100g:{ calories:80,  protein:1.8, carbs:18,   fat:0.8,  fibre:2   }, servingSize:5,   servingLabel:'1 tsp grated' },
+  { id:'staples_024', name:'Lettuce, romaine',      per100g:{ calories:17,  protein:1.2, carbs:3.3,  fat:0.3,  fibre:2.1 }, servingSize:85,  servingLabel:'1 cup'    },
+  { id:'staples_025', name:'Cumin / Jeera',         per100g:{ calories:375, protein:18,  carbs:44,   fat:22,   fibre:10  }, servingSize:2,   servingLabel:'1 tsp'    },
+  { id:'staples_026', name:'Cinnamon, ground',      per100g:{ calories:247, protein:4,   carbs:81,   fat:1.2,  fibre:53  }, servingSize:2.6, servingLabel:'1 tsp'    },
+  { id:'staples_027', name:'Cardamom / Elaichi',    per100g:{ calories:311, protein:10.8,carbs:68,   fat:6.7,  fibre:28  }, servingSize:2,   servingLabel:'1 tsp'    },
+  { id:'staples_028', name:'Rice Noodles, dry',     per100g:{ calories:364, protein:6,   carbs:80,   fat:0.6,  fibre:1.8 }, servingSize:80,  servingLabel:'1 serving' },
+  { id:'staples_029', name:'Egg Noodles, cooked',   per100g:{ calories:138, protein:4.5, carbs:25,   fat:2.1,  fibre:1.8 }, servingSize:180, servingLabel:'1 bowl'   },
+  { id:'staples_030', name:'Rava / Idli Rava',      per100g:{ calories:360, protein:12.7,carbs:73,   fat:1.1,  fibre:3.9 }, servingSize:40,  servingLabel:'1 serving' },
+  { id:'staples_031', name:'Lettuce, iceberg',      per100g:{ calories:14,  protein:0.9, carbs:3,    fat:0.1,  fibre:1.2 }, servingSize:85,  servingLabel:'1 cup'    },
+  { id:'staples_032', name:'Mango, fresh',          per100g:{ calories:60,  protein:0.8, carbs:15,   fat:0.4,  fibre:1.6 }, servingSize:150, servingLabel:'1 medium' },
+  { id:'staples_033', name:'Watermelon',            per100g:{ calories:30,  protein:0.6, carbs:7.6,  fat:0.2,  fibre:0.4 }, servingSize:280, servingLabel:'2 cups'   },
+  { id:'staples_034', name:'Lemon juice',           per100g:{ calories:22,  protein:0.4, carbs:6.9,  fat:0.2,  fibre:0.3 }, servingSize:15,  servingLabel:'1 tbsp'   },
 ]
 
 let _seeded = false
@@ -44,11 +59,17 @@ export async function seedFoodDatabase() {
     const alreadySeeded = await db.foods.get('usda_001')
     if (alreadySeeded) {
       _seeded = true
-      // Phase 2: add staple foods missing from initial seed (runs once per device)
-      const hasStaples = await db.foods.get('staples_001')
-      if (!hasStaples) {
+      // Add any staple foods missing from the initial seed (runs once per batch)
+      const hasStaplesV1 = await db.foods.get('staples_001')
+      if (!hasStaplesV1) {
         await db.foods.bulkPut(STAPLE_FOODS.map(f => ({ ...f, source: 'nin', tags: [] })))
-        console.log('FoodDB: added staple foods')
+        console.log('FoodDB: added staple foods v1')
+      }
+      const hasStaplesV2 = await db.foods.get('staples_021')
+      if (!hasStaplesV2) {
+        const v2 = STAPLE_FOODS.filter(f => parseInt(f.id.split('_')[1]) >= 21)
+        await db.foods.bulkPut(v2.map(f => ({ ...f, source: 'nin', tags: [] })))
+        console.log('FoodDB: added staple foods v2')
       }
       return true
     }
