@@ -133,23 +133,15 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds) {
       }
     }
 
-    // Shared foods (preserve tags field for Safari multi-entry index)
-    const foodsFile = await findFile('foods.json', fIds.shared)
-    if (foodsFile) {
-      const data = await readFile(foodsFile.id)
-      if (Array.isArray(data)) {
-        await db.foods.bulkPut(data.map(f => ({ tags: [], ...f })))
-        console.log('Foods restored:', data.length)
-      }
-    }
-
-    // Shared batches
-    const batchesFile = await findFile('batches.json', fIds.shared)
-    if (batchesFile) {
-      const data = await readFile(batchesFile.id)
-      if (Array.isArray(data)) {
-        await db.batches.bulkPut(data)
-        console.log('Batches restored:', data.length)
+    // Shared batches (foods are now shared via Supabase, not Drive)
+    if (fIds.shared) {
+      const batchesFile = await findFile('batches.json', fIds.shared)
+      if (batchesFile) {
+        const data = await readFile(batchesFile.id)
+        if (Array.isArray(data)) {
+          await db.batches.bulkPut(data)
+          console.log('Batches restored:', data.length)
+        }
       }
     }
 
