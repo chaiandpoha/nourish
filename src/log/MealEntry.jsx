@@ -127,6 +127,22 @@ export default function MealEntry({ date, onLogged, inline = false }) {
     return () => clearTimeout(t)
   }, [query, seeded])
 
+  // Lock body scroll while sheet is open — prevents iOS Safari from scrolling
+  // the background when the keyboard appears, which makes the sheet jump
+  useEffect(() => {
+    if (!open) return
+    const scrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top      = `-${scrollY}px`
+    document.body.style.width    = '100%'
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top      = ''
+      document.body.style.width    = ''
+      window.scrollTo(0, scrollY)
+    }
+  }, [open])
+
   function openSheet() {
     setOpen(true)
     setScreen("list")
@@ -225,7 +241,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
       }
 
       {/* Overlay */}
-      {open && <div style={s.overlay} onClick={closeSheet} />}
+      {open && <div style={s.overlay} onClick={closeSheet} onTouchEnd={e => { e.preventDefault(); closeSheet() }} />}
 
       {/* Bottom sheet */}
       {open && (
@@ -769,7 +785,7 @@ const s = {
   fab:          { position:"fixed", bottom:"calc(80px + env(safe-area-inset-bottom) + 16px)", right:"20px", width:"56px", height:"56px", borderRadius:"50%", background:"var(--text-primary)", color:"var(--text-inverse)", fontSize:"28px", fontWeight:"300", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(28,24,20,0.18)", zIndex:90 },
   inlineAddBtn: { padding:"14px", background:"var(--text-primary)", color:"var(--text-inverse)", border:"none", borderRadius:"var(--r-lg)", fontSize:"15px", fontWeight:"600", cursor:"pointer", width:"100%", textAlign:"center" },
   overlay:      { position:"fixed", inset:0, background:"rgba(28,24,20,0.35)", zIndex:150, backdropFilter:"blur(2px)" },
-  sheet:        { position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-surface)", borderRadius:"22px 22px 0 0", borderTop:"0.5px solid var(--border-subtle)", padding:"12px 16px calc(16px + env(safe-area-inset-bottom))", zIndex:151, maxHeight:"92dvh", overflowY:"auto", animation:"sheetUp 0.3s cubic-bezier(0.16,1,0.3,1) both" },
+  sheet:        { position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-surface)", borderRadius:"22px 22px 0 0", borderTop:"0.5px solid var(--border-subtle)", padding:"12px 16px calc(16px + env(safe-area-inset-bottom))", zIndex:151, maxHeight:"92svh", overflowY:"auto", overscrollBehavior:"contain", WebkitOverflowScrolling:"touch", animation:"sheetUp 0.3s cubic-bezier(0.16,1,0.3,1) both" },
   handle:       { width:"32px", height:"3px", background:"var(--border-strong)", borderRadius:"99px", margin:"0 auto 16px" },
   mealRow:      { display:"flex", gap:"6px", marginBottom:"12px" },
   mealBtn:      { flex:1, padding:"8px 4px", background:"var(--bg-elevated)", border:"0.5px solid var(--border-subtle)", borderRadius:"var(--r-md)", fontSize:"12px", fontWeight:"500", color:"var(--text-secondary)", cursor:"pointer" },
