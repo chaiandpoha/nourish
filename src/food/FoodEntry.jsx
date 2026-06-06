@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { calcMacros, calcBatchMacros, servingsToGrams, gramsToServings } from './macroCalc.js'
 import { MACRO_COLORS } from '../config.js'
 
@@ -16,6 +16,7 @@ export default function FoodEntry({ food, batch, initialGrams, onAdd, onCancel }
   const [servings,    setServings]    = useState(String(gramsToServings(item, defaultGrams)))
   const [listening,   setListening]   = useState(false)
   const [error,       setError]       = useState('')
+  const recogRef = useRef(null)
 
   const parsedGrams = parseFloat(grams) || 0
 
@@ -40,6 +41,12 @@ export default function FoodEntry({ food, batch, initialGrams, onAdd, onCancel }
 
   // ── Voice input ────────────────────────────────────────────────────────────
   function handleVoice() {
+    if (listening) {
+      recogRef.current?.abort()
+      recogRef.current = null
+      setListening(false)
+      return
+    }
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       setError('Voice input not supported on this browser')
       return
@@ -48,14 +55,14 @@ export default function FoodEntry({ food, batch, initialGrams, onAdd, onCancel }
     const recognition = new SR()
     recognition.lang = 'en-IN'
     recognition.interimResults = false
+    recogRef.current = recognition
 
     recognition.onstart  = () => setListening(true)
-    recognition.onend    = () => setListening(false)
-    recognition.onerror  = () => { setListening(false); setError('Voice error — try again') }
+    recognition.onend    = () => { setListening(false); recogRef.current = null }
+    recognition.onerror  = () => { setListening(false); recogRef.current = null; setError('Voice error — try again') }
 
     recognition.onresult = (e) => {
       const transcript = e.results[0][0].transcript.toLowerCase()
-      // Extract number from speech e.g. "150 grams" or "two servings"
       const numMatch = transcript.match(/(\d+\.?\d*)/)
       if (numMatch) {
         setGrams(numMatch[1])
@@ -130,11 +137,17 @@ export default function FoodEntry({ food, batch, initialGrams, onAdd, onCancel }
           <button
             style={{ ...styles.voiceBtn, ...(listening ? styles.voiceBtnActive : {}) }}
             onClick={handleVoice}
-            title="Voice input"
+            title={listening ? 'Stop listening' : 'Voice input'}
+            aria-label={listening ? 'Stop listening' : 'Voice input'}
           >
-            🎙
+            {listening ? '⏹' : '🎙'}
           </button>
         </div>
+        {listening && (
+          <p style={{ fontSize:'12px', color:'var(--text-tertiary)', margin:'4px 0 0', textAlign:'center' }}>
+            Listening… tap <strong>⏹</strong> to stop
+          </p>
+        )}
 
         {useServings && item?.servingSize && (
           <div style={styles.gramsEquiv}>

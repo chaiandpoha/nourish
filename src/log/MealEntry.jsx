@@ -265,11 +265,16 @@ export default function MealEntry({ date, onLogged, inline = false }) {
                     type="button"
                     aria-label={listening ? "Stop listening" : "Voice input"}
                   >
-                    🎤
+                    {listening ? '⏹' : '🎤'}
                   </button>
                 )}
               </div>
-              {voiceHint ? (
+              {listening && (
+                <div style={s.voiceHint}>
+                  Listening… tap <strong>⏹</strong> to stop
+                </div>
+              )}
+              {!listening && voiceHint ? (
                 <div style={s.voiceHint}>{voiceHint}</div>
               ) : null}
 
