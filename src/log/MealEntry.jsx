@@ -77,7 +77,10 @@ export default function MealEntry({ date, onLogged, inline = false }) {
   const [voiceHint,  setVoiceHint]  = useState('')
   const [voiceQty,   setVoiceQty]   = useState(null)
   const [voiceUnit,  setVoiceUnit]  = useState('g')
-  const recogRef = useRef(null)
+  const recogRef  = useRef(null)
+  const sheetRef  = useRef(null)
+  const dragRef   = useRef({ startY: 0, lastY: 0, lastT: 0, dy: 0, vel: 0, active: false })
+  const closeRef  = useRef(null)
   const { user } = useAuth()
 
   // Seed food database once; retry once on failure
@@ -140,6 +143,73 @@ export default function MealEntry({ date, onLogged, inline = false }) {
       document.body.style.top      = ''
       document.body.style.width    = ''
       window.scrollTo(0, scrollY)
+    }
+  }, [open])
+
+  // Keep closeRef current so gesture handlers always call the latest version
+  closeRef.current = closeSheet
+
+  // Swipe-down-to-dismiss — non-passive touchmove so we can preventDefault
+  // Only activates when sheet is scrolled to the top (avoids conflicting with
+  // internal scroll) and the user drags downward.
+  useEffect(() => {
+    if (!open) return
+    const sheet = sheetRef.current
+    if (!sheet) return
+
+    function onStart(e) {
+      const d = dragRef.current
+      d.startY = e.touches[0].clientY
+      d.lastY  = d.startY
+      d.lastT  = Date.now()
+      d.dy     = 0
+      d.vel    = 0
+      d.active = false
+    }
+
+    function onMove(e) {
+      const d  = dragRef.current
+      const dy = e.touches[0].clientY - d.startY
+      if (dy <= 0 || sheet.scrollTop > 0) return   // not a downward drag from top
+
+      const now = Date.now()
+      const dt  = now - d.lastT
+      d.vel     = dt > 0 ? (e.touches[0].clientY - d.lastY) / dt : d.vel
+      d.lastY   = e.touches[0].clientY
+      d.lastT   = now
+      d.dy      = dy
+      d.active  = true
+
+      e.preventDefault()  // stop sheet from scrolling while we handle gesture
+      sheet.style.transition = 'none'
+      sheet.style.transform  = `translateY(${dy}px)`
+    }
+
+    function onEnd() {
+      const d = dragRef.current
+      if (!d.active) return
+      d.active = false
+      // Dismiss if dragged far enough OR flicked fast enough
+      if (d.dy > 120 || (d.dy > 40 && d.vel > 0.5)) {
+        sheet.style.transition = 'transform 0.25s ease'
+        sheet.style.transform  = 'translateY(100%)'
+        setTimeout(() => closeRef.current?.(), 230)
+      } else {
+        sheet.style.transition = 'transform 0.35s cubic-bezier(0.16,1,0.3,1)'
+        sheet.style.transform  = 'translateY(0)'
+      }
+    }
+
+    sheet.addEventListener('touchstart', onStart, { passive: true })
+    sheet.addEventListener('touchmove',  onMove,  { passive: false })
+    sheet.addEventListener('touchend',   onEnd,   { passive: true })
+    sheet.addEventListener('touchcancel',onEnd,   { passive: true })
+
+    return () => {
+      sheet.removeEventListener('touchstart', onStart)
+      sheet.removeEventListener('touchmove',  onMove)
+      sheet.removeEventListener('touchend',   onEnd)
+      sheet.removeEventListener('touchcancel',onEnd)
     }
   }, [open])
 
@@ -264,7 +334,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
 
       {/* Bottom sheet */}
       {open && (
-        <div style={s.sheet}>
+        <div ref={sheetRef} style={s.sheet}>
           <div style={s.handle} />
 
           {/* List screen */}
