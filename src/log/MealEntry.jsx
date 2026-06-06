@@ -159,18 +159,21 @@ export default function MealEntry({ date, onLogged, inline = false }) {
 
     function onStart(e) {
       const d = dragRef.current
-      d.startY = e.touches[0].clientY
-      d.lastY  = d.startY
-      d.lastT  = Date.now()
-      d.dy     = 0
-      d.vel    = 0
-      d.active = false
+      d.startY     = e.touches[0].clientY
+      d.lastY      = d.startY
+      d.lastT      = Date.now()
+      d.dy         = 0
+      d.vel        = 0
+      d.active     = false
+      // Allow drag from handle zone (top 48px) even when sheet is scrolled
+      d.fromHandle = (d.startY - sheet.getBoundingClientRect().top) < 48
     }
 
     function onMove(e) {
       const d  = dragRef.current
       const dy = e.touches[0].clientY - d.startY
-      if (dy <= 0 || sheet.scrollTop > 0) return   // not a downward drag from top
+      if (dy <= 0) return                                   // never drag upward
+      if (!d.fromHandle && sheet.scrollTop > 0) return     // scrolled — let sheet scroll
 
       const now = Date.now()
       const dt  = now - d.lastT
