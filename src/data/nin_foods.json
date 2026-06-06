@@ -4324,5 +4324,19 @@
     "servingSize": 200,
     "servingLabel": "1 glass",
     "barcode": null
+  },
+  {
+    "id": "nin_312",
+    "name": "Roasted Split Chickpea / Bhuna Chana Dal (Dalia)",
+    "per100g": {
+      "calories": 346,
+      "protein": 22,
+      "carbs": 52,
+      "fat": 5,
+      "fibre": 16
+    },
+    "servingSize": 30,
+    "servingLabel": "30g handful",
+    "barcode": null
   }
 ]

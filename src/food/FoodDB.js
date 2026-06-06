@@ -69,6 +69,11 @@ export async function seedFoodDatabase() {
         const v2 = STAPLE_FOODS.filter(f => parseInt(f.id.split('_')[1]) >= 21)
         await db.foods.bulkPut(v2.map(f => ({ ...f, source: 'nin', tags: [] })))
       }
+      const hasNinV2 = await db.foods.get('nin_312')
+      if (!hasNinV2) {
+        const ninNew = ninFoodsData.filter(f => parseInt(f.id.split('_')[1]) >= 312)
+        await db.foods.bulkPut(ninNew.map(f => ({ ...f, source: 'nin', tags: f.tags || [] })))
+      }
       return true
     }
 
