@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { RingWithMacros } from '../shared/RingChart.jsx'
 import StreakStrip from '../shared/StreakStrip.jsx'
@@ -7,13 +7,11 @@ import { getDayMacros } from '../db/db.js'
 import { db } from '../db/indexedDB.js'
 import { seedFoodDatabase } from '../food/FoodDB.js'
 import MealChat from '../chat/MealChat.jsx'
-import WeeklySummary from '../progress/WeeklySummary.jsx'
 import { Skeleton, SkeletonCard, SkeletonRow } from '../shared/Skeleton.jsx'
 import WaterTracker from '../shared/WaterTracker.jsx'
 import SyncStatus from '../shared/SyncStatus.jsx'
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
-// Main dashboard screen
 
 function AvatarMenu({ user, logout }) {
   const [open, setOpen] = useState(false)
@@ -52,17 +50,20 @@ function AvatarMenu({ user, logout }) {
 }
 
 export default function Home() {
-  const { user, lock, logout } = useAuth()
-  const [totals,      setTotals]      = useState({ calories:0, protein:0, carbs:0, fat:0, fibre:0 })
-  const [weight,      setWeight]      = useState(null)
-  const [supplements, setSupplements] = useState([])
-  const [suppDone,    setSuppDone]    = useState({})
-  const [batches,     setBatches]     = useState([])
-  const [refreshKey,  setRefreshKey]  = useState(0)
-  const [showChat,    setShowChat]    = useState(false)
-  const [greeting,    setGreeting]    = useState('')
-  const [dateLabel,   setDateLabel]   = useState('')
-  const [loading,     setLoading]     = useState(true)
+  const { user, logout } = useAuth()
+  const [totals,       setTotals]       = useState({ calories:0, protein:0, carbs:0, fat:0, fibre:0 })
+  const [weight,       setWeight]       = useState(null)
+  const [supplements,  setSupplements]  = useState([])
+  const [suppDone,     setSuppDone]     = useState({})
+  const [stepsData,    setStepsData]    = useState(null)
+  const [refreshKey,   setRefreshKey]   = useState(0)
+  const [showChat,     setShowChat]     = useState(false)
+  const [greeting,     setGreeting]     = useState('')
+  const [dateLabel,    setDateLabel]    = useState('')
+  const [loading,      setLoading]      = useState(true)
+  const [editingSteps, setEditingSteps] = useState(false)
+  const [stepsInput,   setStepsInput]   = useState('')
+  const [calInput,     setCalInput]     = useState('')
 
   const today = localDate()
 
@@ -80,11 +81,9 @@ export default function Home() {
   async function loadDashboard() {
     setLoading(true)
     try {
-      // Macros
       const macros = await getDayMacros(user.id, today)
       setTotals(macros)
 
-      // Latest weight
       const weights = await db.weightLog
         .where('[userId+date]')
         .between([user.id, '2000-01-01'], [user.id, today], true, true)
@@ -94,22 +93,20 @@ export default function Home() {
         setWeight(latest.weightKg)
       }
 
-      // Supplements
       const supps = user.supplements || []
       setSupplements(supps)
 
-      // Load today's supplement log
       const suppLog = await db.supplementLog
         .where('[userId+date]')
         .equals([user.id, today])
         .first()
       setSuppDone(suppLog?.done || {})
 
-      // Active batches
-      const allBatches = await db.batches
-        .where('closed').equals(0)
-        .toArray()
-      setBatches(allBatches.slice(0, 3))
+      const steps = await db.stepsLog
+        .where('[userId+date]')
+        .equals([user.id, today])
+        .first()
+      setStepsData(steps || null)
     } finally {
       setLoading(false)
     }
@@ -118,41 +115,50 @@ export default function Home() {
   async function toggleSupplement(name) {
     const done = { ...suppDone, [name]: !suppDone[name] }
     setSuppDone(done)
-
-    // Persist to IndexedDB
     const existing = await db.supplementLog
       .where('[userId+date]')
       .equals([user.id, today])
       .first()
-
     if (existing) {
-      await db.supplementLog.update(existing.id, {
-        done,
-        dirty:     1,
-        updatedAt: new Date().toISOString(),
-      })
+      await db.supplementLog.update(existing.id, { done, dirty:1, updatedAt: new Date().toISOString() })
     } else {
-      await db.supplementLog.add({
-        userId:    user.id,
-        date:      today,
-        done,
-        dirty:     1,
-        updatedAt: new Date().toISOString(),
-      })
+      await db.supplementLog.add({ userId:user.id, date:today, done, dirty:1, updatedAt: new Date().toISOString() })
     }
   }
 
-  function handleLogged() {
-    setRefreshKey(k => k + 1)
+  function openStepsEdit() {
+    setStepsInput(stepsData?.steps ? String(stepsData.steps) : '')
+    setCalInput(stepsData?.caloriesBurned ? String(stepsData.caloriesBurned) : '')
+    setEditingSteps(true)
   }
+
+  async function saveSteps() {
+    const steps = parseInt(stepsInput) || 0
+    const caloriesBurned = parseInt(calInput) || 0
+    const now = new Date().toISOString()
+    const existing = await db.stepsLog
+      .where('[userId+date]')
+      .equals([user.id, today])
+      .first()
+    if (existing) {
+      await db.stepsLog.update(existing.id, { steps, caloriesBurned, dirty:1, updatedAt:now })
+      setStepsData({ ...existing, steps, caloriesBurned })
+    } else {
+      const id = await db.stepsLog.add({ userId:user.id, date:today, steps, caloriesBurned, source:'manual', dirty:1, updatedAt:now })
+      setStepsData({ id, userId:user.id, date:today, steps, caloriesBurned })
+    }
+    setEditingSteps(false)
+  }
+
+  function handleLogged() { setRefreshKey(k => k + 1) }
 
   useEffect(() => {
     window.addEventListener('nourish:food-logged', handleLogged)
     return () => window.removeEventListener('nourish:food-logged', handleLogged)
   }, [])
 
-  const suppCount    = supplements.filter(s => suppDone[s]).length
-  const goals        = user?.macroGoals || {}
+  const suppCount = supplements.filter(s => suppDone[s]).length
+  const goals     = user?.macroGoals || {}
 
   if (showChat) return <MealChat onClose={() => setShowChat(false)} />
 
@@ -171,20 +177,11 @@ export default function Home() {
           <SkeletonRow items={5} />
         </SkeletonCard>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
-          <SkeletonCard style={{ gap:'8px' }}>
-            <Skeleton width="50px" height="10px" radius="5px" />
-            <Skeleton width="80px" height="22px" radius="8px" />
-          </SkeletonCard>
-          <SkeletonCard style={{ gap:'8px' }}>
-            <Skeleton width="60px" height="10px" radius="5px" />
-            <Skeleton width="90px" height="22px" radius="8px" />
-          </SkeletonCard>
+          <SkeletonCard style={{ gap:'8px' }}><Skeleton width="50px" height="10px" radius="5px" /><Skeleton width="80px" height="22px" radius="8px" /></SkeletonCard>
+          <SkeletonCard style={{ gap:'8px' }}><Skeleton width="60px" height="10px" radius="5px" /><Skeleton width="90px" height="22px" radius="8px" /></SkeletonCard>
+          <SkeletonCard style={{ gap:'8px' }}><Skeleton width="50px" height="10px" radius="5px" /><Skeleton width="80px" height="22px" radius="8px" /></SkeletonCard>
+          <SkeletonCard style={{ gap:'8px' }}><Skeleton width="60px" height="10px" radius="5px" /><Skeleton width="90px" height="22px" radius="8px" /></SkeletonCard>
         </div>
-        <SkeletonCard>
-          <Skeleton height="14px" radius="7px" />
-          <Skeleton height="14px" radius="7px" style={{ width: '70%' }} />
-          <Skeleton height="14px" radius="7px" style={{ width: '85%' }} />
-        </SkeletonCard>
       </div>
     )
   }
@@ -207,51 +204,43 @@ export default function Home() {
       {/* Calorie ring + macros */}
       <RingWithMacros totals={totals} goals={goals} />
 
-      {/* Stat cards */}
+      {/* 2×2 Stat grid */}
       <div style={styles.statGrid}>
         <div style={styles.statCard}>
           <div style={styles.statLabel}>Weight</div>
           {weight ? (
-            <>
-              <div style={styles.statVal}>
-                {weight}
-                <span style={styles.statUnit}> kg</span>
-              </div>
-            </>
+            <div style={styles.statVal}>{weight}<span style={styles.statUnit}> kg</span></div>
           ) : (
             <div style={styles.statEmpty}>Not logged</div>
           )}
         </div>
 
+        <button style={{ ...styles.statCard, ...styles.statCardBtn }} onClick={openStepsEdit}>
+          <div style={styles.statLabel}>Steps</div>
+          {stepsData?.steps ? (
+            <div style={styles.statVal}>{stepsData.steps.toLocaleString()}</div>
+          ) : (
+            <div style={styles.statEmpty}>Tap to add</div>
+          )}
+        </button>
+
         <div style={styles.statCard}>
           <div style={styles.statLabel}>Workout</div>
           <WorkoutStat userId={user?.id} date={today} />
         </div>
+
+        <button style={{ ...styles.statCard, ...styles.statCardBtn }} onClick={openStepsEdit}>
+          <div style={styles.statLabel}>Cal Burned</div>
+          {stepsData?.caloriesBurned ? (
+            <div style={styles.statVal}>{stepsData.caloriesBurned}<span style={styles.statUnit}> kcal</span></div>
+          ) : (
+            <div style={styles.statEmpty}>Tap to add</div>
+          )}
+        </button>
       </div>
 
       {/* Water tracker */}
       <WaterTracker />
-
-      {/* Active batches */}
-      {batches.length > 0 && (
-        <>
-          <SectionHeader title="Active Batches" />
-          {batches.map(batch => (
-            <div key={batch.id} style={styles.batchCard}>
-              <div>
-                <div style={styles.batchName}>{batch.name}</div>
-                <div style={styles.batchMeta}>
-                  {batch.macrosPer100g?.calories || 0} kcal ·{' '}
-                  {batch.macrosPer100g?.protein  || 0}g P per 100g
-                </div>
-              </div>
-              {batch.shared && (
-                <div style={styles.sharedTag}>Shared</div>
-              )}
-            </div>
-          ))}
-        </>
-      )}
 
       {/* Supplements */}
       {supplements.length > 0 && (
@@ -264,17 +253,11 @@ export default function Home() {
             {supplements.map((supp, i) => (
               <button
                 key={supp}
-                style={{
-                  ...styles.suppRow,
-                  ...(i === supplements.length - 1 ? styles.suppRowLast : {})
-                }}
+                style={{ ...styles.suppRow, ...(i === supplements.length - 1 ? styles.suppRowLast : {}) }}
                 onClick={() => toggleSupplement(supp)}
               >
                 <span style={styles.suppName}>{supp}</span>
-                <div style={{
-                  ...styles.suppCheck,
-                  ...(suppDone[supp] ? styles.suppCheckDone : styles.suppCheckTodo)
-                }}>
+                <div style={{ ...styles.suppCheck, ...(suppDone[supp] ? styles.suppCheckDone : styles.suppCheckTodo) }}>
                   {suppDone[supp] ? '✓' : ''}
                 </div>
               </button>
@@ -288,13 +271,7 @@ export default function Home() {
 
       {/* Day log */}
       <SectionHeader title="Today's Log" />
-      <DayLog
-        date={today}
-        onTotalsChange={setTotals}
-      />
-
-      {/* Weekly Summary */}
-      <WeeklySummary />
+      <DayLog date={today} onTotalsChange={setTotals} />
 
       {/* AI Chat button */}
       <button style={styles.chatBtn} onClick={() => setShowChat(true)}>
@@ -305,8 +282,49 @@ export default function Home() {
         </div>
       </button>
 
-      {/* Bottom padding */}
-      <div style={{ height: '24px' }} />
+      <div style={{ height:'24px' }} />
+
+      {/* Steps edit sheet */}
+      {editingSteps && (
+        <div style={styles.sheetOverlay} onClick={() => setEditingSteps(false)}>
+          <div style={styles.sheet} onClick={e => e.stopPropagation()}>
+            <div style={styles.sheetHandle} />
+            <h3 style={styles.sheetTitle}>Today's Activity</h3>
+            <p style={styles.sheetSub}>Enter manually or set up auto-sync via iPhone Shortcuts</p>
+
+            <div style={styles.fieldRow}>
+              <div style={styles.field}>
+                <label style={lbl}>Steps</label>
+                <input
+                  style={styles.input}
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="e.g. 8000"
+                  value={stepsInput}
+                  onChange={e => setStepsInput(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div style={styles.field}>
+                <label style={lbl}>Calories Burned</label>
+                <input
+                  style={styles.input}
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="e.g. 350"
+                  value={calInput}
+                  onChange={e => setCalInput(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div style={styles.sheetActions}>
+              <button style={styles.cancelBtn} onClick={() => setEditingSteps(false)}>Cancel</button>
+              <button style={styles.saveBtn} onClick={saveSteps}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -325,14 +343,8 @@ function WorkoutStat({ userId, date }) {
       .then(setWorkout)
   }, [userId, date])
 
-  if (!workout) {
-    return <div style={styles.statEmpty}>Rest day</div>
-  }
-  return (
-    <div style={styles.statVal} >
-      <span style={{ fontSize:'16px' }}>{workout.name || 'Session'}</span>
-    </div>
-  )
+  if (!workout) return <div style={styles.statEmpty}>Rest day</div>
+  return <div style={styles.statVal}><span style={{ fontSize:'16px' }}>{workout.name || 'Session'}</span></div>
 }
 
 // ─── SectionHeader ────────────────────────────────────────────────────────────
@@ -363,6 +375,8 @@ function getDateLabel() {
   })
 }
 
+const lbl = { fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'6px', display:'block' }
+
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = {
   screen: {
@@ -373,187 +387,119 @@ const styles = {
     minHeight:     '100%',
     animation:     'pageIn 0.25s var(--ease-out) both',
   },
-  header: {
-    display:         'flex',
-    alignItems:      'flex-start',
-    justifyContent:  'space-between',
-    marginBottom:    '4px',
-  },
   dateLabel: {
-    fontSize:        '11px',
-    fontWeight:      '500',
-    color:           'var(--text-tertiary)',
-    letterSpacing:   '0.06em',
-    textTransform:   'uppercase',
-    marginBottom:    '4px',
+    fontSize:      '11px',
+    fontWeight:    '500',
+    color:         'var(--text-tertiary)',
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    marginBottom:  '4px',
   },
   greeting: {
-    fontSize:        '22px',
-    fontWeight:      '300',
-    color:           'var(--text-secondary)',
-    letterSpacing:   '-0.02em',
-    fontFamily:      'var(--font-serif)',
-    fontStyle:       'italic',
+    fontSize:   '22px',
+    fontWeight: '300',
+    color:      'var(--text-secondary)',
+    letterSpacing: '-0.02em',
+    fontFamily: 'var(--font-serif)',
+    fontStyle:  'italic',
   },
   greetingName: {
-    color:           'var(--text-primary)',
-    fontWeight:      '400',
-  },
-  headerRight: {
-    display:         'flex',
-    alignItems:      'center',
-    gap:             '10px',
-    marginTop:       '4px',
-  },
-  avatarBtn: {
-    background:  'none',
-    border:      'none',
-    cursor:      'pointer',
-    padding:     0,
-    borderRadius:'50%',
-  },
-  avatar: {
-    width:           '38px',
-    height:          '38px',
-    borderRadius:    '50%',
-    background:      'var(--text-primary)',
-    color:           'var(--text-inverse)',
-    display:         'flex',
-    alignItems:      'center',
-    justifyContent:  'center',
-    fontSize:        '13px',
-    fontWeight:      '600',
-    letterSpacing:   '0.04em',
-    flexShrink:      0,
+    color:      'var(--text-primary)',
+    fontWeight: '400',
   },
   statGrid: {
-    display:         'grid',
+    display:             'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap:             '8px',
+    gap:                 '8px',
   },
   statCard: {
-    background:      'var(--bg-surface)',
-    border:          '0.5px solid var(--border-subtle)',
-    borderRadius:    'var(--r-xl)',
-    padding:         '14px 16px',
+    background:   'var(--bg-surface)',
+    border:       '0.5px solid var(--border-subtle)',
+    borderRadius: 'var(--r-xl)',
+    padding:      '14px 16px',
+  },
+  statCardBtn: {
+    cursor:      'pointer',
+    textAlign:   'left',
+    WebkitTapHighlightColor: 'transparent',
   },
   statLabel: {
-    fontSize:        '10px',
-    fontWeight:      '600',
-    color:           'var(--text-tertiary)',
-    textTransform:   'uppercase',
-    letterSpacing:   '0.08em',
-    marginBottom:    '8px',
+    fontSize:      '10px',
+    fontWeight:    '600',
+    color:         'var(--text-tertiary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    marginBottom:  '8px',
   },
   statVal: {
-    fontSize:        '22px',
-    fontWeight:      '300',
-    color:           'var(--text-primary)',
-    letterSpacing:   '-0.03em',
-    lineHeight:      '1.1',
+    fontSize:     '22px',
+    fontWeight:   '300',
+    color:        'var(--text-primary)',
+    letterSpacing:'-0.03em',
+    lineHeight:   '1.1',
   },
   statUnit: {
-    fontSize:        '13px',
-    color:           'var(--text-tertiary)',
-    fontWeight:      '400',
+    fontSize:   '13px',
+    color:      'var(--text-tertiary)',
+    fontWeight: '400',
   },
   statEmpty: {
-    fontSize:        '14px',
-    color:           'var(--text-tertiary)',
-    fontStyle:       'italic',
+    fontSize:  '13px',
+    color:     'var(--text-tertiary)',
+    fontStyle: 'italic',
   },
   sectionHeader: {
-    display:         'flex',
-    alignItems:      'center',
-    justifyContent:  'space-between',
-    paddingLeft:     '2px',
+    display:        'flex',
+    alignItems:     'center',
+    justifyContent: 'space-between',
+    paddingLeft:    '2px',
   },
   sectionTitle: {
-    fontSize:        '10px',
-    fontWeight:      '700',
-    color:           'var(--text-tertiary)',
-    textTransform:   'uppercase',
-    letterSpacing:   '0.1em',
+    fontSize:      '10px',
+    fontWeight:    '700',
+    color:         'var(--text-tertiary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
   },
   sectionRight: {
-    fontSize:        '12px',
-    color:           'var(--accent)',
-    fontWeight:      '500',
-  },
-  batchCard: {
-    background:      'var(--bg-surface)',
-    border:          '0.5px solid var(--border-subtle)',
-    borderRadius:    'var(--r-lg)',
-    padding:         '13px 15px',
-    display:         'flex',
-    alignItems:      'center',
-    justifyContent:  'space-between',
-  },
-  batchName: {
-    fontSize:        '15px',
-    fontWeight:      '600',
-    color:           'var(--text-primary)',
-    letterSpacing:   '-0.01em',
-    fontStyle:       'italic',
-    fontFamily:      'var(--font-serif)',
-  },
-  batchMeta: {
-    fontSize:        '12px',
-    color:           'var(--text-tertiary)',
-    marginTop:       '2px',
-  },
-  sharedTag: {
-    fontSize:        '10px',
-    fontWeight:      '600',
-    background:      'var(--accent-dim)',
-    color:           'var(--accent)',
-    padding:         '3px 10px',
-    borderRadius:    'var(--r-full)',
-    letterSpacing:   '0.05em',
-    textTransform:   'uppercase',
+    fontSize:   '12px',
+    color:      'var(--accent)',
+    fontWeight: '500',
   },
   suppCard: {
-    background:      'var(--bg-surface)',
-    border:          '0.5px solid var(--border-subtle)',
-    borderRadius:    'var(--r-xl)',
-    overflow:        'hidden',
+    background:   'var(--bg-surface)',
+    border:       '0.5px solid var(--border-subtle)',
+    borderRadius: 'var(--r-xl)',
+    overflow:     'hidden',
   },
   suppRow: {
-    display:         'flex',
-    alignItems:      'center',
-    justifyContent:  'space-between',
-    width:           '100%',
-    padding:         '13px 16px',
-    background:      'transparent',
-    border:          'none',
-    borderBottom:    '0.5px solid var(--border-subtle)',
-    cursor:          'pointer',
-    textAlign:       'left',
+    display:        'flex',
+    alignItems:     'center',
+    justifyContent: 'space-between',
+    width:          '100%',
+    padding:        '13px 16px',
+    background:     'transparent',
+    border:         'none',
+    borderBottom:   '0.5px solid var(--border-subtle)',
+    cursor:         'pointer',
+    textAlign:      'left',
   },
-  suppRowLast: {
-    borderBottom:    'none',
-  },
-  suppName: {
-    fontSize:        '14px',
-    color:           'var(--text-primary)',
-    fontWeight:      '400',
-  },
+  suppRowLast: { borderBottom: 'none' },
+  suppName:    { fontSize:'14px', color:'var(--text-primary)', fontWeight:'400' },
   suppCheck: {
-    width:           '24px',
-    height:          '24px',
-    borderRadius:    '50%',
-    display:         'flex',
-    alignItems:      'center',
-    justifyContent:  'center',
-    fontSize:        '13px',
-    fontWeight:      '700',
-    flexShrink:      0,
-    transition:      'all 0.15s',
+    width:        '24px',
+    height:       '24px',
+    borderRadius: '50%',
+    display:      'flex',
+    alignItems:   'center',
+    justifyContent:'center',
+    fontSize:     '13px',
+    fontWeight:   '700',
+    flexShrink:   0,
+    transition:   'all 0.15s',
   },
-  suppCheckDone: {
-    background:      'var(--accent-dim)',
-    color:           'var(--accent)',
-  },
+  suppCheckDone: { background:'var(--accent-dim)', color:'var(--accent)' },
+  suppCheckTodo: { border:'1.5px solid var(--border-default)', background:'transparent', color:'transparent' },
   chatBtn: {
     display:      'flex',
     alignItems:   'center',
@@ -565,9 +511,88 @@ const styles = {
     borderRadius: 'var(--r-xl)',
     cursor:       'pointer',
   },
-  suppCheckTodo: {
-    border:          '1.5px solid var(--border-default)',
-    background:      'transparent',
-    color:           'transparent',
+  // Steps edit bottom sheet
+  sheetOverlay: {
+    position:       'fixed',
+    inset:          0,
+    background:     'rgba(0,0,0,0.45)',
+    zIndex:         200,
+    display:        'flex',
+    alignItems:     'flex-end',
+  },
+  sheet: {
+    width:           '100%',
+    background:      'var(--bg-surface)',
+    borderRadius:    'var(--r-xl) var(--r-xl) 0 0',
+    padding:         '12px 20px 36px',
+    display:         'flex',
+    flexDirection:   'column',
+    gap:             '16px',
+  },
+  sheetHandle: {
+    width:        '36px',
+    height:       '4px',
+    borderRadius: '2px',
+    background:   'var(--border-default)',
+    margin:       '0 auto 4px',
+  },
+  sheetTitle: {
+    fontSize:   '18px',
+    fontWeight: '600',
+    color:      'var(--text-primary)',
+    margin:     0,
+    letterSpacing:'-0.02em',
+  },
+  sheetSub: {
+    fontSize:   '13px',
+    color:      'var(--text-tertiary)',
+    margin:     '-8px 0 0',
+    lineHeight: '1.4',
+  },
+  fieldRow: {
+    display: 'flex',
+    gap:     '12px',
+  },
+  field: {
+    flex:           1,
+    display:        'flex',
+    flexDirection:  'column',
+  },
+  input: {
+    padding:      '12px 14px',
+    background:   'var(--bg-base)',
+    border:       '1px solid var(--border-default)',
+    borderRadius: 'var(--r-lg)',
+    fontSize:     '16px',
+    color:        'var(--text-primary)',
+    outline:      'none',
+    width:        '100%',
+    boxSizing:    'border-box',
+  },
+  sheetActions: {
+    display: 'flex',
+    gap:     '10px',
+  },
+  cancelBtn: {
+    flex:         1,
+    padding:      '14px',
+    background:   'var(--bg-base)',
+    border:       '1px solid var(--border-default)',
+    borderRadius: 'var(--r-lg)',
+    fontSize:     '15px',
+    fontWeight:   '600',
+    color:        'var(--text-secondary)',
+    cursor:       'pointer',
+  },
+  saveBtn: {
+    flex:         2,
+    padding:      '14px',
+    background:   'var(--accent)',
+    border:       'none',
+    borderRadius: 'var(--r-lg)',
+    fontSize:     '15px',
+    fontWeight:   '600',
+    color:        '#fff',
+    cursor:       'pointer',
   },
 }

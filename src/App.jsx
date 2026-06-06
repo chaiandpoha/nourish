@@ -14,7 +14,6 @@ import { DRIVE } from './config.js'
 import HomeScreen from './screens/Home.jsx'
 import BatchList from './batches/BatchList.jsx'
 import WeightLog from './progress/WeightLog.jsx'
-import WeeklySummary from './progress/WeeklySummary.jsx'
 import BloodWork from './progress/BloodWork.jsx'
 import MoodLog from './progress/MoodLog.jsx'
 import CalendarView from './calendar/CalendarView.jsx'
@@ -188,17 +187,70 @@ function ProtectedApp() {
     <div style={styles.appShell}>
       <main style={styles.main}>
         <Routes>
-          <Route path="/"         element={<HomeScreen />} />
-          <Route path="/food"     element={<FoodScreen />} />
-          <Route path="/workout"  element={<WorkoutScreen />} />
-          <Route path="/calendar" element={<CalendarScreen />} />
-          <Route path="/settings" element={<SettingsScreen />} />
-          <Route path="*"         element={<Navigate to="/" replace />} />
+          <Route path="/"             element={<HomeScreen />} />
+          <Route path="/food"         element={<FoodScreen />} />
+          <Route path="/workout"      element={<WorkoutScreen />} />
+          <Route path="/calendar"     element={<CalendarScreen />} />
+          <Route path="/settings"     element={<SettingsScreen />} />
+          <Route path="/health-sync"  element={<HealthSyncScreen />} />
+          <Route path="*"             element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <BottomNav />
       {user && pathname !== '/calendar' && <MealEntry date={today} onLogged={handleGlobalLogged} />}
       <InstallPrompt />
+    </div>
+  )
+}
+
+// ─── HealthSyncScreen ─────────────────────────────────────────────────────────
+// Handles the iOS Shortcuts URL: /#/health-sync?steps=8000&cal=350
+// Saves to IndexedDB and redirects home.
+
+function HealthSyncScreen() {
+  const { user } = useAuth()
+  const navigate  = useNavigate()
+  const { search } = useLocation()
+  const [status, setStatus] = useState('saving')
+
+  useEffect(() => {
+    if (!user) return
+    ;(async () => {
+      const params = new URLSearchParams(search)
+      const steps          = parseInt(params.get('steps'))  || 0
+      const caloriesBurned = parseInt(params.get('cal'))    || 0
+      const date           = params.get('date') || localDate()
+      const now = new Date().toISOString()
+
+      const existing = await db.stepsLog
+        .where('[userId+date]')
+        .equals([user.id, date])
+        .first()
+
+      if (existing) {
+        await db.stepsLog.update(existing.id, { steps, caloriesBurned, source:'shortcut', dirty:1, updatedAt:now })
+      } else {
+        await db.stepsLog.add({ userId:user.id, date, steps, caloriesBurned, source:'shortcut', dirty:1, updatedAt:now })
+      }
+
+      setStatus('done')
+      setTimeout(() => navigate('/', { replace:true }), 1200)
+    })()
+  }, [user])
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'60dvh', gap:'12px', padding:'24px' }}>
+      {status === 'saving' ? (
+        <>
+          <div style={{ fontSize:'40px' }}>⌛</div>
+          <p style={{ fontSize:'16px', color:'var(--text-secondary)' }}>Syncing activity…</p>
+        </>
+      ) : (
+        <>
+          <div style={{ fontSize:'40px' }}>✅</div>
+          <p style={{ fontSize:'16px', color:'var(--text-secondary)', fontWeight:'600' }}>Activity synced!</p>
+        </>
+      )}
     </div>
   )
 }
@@ -351,6 +403,7 @@ function SettingsScreen() {
     { id:'household',    label:'Household' },
     { id:'supps',        label:'Supps'     },
     { id:'reminders',    label:'Reminders' },
+    { id:'health',       label:'Health'    },
     { id:'progress',     label:'Progress'  },
     { id:'body',         label:'Body'      },
     { id:'photos',       label:'Photos'    },
@@ -398,6 +451,10 @@ function SettingsScreen() {
 
       {tab === 'reminders' && (
         <ReminderSettings userId={user?.id} />
+      )}
+
+      {tab === 'health' && (
+        <HealthSyncSettings userId={user?.id} />
       )}
 
       {tab === 'progress' && (
@@ -599,6 +656,74 @@ const WEEK_DAYS = [
   { id:'sat', label:'Sa' },
 ]
 const ALL_DAYS = WEEK_DAYS.map(d => d.id)
+
+// ─── HealthSyncSettings ───────────────────────────────────────────────────────
+
+function HealthSyncSettings({ userId }) {
+  const [copied, setCopied] = useState(false)
+  const origin = window.location.origin
+  const syncUrl = `${origin}/#/health-sync?steps=[Steps Count]&cal=[Active Energy]&date=[Shortcut Date]`
+
+  function copyUrl() {
+    navigator.clipboard.writeText(syncUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div style={styles.settingsSection}>
+      <div style={styles.settingsSectionHeader}>
+        <span style={styles.settingsSectionTitle}>iPhone Health Sync</span>
+        <span style={styles.settingsSectionSub}>Auto-sync steps and calories burned from Apple Health via iOS Shortcuts</span>
+      </div>
+
+      <div style={styles.settingsCard}>
+        <p style={{ fontSize:'14px', color:'var(--text-secondary)', margin:'0 0 16px', lineHeight:'1.5' }}>
+          Set up a daily iOS Shortcut automation to automatically sync your step count and active calories from Apple Health to Nourish.
+        </p>
+
+        <div style={{ fontSize:'12px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'12px' }}>
+          Setup steps
+        </div>
+
+        {[
+          'Open the Shortcuts app on your iPhone',
+          'Tap Automation → New Automation → Time of Day (e.g. 9 PM daily)',
+          'Add action: Health → Get Quantity from Health (Steps) → name it "steps"',
+          'Add action: Health → Get Quantity from Health (Active Energy Burned) → name it "cal"',
+          'Add action: Scripting → Get Current Date → Format as "yyyy-MM-dd" → name it "date"',
+          'Add action: Web → Open URL with the URL below',
+          'Turn off "Ask Before Running"',
+        ].map((step, i) => (
+          <div key={i} style={{ display:'flex', gap:'10px', marginBottom:'10px', alignItems:'flex-start' }}>
+            <div style={{ width:'22px', height:'22px', borderRadius:'50%', background:'var(--accent-dim)', color:'var(--accent)', fontSize:'11px', fontWeight:'700', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:'1px' }}>
+              {i + 1}
+            </div>
+            <p style={{ fontSize:'13px', color:'var(--text-secondary)', margin:0, lineHeight:'1.5' }}>{step}</p>
+          </div>
+        ))}
+
+        <div style={{ fontSize:'12px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', margin:'16px 0 8px' }}>
+          Your sync URL
+        </div>
+        <div style={{ background:'var(--bg-base)', borderRadius:'var(--r-lg)', padding:'12px', fontFamily:'monospace', fontSize:'11px', color:'var(--text-secondary)', wordBreak:'break-all', lineHeight:'1.6', border:'1px solid var(--border-subtle)' }}>
+          {syncUrl}
+        </div>
+        <p style={{ fontSize:'11px', color:'var(--text-tertiary)', margin:'6px 0 12px', lineHeight:'1.4' }}>
+          Replace the bracketed placeholders with the matching Shortcut variables from steps above.
+        </p>
+
+        <button
+          style={{ width:'100%', padding:'13px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'#fff', fontSize:'15px', fontWeight:'600', cursor:'pointer' }}
+          onClick={copyUrl}
+        >
+          {copied ? '✓ Copied!' : 'Copy URL Template'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function ReminderSettings({ userId }) {
   const [reminders, setReminders] = useState([])

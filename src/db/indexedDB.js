@@ -176,6 +176,11 @@ db.version(4).stores({
   users: '&id, name, email, driveFileId, householdId, createdAt',
 })
 
+// Version 5 — daily activity log (steps + calories burned from iPhone Health)
+db.version(5).stores({
+  stepsLog: '++id, userId, date, [userId+date], dirty, updatedAt',
+})
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Mark a record dirty — needs sync to Drive */
