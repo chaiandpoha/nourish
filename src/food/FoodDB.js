@@ -73,6 +73,11 @@ export async function seedFoodDatabase() {
       if (!hasNinV2) {
         const ninNew = ninFoodsData.filter(f => parseInt(f.id.split('_')[1]) >= 312)
         await db.foods.bulkPut(ninNew.map(f => ({ ...f, source: 'nin', tags: f.tags || [] })))
+        // Remove duplicate NIN entries that were deduplicated in this release
+        const dupeIds = ['nin_093','nin_094','nin_096','nin_097','nin_101','nin_102','nin_103',
+          'nin_115','nin_117','nin_130','nin_136','nin_142','nin_143','nin_147','nin_157',
+          'nin_171','nin_172','nin_185','nin_191','nin_211','nin_212']
+        await db.foods.bulkDelete(dupeIds)
       }
       return true
     }
