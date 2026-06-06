@@ -254,11 +254,11 @@ export default function Home() {
 
       {/* Supplements */}
       {supplements.length > 0 && (
-        <>
-          <SectionHeader
-            title="Supplements"
-            right={`${suppCount} / ${supplements.length}`}
-          />
+        <div style={styles.suppCard}>
+          <div style={styles.suppCardHeader}>
+            <span style={styles.suppCardTitle}>Supplements</span>
+            <span style={styles.suppCardCount}>{suppCount} / {supplements.length}</span>
+          </div>
           <div style={styles.suppGrid}>
             {supplements.map(supp => (
               <button
@@ -271,7 +271,7 @@ export default function Home() {
               </button>
             ))}
           </div>
-        </>
+        </div>
       )}
 
       {/* Streak strip */}
@@ -491,23 +491,49 @@ const styles = {
     color:      'var(--accent)',
     fontWeight: '500',
   },
+  suppCard: {
+    background:   'var(--bg-surface)',
+    border:       '0.5px solid var(--border-subtle)',
+    borderRadius: 'var(--r-xl)',
+    padding:      '10px 14px 12px',
+    display:      'flex',
+    flexDirection:'column',
+    gap:          '8px',
+  },
+  suppCardHeader: {
+    display:        'flex',
+    alignItems:     'center',
+    justifyContent: 'space-between',
+  },
+  suppCardTitle: {
+    fontSize:      '10px',
+    fontWeight:    '700',
+    color:         'var(--text-tertiary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+  },
+  suppCardCount: {
+    fontSize:   '12px',
+    color:      'var(--accent)',
+    fontWeight: '500',
+  },
   suppGrid: {
-    display:   'flex',
-    flexWrap:  'wrap',
-    gap:       '8px',
+    display:  'flex',
+    flexWrap: 'wrap',
+    gap:      '6px',
   },
   suppChip: {
-    padding:    '8px 14px',
-    background: 'var(--bg-surface)',
-    border:     '1px solid var(--border-default)',
+    padding:      '5px 11px',
+    background:   'var(--bg-elevated)',
+    border:       '1px solid var(--border-default)',
     borderRadius: 'var(--r-full)',
-    fontSize:   '13px',
-    fontWeight: '500',
-    color:      'var(--text-secondary)',
-    cursor:     'pointer',
-    display:    'flex',
-    alignItems: 'center',
-    gap:        '5px',
+    fontSize:     '12px',
+    fontWeight:   '500',
+    color:        'var(--text-secondary)',
+    cursor:       'pointer',
+    display:      'flex',
+    alignItems:   'center',
+    gap:          '4px',
     WebkitTapHighlightColor: 'transparent',
   },
   suppChipDone: {
@@ -517,7 +543,7 @@ const styles = {
     fontWeight:  '600',
   },
   suppTick: {
-    fontSize:   '11px',
+    fontSize:   '10px',
     fontWeight: '700',
   },
   chatBtn: {
