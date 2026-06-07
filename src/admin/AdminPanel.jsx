@@ -19,8 +19,20 @@ export default function AdminPanel() {
     setLoading(true)
     let allBatches = []
     try {
-      allBatches = await sbFetchBatches(user?.householdId)
-      await db.batches.bulkPut(allBatches)
+      const remote = await sbFetchBatches(user?.householdId)
+      // Safe merge: don't overwrite local batches with richer ingredient data
+      if (remote.length) {
+        const localRecords = await db.batches.bulkGet(remote.map(b => b.id))
+        const toSave = remote.filter((r, i) => {
+          const local = localRecords[i]
+          if (!local) return true
+          const localHasIng  = Array.isArray(local.ingredients)  && local.ingredients.length  > 0
+          const remoteHasIng = Array.isArray(r.ingredients) && r.ingredients.length > 0
+          return !(localHasIng && !remoteHasIng)
+        })
+        if (toSave.length) await db.batches.bulkPut(toSave)
+      }
+      allBatches = await db.batches.toArray()
     } catch {
       allBatches = await db.batches.toArray()
     }

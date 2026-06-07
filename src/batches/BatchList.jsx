@@ -30,21 +30,14 @@ export default function BatchList({ onLogged }) {
         return !(localHasIng && !remoteHasIng)
       })
       if (toSave.length) await db.batches.bulkPut(toSave)
-      // Build display list: prefer local version when it has richer data
+      // Display from local DB — includes offline-created batches Supabase doesn't have yet
       const localAll = await db.batches.where('closed').equals(0).toArray()
-      const localMap = new Map(localAll.map(b => [b.id, b]))
-      const merged = remote.filter(b => !b.closed).map(b => {
-        const local = localMap.get(b.id)
-        const remoteHasIng = Array.isArray(b.ingredients) && b.ingredients.length > 0
-        if (local && Array.isArray(local.ingredients) && local.ingredients.length > 0 && !remoteHasIng) return local
-        return b
-      })
-      merged.sort((a, b) => {
+      localAll.sort((a, b) => {
         if (a.shared && !b.shared) return -1
         if (!a.shared && b.shared) return 1
         return new Date(b.createdAt) - new Date(a.createdAt)
       })
-      setBatches(merged)
+      setBatches(localAll)
     } catch {
       // Offline fallback
       const all = await db.batches.where('closed').equals(0).toArray()

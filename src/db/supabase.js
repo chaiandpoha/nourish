@@ -43,10 +43,11 @@ function fromRow(row) {
 }
 
 export async function sbFetchBatches(householdId) {
-  if (!supabase) throw new Error('Supabase not configured')
-  let query = supabase.from('batches').select('*').order('created_at', { ascending: false })
-  if (householdId) query = query.eq('household_id', householdId)
-  const { data, error } = await query
+  if (!supabase || !householdId) return []
+  const { data, error } = await supabase
+    .from('batches').select('*')
+    .eq('household_id', householdId)
+    .order('created_at', { ascending: false })
   if (error) throw error
   return data.map(fromRow)
 }
