@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db } from '../db/indexedDB.js'
-import { saveFood, deleteFood } from './FoodDB.js'
+import { saveFood, deleteFood, pushLocalFoodsToHousehold } from './FoodDB.js'
 import { sbFetchHouseholdFoods } from '../db/supabase.js'
 import { MACRO_COLORS } from '../config.js'
 
@@ -13,6 +13,7 @@ export default function LabelList({ householdId }) {
   const [syncing,    setSyncing]    = useState(false)
   const [syncErr,    setSyncErr]    = useState('')
   const [debugInfo,  setDebugInfo]  = useState('')
+  const [pushResult, setPushResult] = useState('')
   const [error,      setError]      = useState('')
 
   async function load() {
@@ -112,6 +113,14 @@ export default function LabelList({ householdId }) {
     load()
   }
 
+  async function handleForcePush() {
+    if (!householdId) { setPushResult('No household set'); return }
+    setPushResult('Pushing…')
+    const { pushed, error } = await pushLocalFoodsToHousehold(householdId)
+    setPushResult(error ? `Push error: ${error}` : `Pushed ${pushed} foods — reloading…`)
+    await load()
+  }
+
   if (syncing && foods.length === 0) {
     return (
       <div style={s.empty}>
@@ -126,6 +135,8 @@ export default function LabelList({ householdId }) {
       <div style={s.empty}>
         {debugInfo && <p style={s.debugInfo}>{debugInfo}</p>}
         {syncErr && <p style={s.syncErr}>{syncErr}</p>}
+        {householdId && <button style={s.syncBtn} onClick={handleForcePush}>Force push to household</button>}
+        {pushResult && <p style={s.debugInfo}>{pushResult}</p>}
         <p style={s.emptyTitle}>No saved labels yet</p>
         <p style={s.emptySub}>Scan a nutrition label or use the barcode scanner to save foods here</p>
       </div>
@@ -136,6 +147,8 @@ export default function LabelList({ householdId }) {
     <div style={s.container}>
       {debugInfo && <p style={s.debugInfo}>{debugInfo}</p>}
       {syncErr && <p style={s.syncErr}>{syncErr}</p>}
+      {householdId && <button style={s.syncBtn} onClick={handleForcePush}>Force push to household</button>}
+      {pushResult && <p style={s.debugInfo}>{pushResult}</p>}
       {foods.map(food => {
         const isEditing  = editing === food.id
         const isDeleting = deleting === food.id
@@ -294,6 +307,7 @@ const s = {
   error:           { fontSize: '13px', color: 'var(--red)', margin: 0 },
   syncErr:         { fontSize: '12px', color: 'var(--red)', textAlign: 'center', margin: '0 0 4px' },
   debugInfo:       { fontSize: '11px', color: 'var(--text-tertiary)', textAlign: 'center', margin: '0 0 4px', fontFamily: 'var(--font-mono)' },
+  syncBtn:         { padding: '6px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 'var(--r-md)', color: 'var(--text-secondary)', fontSize: '12px', cursor: 'pointer' },
   editActions:     { display: 'flex', gap: '8px' },
   cancelBtn2:      { flex: 1, padding: '11px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500', cursor: 'pointer' },
   saveBtn:         { flex: 2, padding: '11px', background: 'var(--text-primary)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '14px', fontWeight: '600', cursor: 'pointer' },
