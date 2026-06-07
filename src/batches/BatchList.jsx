@@ -19,20 +19,46 @@ export default function BatchList({ onLogged }) {
   async function loadBatches() {
     if (!user) return
     try {
-      const data = await sbFetchBatches(user.householdId)
-      // Cache in IndexedDB for offline
-      await db.batches.bulkPut(data)
-      setBatches(data.filter(b => !b.closed).sort((a, b) => {
+      const remote = await sbFetchBatches(user.householdId)
+      // Safe merge: don't overwrite local batches that have ingredients when remote doesn't
+      const localRecords = await db.batches.bulkGet(remote.map(b => b.id))
+      const toSave = remote.filter((r, i) => {
+        const local = localRecords[i]
+        if (!local) return true
+        const localHasIng  = Array.isArray(local.ingredients)  && local.ingredients.length  > 0
+        const remoteHasIng = Array.isArray(r.ingredients) && r.ingredients.length > 0
+        return !(localHasIng && !remoteHasIng)
+      })
+      if (toSave.length) await db.batches.bulkPut(toSave)
+      // Build display list: prefer local version when it has richer data
+      const localAll = await db.batches.where('closed').equals(0).toArray()
+      const localMap = new Map(localAll.map(b => [b.id, b]))
+      const merged = remote.filter(b => !b.closed).map(b => {
+        const local = localMap.get(b.id)
+        const remoteHasIng = Array.isArray(b.ingredients) && b.ingredients.length > 0
+        if (local && Array.isArray(local.ingredients) && local.ingredients.length > 0 && !remoteHasIng) return local
+        return b
+      })
+      merged.sort((a, b) => {
         if (a.shared && !b.shared) return -1
         if (!a.shared && b.shared) return 1
         return new Date(b.createdAt) - new Date(a.createdAt)
-      }))
+      })
+      setBatches(merged)
     } catch {
       // Offline fallback
       const all = await db.batches.where('closed').equals(0).toArray()
       setBatches(all)
     }
     setLoading(false)
+  }
+
+  async function handleEdit(batch) {
+    // Always load from local IndexedDB — it has ingredients even when Supabase doesn't
+    const local = await db.batches.get(batch.id).catch(() => null)
+    const richBatch = (local && Array.isArray(local.ingredients) && local.ingredients.length > 0) ? local : batch
+    setEditing(richBatch)
+    setScreen('edit')
   }
 
   async function handleClose(batchId) {
@@ -107,7 +133,7 @@ export default function BatchList({ onLogged }) {
           key={batch.id}
           batch={batch}
           onLog={() => { setSelected(batch); setScreen('log') }}
-          onEdit={() => { setEditing(batch); setScreen('edit') }}
+          onEdit={() => handleEdit(batch)}
           onClose={() => handleClose(batch.id)}
         />
       ))}
