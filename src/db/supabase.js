@@ -115,6 +115,12 @@ export async function sbSaveFood(food, householdId) {
   return data
 }
 
+export async function sbDeleteFood(id) {
+  if (!supabase) return
+  const { error } = await supabase.from('household_foods').delete().eq('id', id)
+  if (error) throw error
+}
+
 export async function sbFetchHouseholdFoods(householdId) {
   if (!supabase || !householdId) return []
   const { data, error } = await supabase

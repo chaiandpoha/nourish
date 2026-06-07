@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../db/indexedDB.js'
 import RecipeBuilder from './RecipeBuilder.jsx'
-import { fetchHouseholdFoods } from './FoodDB.js'
+import { deleteFood, fetchHouseholdFoods } from './FoodDB.js'
 import { MACRO_COLORS } from '../config.js'
 
 export default function RecipeList({ householdId }) {
@@ -25,7 +25,7 @@ export default function RecipeList({ householdId }) {
   }, [householdId])
 
   async function handleDelete(id) {
-    await db.foods.delete(id)
+    await deleteFood(id, householdId)
     setDeleting(null)
     load()
   }

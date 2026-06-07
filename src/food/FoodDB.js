@@ -232,6 +232,14 @@ export async function saveFood(food, householdId) {
   return entry
 }
 
+export async function deleteFood(id, householdId) {
+  await db.foods.delete(id)
+  if (householdId) {
+    const { sbDeleteFood } = await import('../db/supabase.js')
+    await sbDeleteFood(id).catch(e => console.warn('Supabase food delete error:', e))
+  }
+}
+
 // Pull household foods from Supabase and merge into local DB
 export async function fetchHouseholdFoods(householdId) {
   if (!householdId) return

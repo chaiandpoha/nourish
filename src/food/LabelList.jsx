@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db } from '../db/indexedDB.js'
-import { saveFood, fetchHouseholdFoods } from './FoodDB.js'
+import { saveFood, deleteFood, fetchHouseholdFoods } from './FoodDB.js'
 import { MACRO_COLORS } from '../config.js'
 
 export default function LabelList({ householdId }) {
@@ -89,7 +89,7 @@ export default function LabelList({ householdId }) {
   }
 
   async function handleDelete(id) {
-    await db.foods.delete(id)
+    await deleteFood(id, householdId)
     setDeleting(null)
     load()
   }
