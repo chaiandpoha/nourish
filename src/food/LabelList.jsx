@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db } from '../db/indexedDB.js'
-import { saveFood } from './FoodDB.js'
+import { saveFood, fetchHouseholdFoods } from './FoodDB.js'
 import { MACRO_COLORS } from '../config.js'
 
 export default function LabelList({ householdId }) {
@@ -9,6 +9,7 @@ export default function LabelList({ householdId }) {
   const [form,     setForm]     = useState(null)  // current edit form state
   const [deleting, setDeleting] = useState(null)
   const [saving,   setSaving]   = useState(false)
+  const [syncing,  setSyncing]  = useState(false)
   const [error,    setError]    = useState('')
 
   async function load() {
@@ -17,7 +18,17 @@ export default function LabelList({ householdId }) {
     setFoods(all)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    async function syncThenLoad() {
+      if (householdId) {
+        setSyncing(true)
+        await fetchHouseholdFoods(householdId).catch(() => {})
+        setSyncing(false)
+      }
+      await load()
+    }
+    syncThenLoad()
+  }, [householdId])
 
   function startEdit(food) {
     // Split "Name, Brand" back into name + brand if applicable
@@ -81,6 +92,15 @@ export default function LabelList({ householdId }) {
     await db.foods.delete(id)
     setDeleting(null)
     load()
+  }
+
+  if (syncing && foods.length === 0) {
+    return (
+      <div style={s.empty}>
+        <p style={s.emptyTitle}>Syncing…</p>
+        <p style={s.emptySub}>Loading shared household labels</p>
+      </div>
+    )
   }
 
   if (foods.length === 0) {

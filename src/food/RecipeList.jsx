@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../db/indexedDB.js'
 import RecipeBuilder from './RecipeBuilder.jsx'
+import { fetchHouseholdFoods } from './FoodDB.js'
 import { MACRO_COLORS } from '../config.js'
 
 export default function RecipeList({ householdId }) {
@@ -15,7 +16,13 @@ export default function RecipeList({ householdId }) {
     setRecipes(all)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    async function syncThenLoad() {
+      if (householdId) await fetchHouseholdFoods(householdId).catch(() => {})
+      await load()
+    }
+    syncThenLoad()
+  }, [householdId])
 
   async function handleDelete(id) {
     await db.foods.delete(id)

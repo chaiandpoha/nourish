@@ -134,6 +134,7 @@ export async function sbFetchHouseholdFoods(householdId) {
     brand:        row.brand         || null,
     tags:         row.tags          || [],
     ingredients:  row.ingredients   || [],
+    updatedAt:    row.updated_at    || null,
   }))
 }
 
