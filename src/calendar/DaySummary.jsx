@@ -32,6 +32,16 @@ export default function DaySummary({ date, onBack }) {
   const supplements = user?.supplements || []
   const goals       = user?.macroGoals  || {}
 
+  async function toggleSupplement(name, currentLog) {
+    const done = { ...(currentLog?.done || {}), [name]: !(currentLog?.done?.[name]) }
+    if (currentLog) {
+      await db.supplementLog.update(currentLog.id, { done, dirty: 1, updatedAt: new Date().toISOString() })
+    } else {
+      await db.supplementLog.add({ userId: user.id, date, done, dirty: 1, updatedAt: new Date().toISOString() })
+    }
+    setRefresh(r => r + 1)
+  }
+
   return (
     <div style={s.container}>
       {/* Header */}
@@ -87,17 +97,20 @@ export default function DaySummary({ date, onBack }) {
       )}
 
       {/* Supplements */}
-      {supplements.length > 0 && suppLog && (
+      {supplements.length > 0 && (
         <div style={s.card}>
           <div style={s.cardLabel}>Supplements</div>
-          {supplements.map(supp => (
-            <div key={supp} style={s.suppRow}>
-              <span style={s.suppName}>{supp}</span>
-              <span style={{ ...s.suppStatus, color: suppLog.done?.[supp] ? 'var(--accent)' : 'var(--text-tertiary)' }}>
-                {suppLog.done?.[supp] ? '✓ Taken' : '— Missed'}
-              </span>
-            </div>
-          ))}
+          {supplements.map(supp => {
+            const taken = suppLog?.done?.[supp] || false
+            return (
+              <button key={supp} style={s.suppRow} onClick={() => toggleSupplement(supp, suppLog)}>
+                <span style={s.suppName}>{supp}</span>
+                <span style={{ ...s.suppStatus, color: taken ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+                  {taken ? '✓ Taken' : '— Missed'}
+                </span>
+              </button>
+            )
+          })}
         </div>
       )}
 
@@ -151,7 +164,7 @@ const s = {
   weightVal:   { fontSize:'28px', fontWeight:'300', color:'var(--text-primary)', letterSpacing:'-0.03em' },
   weightNote:  { fontSize:'13px', color:'var(--text-tertiary)' },
 
-  suppRow:     { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 0', borderBottom:'0.5px solid var(--border-subtle)' },
+  suppRow:     { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 0', borderBottom:'0.5px solid var(--border-subtle)', width:'100%', background:'none', border:'none', cursor:'pointer', textAlign:'left' },
   suppName:    { fontSize:'14px', color:'var(--text-primary)' },
   suppStatus:  { fontSize:'13px', fontWeight:'600' },
 
