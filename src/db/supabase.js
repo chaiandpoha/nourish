@@ -93,21 +93,17 @@ export async function sbPushAllBatches(batches, email, householdId) {
 
 export async function sbSaveFood(food, householdId) {
   if (!supabase || !householdId) return null
+  // Only core columns — avoids errors on tables missing optional columns (brand, barcode, etc.)
   const { data, error } = await supabase
     .from('household_foods')
     .upsert({
-      id:            food.id,
-      name:          food.name,
-      source:        food.source || 'saved',
-      per_100g:      food.per100g || null,
-      serving_size:  food.servingSize || null,
-      serving_label: food.servingLabel || null,
-      barcode:       food.barcode || null,
-      brand:         food.brand  || null,
-      tags:          food.tags   || [],
-      ingredients:   food.ingredients || [],
-      household_id:  householdId,
-      updated_at:    new Date().toISOString(),
+      id:           food.id,
+      name:         food.name,
+      source:       food.source || 'saved',
+      per_100g:     food.per100g || null,
+      serving_size: food.servingSize || null,
+      household_id: householdId,
+      updated_at:   new Date().toISOString(),
     })
     .select()
     .single()
