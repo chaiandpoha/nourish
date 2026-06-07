@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../db/indexedDB.js'
-import { saveFood, deleteFood, fetchHouseholdFoods } from './FoodDB.js'
+import { saveFood, deleteFood } from './FoodDB.js'
+import { sbFetchHouseholdFoods } from '../db/supabase.js'
 import { MACRO_COLORS } from '../config.js'
 
 export default function LabelList({ householdId }) {
@@ -10,25 +11,41 @@ export default function LabelList({ householdId }) {
   const [deleting, setDeleting] = useState(null)
   const [saving,   setSaving]   = useState(false)
   const [syncing,  setSyncing]  = useState(false)
+  const [syncErr,  setSyncErr]  = useState('')
   const [error,    setError]    = useState('')
 
   async function load() {
-    const all = await db.foods.where('source').anyOf(['scanned', 'saved']).toArray()
-    all.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
-    setFoods(all)
+    setSyncing(true)
+    setSyncErr('')
+    try {
+      // Always start from local foods
+      const local = await db.foods.where('source').anyOf(['scanned', 'saved']).toArray()
+      const byId = new Map(local.map(f => [f.id, f]))
+
+      // Merge household foods directly from Supabase (same pattern as BatchList)
+      if (householdId) {
+        const remote = await sbFetchHouseholdFoods(householdId)
+        for (const f of remote) byId.set(f.id, f)
+        // Persist to IndexedDB for offline
+        if (remote.length) {
+          await db.foods.bulkPut(remote.map(f => ({ tags: [], ...f }))).catch(() => {})
+        }
+      }
+
+      const merged = [...byId.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+      setFoods(merged)
+    } catch (e) {
+      setSyncErr('Could not sync household labels')
+      // Fall back to local only
+      const local = await db.foods.where('source').anyOf(['scanned', 'saved']).toArray()
+      local.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+      setFoods(local)
+    } finally {
+      setSyncing(false)
+    }
   }
 
-  useEffect(() => {
-    async function syncThenLoad() {
-      if (householdId) {
-        setSyncing(true)
-        await fetchHouseholdFoods(householdId).catch(() => {})
-        setSyncing(false)
-      }
-      await load()
-    }
-    syncThenLoad()
-  }, [householdId])
+  useEffect(() => { load() }, [householdId])
 
   function startEdit(food) {
     // Split "Name, Brand" back into name + brand if applicable
@@ -106,6 +123,7 @@ export default function LabelList({ householdId }) {
   if (foods.length === 0) {
     return (
       <div style={s.empty}>
+        {syncErr && <p style={s.syncErr}>{syncErr}</p>}
         <p style={s.emptyTitle}>No saved labels yet</p>
         <p style={s.emptySub}>Scan a nutrition label or use the barcode scanner to save foods here</p>
       </div>
@@ -114,6 +132,7 @@ export default function LabelList({ householdId }) {
 
   return (
     <div style={s.container}>
+      {syncErr && <p style={s.syncErr}>{syncErr}</p>}
       {foods.map(food => {
         const isEditing  = editing === food.id
         const isDeleting = deleting === food.id
@@ -270,6 +289,7 @@ const s = {
   macroEditField:  { display: 'flex', flexDirection: 'column', gap: '4px' },
   unit:            { fontSize: '11px', color: 'var(--text-tertiary)', flexShrink: 0 },
   error:           { fontSize: '13px', color: 'var(--red)', margin: 0 },
+  syncErr:         { fontSize: '12px', color: 'var(--red)', textAlign: 'center', margin: '0 0 4px' },
   editActions:     { display: 'flex', gap: '8px' },
   cancelBtn2:      { flex: 1, padding: '11px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500', cursor: 'pointer' },
   saveBtn:         { flex: 2, padding: '11px', background: 'var(--text-primary)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '14px', fontWeight: '600', cursor: 'pointer' },

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { db } from '../db/indexedDB.js'
 import RecipeBuilder from './RecipeBuilder.jsx'
-import { deleteFood, fetchHouseholdFoods } from './FoodDB.js'
+import { deleteFood } from './FoodDB.js'
+import { sbFetchHouseholdFoods } from '../db/supabase.js'
 import { MACRO_COLORS } from '../config.js'
 
 export default function RecipeList({ householdId }) {
@@ -11,18 +12,29 @@ export default function RecipeList({ householdId }) {
   const [deleting, setDeleting] = useState(null) // id being confirmed
 
   async function load() {
-    const all = await db.foods.where('source').equals('recipe').toArray()
-    all.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
-    setRecipes(all)
+    try {
+      const local = await db.foods.where('source').equals('recipe').toArray()
+      const byId  = new Map(local.map(f => [f.id, f]))
+
+      if (householdId) {
+        const remote = await sbFetchHouseholdFoods(householdId)
+        for (const f of remote.filter(f => f.source === 'recipe')) byId.set(f.id, f)
+        const recipes = remote.filter(f => f.source === 'recipe')
+        if (recipes.length) {
+          await db.foods.bulkPut(recipes.map(f => ({ tags: [], ...f }))).catch(() => {})
+        }
+      }
+
+      const merged = [...byId.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+      setRecipes(merged)
+    } catch {
+      const all = await db.foods.where('source').equals('recipe').toArray()
+      all.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+      setRecipes(all)
+    }
   }
 
-  useEffect(() => {
-    async function syncThenLoad() {
-      if (householdId) await fetchHouseholdFoods(householdId).catch(() => {})
-      await load()
-    }
-    syncThenLoad()
-  }, [householdId])
+  useEffect(() => { load() }, [householdId])
 
   async function handleDelete(id) {
     await deleteFood(id, householdId)
