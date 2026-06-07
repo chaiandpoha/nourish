@@ -18,11 +18,13 @@ export default function RecipeList({ householdId }) {
 
       if (householdId) {
         const remote = await sbFetchHouseholdFoods(householdId)
-        for (const f of remote.filter(f => f.source === 'recipe')) byId.set(f.id, f)
-        const recipes = remote.filter(f => f.source === 'recipe')
-        if (recipes.length) {
-          await db.foods.bulkPut(recipes.map(f => ({ tags: [], ...f }))).catch(() => {})
+        // A recipe from Supabase may come back as source:'saved' if the table has no source column
+        // Use ingredients as the reliable discriminator
+        for (const f of remote) {
+          const isRecipe = f.source === 'recipe' || (Array.isArray(f.ingredients) && f.ingredients.length > 0)
+          if (isRecipe) byId.set(f.id, { ...f, source: 'recipe' })
         }
+        // Never bulkPut remote data — it corrupts local source fields
       }
 
       const merged = [...byId.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))

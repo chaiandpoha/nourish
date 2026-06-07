@@ -69,6 +69,17 @@ export async function seedFoodDatabase() {
         const v2 = STAPLE_FOODS.filter(f => parseInt(f.id.split('_')[1]) >= 21)
         await db.foods.bulkPut(v2.map(f => ({ ...f, source: 'nin', tags: [] })))
       }
+      // Fix foods whose source was corrupted to 'saved' by bulkPut from Supabase
+      // (Supabase household_foods has no source column → defaults to 'saved')
+      // A food with a non-empty ingredients array is always a recipe.
+      const corrupted = await db.foods
+        .where('source').anyOf(['saved', 'scanned'])
+        .filter(f => Array.isArray(f.ingredients) && f.ingredients.length > 0)
+        .toArray()
+      if (corrupted.length) {
+        await db.foods.bulkPut(corrupted.map(f => ({ ...f, source: 'recipe' })))
+      }
+
       const hasNinV2 = await db.foods.get('nin_312')
       if (!hasNinV2) {
         const ninNew = ninFoodsData.filter(f => parseInt(f.id.split('_')[1]) >= 312)

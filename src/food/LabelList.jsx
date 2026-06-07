@@ -21,9 +21,15 @@ export default function LabelList({ householdId }) {
 
       if (householdId) {
         const remote = await sbFetchHouseholdFoods(householdId)
-        // Only labels in this tab — recipes go to RecipeList
-        for (const f of remote.filter(f => f.source === 'saved' || f.source === 'scanned'))
+        for (const f of remote) {
+          // Skip if local already has this food with a definitive source
+          const local = byId.get(f.id)
+          if (local && local.source === 'recipe') continue
+          // Only labels in this tab — exclude anything that looks like a recipe
+          if (Array.isArray(f.ingredients) && f.ingredients.length > 0) continue
           byId.set(f.id, f)
+        }
+        // Never bulkPut remote data — it would corrupt local source fields
       }
 
       const merged = [...byId.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
