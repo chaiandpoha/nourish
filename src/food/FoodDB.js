@@ -120,14 +120,15 @@ export async function seedFoodDatabase() {
 export async function searchFoods(query, limit = 20) {
   if (!query || query.trim().length < 1) return []
 
-  const q = query.trim().toLowerCase()
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
 
-  // Get all foods matching query
   const all = await db.foods.toArray()
 
-  const matches = all.filter(f =>
-    f.name.toLowerCase().includes(q)
-  )
+  // Every word must appear somewhere in the name (AND logic)
+  const matches = all.filter(f => {
+    const name = f.name.toLowerCase()
+    return words.every(w => name.includes(w))
+  })
 
   // Sort by priority then relevance
   matches.sort((a, b) => {
@@ -136,8 +137,10 @@ export async function searchFoods(query, limit = 20) {
     if (pa !== pb) return pa - pb
 
     // Within same source — exact start match ranked higher
-    const aStarts = a.name.toLowerCase().startsWith(q) ? 0 : 1
-    const bStarts = b.name.toLowerCase().startsWith(q) ? 0 : 1
+    const aName = a.name.toLowerCase()
+    const bName = b.name.toLowerCase()
+    const aStarts = aName.startsWith(words[0]) ? 0 : 1
+    const bStarts = bName.startsWith(words[0]) ? 0 : 1
     return aStarts - bStarts
   })
 
@@ -257,7 +260,18 @@ export async function fetchHouseholdFoods(householdId) {
   try {
     const { sbFetchHouseholdFoods } = await import('../db/supabase.js')
     const foods = await sbFetchHouseholdFoods(householdId)
-    if (foods.length) await db.foods.bulkPut(foods)
+    if (!foods.length) return
+    // Never clobber local records that have richer data than remote
+    const localRecords = await db.foods.bulkGet(foods.map(f => f.id))
+    const toSave = foods.filter((remote, i) => {
+      const local = localRecords[i]
+      if (!local) return true
+      const localHasIngredients  = Array.isArray(local.ingredients)  && local.ingredients.length  > 0
+      const remoteHasIngredients = Array.isArray(remote.ingredients) && remote.ingredients.length > 0
+      if (localHasIngredients && !remoteHasIngredients) return false
+      return true
+    })
+    if (toSave.length) await db.foods.bulkPut(toSave)
   } catch (e) {
     console.warn('fetchHouseholdFoods error:', e)
   }

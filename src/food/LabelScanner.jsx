@@ -75,7 +75,7 @@ export default function LabelScanner({ onSaved, onCancel, userId, householdId, m
 {
   "name": "product name",
   "brand": "brand name or null",
-  "per100g": {
+  "perServing": {
     "calories": number,
     "protein": number,
     "carbs": number,
@@ -85,10 +85,10 @@ export default function LabelScanner({ onSaved, onCancel, userId, householdId, m
     "fibre": number,
     "sodium": number
   },
-  "servingSize": number (in grams),
-  "servingLabel": "e.g. 1 scoop, 1 cup"
+  "servingSize": number (serving size in grams, e.g. 30 for a 30g serving),
+  "servingLabel": "e.g. 1 scoop, 1 cup, 150ml"
 }
-All numeric values per 100g. If a value is not listed, use 0. Return only the JSON, no explanation.`
+Return macro values EXACTLY as printed on the label for ONE serving. Do not convert to per 100g. If the label only shows per 100g, use servingSize: 100 and copy those values as-is. If a value is not listed, use 0. Return only the JSON, no explanation.`
 
     const res = await fetch('/api/ai', {
       method:  'POST',
@@ -122,17 +122,20 @@ All numeric values per 100g. If a value is not listed, use 0. Return only the JS
 
     const parsed = JSON.parse(jsonMatch[0])
     setExtracted(parsed)
+    const srv = parsed.servingSize || 100
+    // Use per-serving values directly — no conversion needed, matches the label exactly
+    const ps = parsed.perServing || parsed.per100g || {}
     setEdited({
       name:         parsed.name        || '',
       brand:        parsed.brand       || '',
-      servingSize:  String(parsed.servingSize  || 100),
-      servingLabel: parsed.servingLabel || '100g',
-      calories:     String(parsed.per100g?.calories     || 0),
-      protein:      String(parsed.per100g?.protein      || 0),
-      carbs:        String(parsed.per100g?.carbs        || 0),
-      fat:          String(parsed.per100g?.fat          || 0),
-      fibre:        String(parsed.per100g?.fibre        || 0),
-      sodium:       String(parsed.per100g?.sodium       || 0),
+      servingSize:  String(srv),
+      servingLabel: parsed.servingLabel || (srv === 100 ? '100g' : '1 serving'),
+      calories:     String(ps.calories     || 0),
+      protein:      String(ps.protein      || 0),
+      carbs:        String(ps.carbs        || 0),
+      fat:          String(ps.fat          || 0),
+      fibre:        String(ps.fibre        || 0),
+      sodium:       String(ps.sodium       || 0),
     })
     setScreen('review')
     setLoading(false)
@@ -143,6 +146,9 @@ All numeric values per 100g. If a value is not listed, use 0. Return only the JS
     if (!edited.name.trim()) { setError('Food name is required'); return }
     setScreen('saving')
 
+    const srv = parseFloat(edited.servingSize) || 100
+    const toP100 = (v) => Math.round((parseFloat(v) || 0) / srv * 100 * 10) / 10
+
     const food = {
       id:           generateId(),
       name:         edited.brand
@@ -150,15 +156,15 @@ All numeric values per 100g. If a value is not listed, use 0. Return only the JS
         : edited.name.trim(),
       source:       'scanned',
       barcode:      null,
-      servingSize:  parseFloat(edited.servingSize)  || 100,
-      servingLabel: edited.servingLabel || '100g',
+      servingSize:  srv,
+      servingLabel: edited.servingLabel || '1 serving',
       per100g: {
-        calories:    parseFloat(edited.calories)    || 0,
-        protein:     parseFloat(edited.protein)     || 0,
-        carbs:       parseFloat(edited.carbs)       || 0,
-        fat:         parseFloat(edited.fat)         || 0,
-        fibre:       parseFloat(edited.fibre)       || 0,
-        sodium:      parseFloat(edited.sodium)      || 0,
+        calories:    toP100(edited.calories),
+        protein:     toP100(edited.protein),
+        carbs:       toP100(edited.carbs),
+        fat:         toP100(edited.fat),
+        fibre:       toP100(edited.fibre),
+        sodium:      toP100(edited.sodium),
         sugar:       0,
         saturatedFat:0,
       },
@@ -285,9 +291,9 @@ All numeric values per 100g. If a value is not listed, use 0. Return only the JS
             </div>
           </div>
 
-          {/* Macros per 100g */}
+          {/* Macros per serving — values as printed on label */}
           <div style={st.macroSection}>
-            <div style={st.macroSectionLabel}>Per 100g</div>
+            <div style={st.macroSectionLabel}>Per serving · {edited.servingSize}g · edit if scanner got it wrong</div>
             <div style={st.macroGrid}>
               {[
                 { key: 'calories', label: 'Calories',  unit: 'kcal', color: 'var(--text-primary)'  },

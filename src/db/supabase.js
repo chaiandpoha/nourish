@@ -93,17 +93,18 @@ export async function sbPushAllBatches(batches, email, householdId) {
 
 export async function sbSaveFood(food, householdId) {
   if (!supabase || !householdId) return null
-  // Only core columns — avoids errors on tables missing optional columns (brand, barcode, etc.)
   const { data, error } = await supabase
     .from('household_foods')
     .upsert({
-      id:           food.id,
-      name:         food.name,
-      source:       food.source || 'saved',
-      per_100g:     food.per100g || null,
-      serving_size: food.servingSize || null,
-      household_id: householdId,
-      updated_at:   new Date().toISOString(),
+      id:            food.id,
+      name:          food.name,
+      source:        food.source || 'saved',
+      per_100g:      food.per100g      || null,
+      serving_size:  food.servingSize  || null,
+      serving_label: food.servingLabel || null,
+      ingredients:   (food.ingredients?.length > 0) ? food.ingredients : null,
+      household_id:  householdId,
+      updated_at:    new Date().toISOString(),
     })
     .select()
     .single()
@@ -138,6 +139,50 @@ export async function sbFetchHouseholdFoods(householdId) {
     ingredients:  row.ingredients   || [],
     updatedAt:    row.updated_at    || null,
   }))
+}
+
+// ─── Profile helpers ──────────────────────────────────────────────────────────
+
+export async function sbSaveProfile(profile) {
+  if (!supabase || !profile?.email) return
+  const { error } = await supabase.from('profiles').upsert({
+    id:              profile.id,
+    email:           profile.email.toLowerCase(),
+    name:            profile.name            || null,
+    height:          profile.height          || null,
+    macro_goals:     profile.macroGoals      || null,
+    supplements:     profile.supplements     || [],
+    ai_instructions: profile.aiInstructions  || null,
+    settings:        profile.settings        || null,
+    household_id:    profile.householdId     || null,
+    encryption_salt: profile.encryptionSalt  || null,
+    updated_at:      new Date().toISOString(),
+  })
+  if (error) console.warn('sbSaveProfile error:', error.message)
+}
+
+export async function sbFetchProfile(email) {
+  if (!supabase || !email) return null
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('email', email.toLowerCase())
+    .single()
+  if (error || !data) return null
+  return {
+    id:             data.id,
+    email:          data.email,
+    name:           data.name           || '',
+    height:         data.height         || null,
+    macroGoals:     data.macro_goals    || { calories:2000, protein:150, carbs:200, fat:65, fibre:30 },
+    supplements:    data.supplements    || [],
+    aiInstructions: data.ai_instructions|| null,
+    settings:       data.settings       || { autoLockMinutes:0, shareFoodNamesWithAI:true, shareMedNamesWithAI:false, wifiOnlyPhotos:true },
+    householdId:    data.household_id   || null,
+    encryptionSalt: data.encryption_salt|| null,
+    skipPin:        true,
+    dirty:          0,
+  }
 }
 
 // ─── Household helpers ────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { db } from '../db/indexedDB.js'
 import RecipeBuilder from './RecipeBuilder.jsx'
-import { deleteFood } from './FoodDB.js'
+import { deleteFood, pushLocalFoodsToHousehold } from './FoodDB.js'
 import { sbFetchHouseholdFoods } from '../db/supabase.js'
 import { MACRO_COLORS } from '../config.js'
 
@@ -10,6 +10,7 @@ export default function RecipeList({ householdId }) {
   const [editing,  setEditing]  = useState(null) // null | food object
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState(null) // id being confirmed
+  const didSync = useRef(false)
 
   async function load() {
     try {
@@ -18,11 +19,15 @@ export default function RecipeList({ householdId }) {
 
       if (householdId) {
         const remote = await sbFetchHouseholdFoods(householdId)
-        // A recipe from Supabase may come back as source:'saved' if the table has no source column
-        // Use ingredients as the reliable discriminator
         for (const f of remote) {
           const isRecipe = f.source === 'recipe' || (Array.isArray(f.ingredients) && f.ingredients.length > 0)
-          if (isRecipe) byId.set(f.id, { ...f, source: 'recipe' })
+          if (!isRecipe) continue
+          const localEntry = byId.get(f.id)
+          const remoteHasIngredients = Array.isArray(f.ingredients) && f.ingredients.length > 0
+          const localHasIngredients  = localEntry && Array.isArray(localEntry.ingredients) && localEntry.ingredients.length > 0
+          // If local has ingredients but remote doesn't (Supabase column missing), keep local
+          if (localHasIngredients && !remoteHasIngredients) continue
+          byId.set(f.id, { ...f, source: 'recipe' })
         }
         // Never bulkPut remote data — it corrupts local source fields
       }
@@ -36,7 +41,14 @@ export default function RecipeList({ householdId }) {
     }
   }
 
-  useEffect(() => { load() }, [householdId])
+  useEffect(() => {
+    load()
+    // One-time push so existing recipes get their ingredients synced to Supabase
+    if (householdId && !didSync.current) {
+      didSync.current = true
+      pushLocalFoodsToHousehold(householdId).catch(() => {})
+    }
+  }, [householdId])
 
   async function handleDelete(id) {
     await deleteFood(id, householdId)

@@ -194,7 +194,17 @@ export function AuthProvider({ children }) {
       profile = await _tryRestoreByEmail(normalEmail)
     }
 
-    // 3. Create new profile
+    // 3. Try Supabase profile restore (works on new devices without admin Drive token)
+    if (!profile) {
+      const { sbFetchProfile } = await import('../db/supabase.js')
+      const sp = await sbFetchProfile(normalEmail).catch(() => null)
+      if (sp) {
+        profile = sp
+        await db.users.put(profile)
+      }
+    }
+
+    // 4. Create new profile
     if (!profile) {
       const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
       profile = await createProfile({
@@ -274,6 +284,10 @@ export function AuthProvider({ children }) {
     }
 
     await db.users.put(profile)
+
+    // Push to Supabase so it's restorable on new devices
+    import('../db/supabase.js').then(({ sbSaveProfile }) => sbSaveProfile(profile)).catch(() => {})
+
     return profile
   }
 

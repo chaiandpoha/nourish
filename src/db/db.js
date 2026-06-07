@@ -429,7 +429,9 @@ export async function getUser(userId) {
 }
 
 export async function saveUser(user) {
-  await db.users.put({ ...user, dirty: 1, updatedAt: new Date().toISOString() })
+  const updated = { ...user, dirty: 1, updatedAt: new Date().toISOString() }
+  await db.users.put(updated)
+  import('../db/supabase.js').then(({ sbSaveProfile }) => sbSaveProfile(updated)).catch(() => {})
 }
 
 export async function getAllUsers() {

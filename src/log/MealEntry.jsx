@@ -123,11 +123,14 @@ export default function MealEntry({ date, onLogged, inline = false }) {
     }
   }, [open, user])
 
-  // Search as user types
+  // Search as user types — support "2 eggs" / "100g chicken" style queries
   useEffect(() => {
     if (!query.trim() || !seeded) { setResults([]); return }
+    const parsed = parseVoiceInput(query)
+    const searchTerm = parsed.qty ? parsed.foodName : query
+    if (!searchTerm.trim()) { setResults([]); return }
     const t = setTimeout(async () => {
-      const r = await searchFoods(query, 20)
+      const r = await searchFoods(searchTerm, 20)
       setResults(r)
     }, 150)
     return () => clearTimeout(t)
@@ -366,13 +369,26 @@ export default function MealEntry({ date, onLogged, inline = false }) {
                   placeholder={
                     listening ? "Listening…" :
                     !seeded   ? (seedFailed ? "Food database unavailable" : "Loading foods…") :
-                    "Search foods…"
+                    "Search or type "2 eggs", "100g chicken"…"
                   }
                   value={query}
                   onChange={e => {
-                    setQuery(e.target.value)
-                    setVoiceHint('')
-                    if (!e.target.value) setVoiceQty(null)
+                    const v = e.target.value
+                    setQuery(v)
+                    if (!v.trim()) {
+                      setVoiceQty(null)
+                      setVoiceHint('')
+                      return
+                    }
+                    const parsed = parseVoiceInput(v)
+                    if (parsed.qty && parsed.foodName) {
+                      setVoiceQty(parsed.qty)
+                      setVoiceUnit(parsed.unit)
+                      setVoiceHint(`${parsed.qty}${parsed.unit} · "${parsed.foodName}"`)
+                    } else {
+                      setVoiceQty(null)
+                      setVoiceHint('')
+                    }
                   }}
                   autoComplete="off"
                   disabled={!seeded}

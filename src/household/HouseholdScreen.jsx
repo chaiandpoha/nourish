@@ -3,7 +3,7 @@ import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import {
   sbCreateHousehold, sbJoinHousehold, sbFetchHousehold,
-  sbUpdateHousehold, sbLeaveHousehold,
+  sbUpdateHousehold, sbLeaveHousehold, sbSaveProfile,
 } from '../db/supabase.js'
 import { pushLocalFoodsToHousehold, pushLocalBatchesToHousehold } from '../food/FoodDB.js'
 import { HOUSEHOLD } from '../config.js'
@@ -31,6 +31,7 @@ function HouseholdSetup({ user, onDone }) {
     try {
       const h = await sbCreateHousehold(name.trim(), user.email, user.name)
       await db.users.update(user.id, { householdId: h.id, dirty: 1, updatedAt: new Date().toISOString() })
+      sbSaveProfile({ ...user, householdId: h.id }).catch(() => {})
       pushLocalFoodsToHousehold(h.id).catch(() => {})
       pushLocalBatchesToHousehold(h.id, user.email).catch(() => {})
       await onDone()
@@ -47,6 +48,7 @@ function HouseholdSetup({ user, onDone }) {
     try {
       const h = await sbJoinHousehold(code.trim(), user.email, user.name)
       await db.users.update(user.id, { householdId: h.id, dirty: 1, updatedAt: new Date().toISOString() })
+      sbSaveProfile({ ...user, householdId: h.id }).catch(() => {})
       pushLocalFoodsToHousehold(h.id).catch(() => {})
       pushLocalBatchesToHousehold(h.id, user.email).catch(() => {})
       await onDone()

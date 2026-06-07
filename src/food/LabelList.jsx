@@ -23,9 +23,10 @@ export default function LabelList({ householdId }) {
         const remote = await sbFetchHouseholdFoods(householdId)
         for (const f of remote) {
           // Skip if local already has this food with a definitive source
-          const local = byId.get(f.id)
-          if (local && local.source === 'recipe') continue
+          const localEntry = byId.get(f.id)
+          if (localEntry && localEntry.source === 'recipe') continue
           // Only labels in this tab — exclude anything that looks like a recipe
+          if (f.source === 'recipe') continue
           if (Array.isArray(f.ingredients) && f.ingredients.length > 0) continue
           byId.set(f.id, f)
         }

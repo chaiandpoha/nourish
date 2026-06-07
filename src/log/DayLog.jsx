@@ -249,48 +249,131 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
 // Tap once → shows Edit / Remove actions. Tap again → collapses.
 
 function FoodEntryRow({ entry, onDelete, onEdit }) {
-  const [mode,     setMode]     = useState('collapsed') // collapsed | actions | editing
-  const [gramsStr, setGramsStr] = useState(String(entry.grams))
+  const [mode,         setMode]         = useState('collapsed') // collapsed | actions | editing
+  const [gramsStr,     setGramsStr]     = useState(String(entry.grams))
+  const [adjMode,      setAdjMode]      = useState(false) // ingredient-level adjust
+  const [adjIngredients, setAdjIngredients] = useState([])
 
+  const isBatch  = entry.source === 'batch' || !!entry.batchId
   const newGrams = parseFloat(gramsStr) || 0
   const ratio    = entry.grams > 0 ? newGrams / entry.grams : 0
-  const preview  = {
+
+  // Simple grams-scaled preview
+  const simplePreview = {
     calories: Math.round(entry.calories * ratio),
     protein:  Math.round(entry.protein  * ratio * 10) / 10,
     carbs:    Math.round(entry.carbs    * ratio * 10) / 10,
     fat:      Math.round(entry.fat      * ratio * 10) / 10,
+    fibre:    Math.round((entry.fibre || 0) * ratio * 10) / 10,
+  }
+
+  // Ingredient-adjusted preview
+  const adjTotalGrams = adjIngredients.reduce((s, i) => s + (parseFloat(i.gramsInput) || 0), 0)
+  const adjMacros = adjIngredients.reduce((m, i) => {
+    const g  = parseFloat(i.gramsInput) || 0
+    const p  = i.per100g || {}
+    return {
+      calories: Math.round(m.calories + (p.calories || 0) * g / 100),
+      protein:  Math.round((m.protein  + (p.protein  || 0) * g / 100) * 10) / 10,
+      carbs:    Math.round((m.carbs    + (p.carbs    || 0) * g / 100) * 10) / 10,
+      fat:      Math.round((m.fat      + (p.fat      || 0) * g / 100) * 10) / 10,
+      fibre:    Math.round((m.fibre    + (p.fibre    || 0) * g / 100) * 10) / 10,
+    }
+  }, { calories:0, protein:0, carbs:0, fat:0, fibre:0 })
+
+  async function openEdit() {
+    setGramsStr(String(entry.grams))
+    setAdjMode(false)
+    if (isBatch && entry.batchId) {
+      const { db } = await import('../db/indexedDB.js')
+      const batch  = await db.batches.get(entry.batchId)
+      if (batch?.ingredients?.length) {
+        const batchTotal = batch.ingredients.reduce((s, i) => s + (i.grams || 0), 0)
+        const scale      = batchTotal > 0 ? entry.grams / batchTotal : 1
+        setAdjIngredients(batch.ingredients.map(i => ({
+          ...i,
+          gramsInput: String(Math.round(i.grams * scale)),
+        })))
+      }
+    }
+    setMode('editing')
   }
 
   function handleSave() {
-    if (newGrams <= 0) return
-    onEdit({
-      grams:    newGrams,
-      calories: preview.calories,
-      protein:  preview.protein,
-      carbs:    preview.carbs,
-      fat:      preview.fat,
-      fibre:    Math.round(entry.fibre * ratio * 10) / 10,
-    })
+    if (adjMode) {
+      if (adjTotalGrams <= 0) return
+      onEdit({ grams: adjTotalGrams, ...adjMacros })
+    } else {
+      if (newGrams <= 0) return
+      onEdit({ grams: newGrams, ...simplePreview })
+    }
     setMode('collapsed')
   }
+
+  const preview = adjMode ? adjMacros : simplePreview
+  const previewGrams = adjMode ? adjTotalGrams : newGrams
 
   if (mode === 'editing') {
     return (
       <div style={{ ...s.entryRow, flexDirection:'column', alignItems:'stretch', gap:'10px' }}>
         <div style={s.entryName}>{entry.name}</div>
-        <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-          <input
-            style={s.gramsInput}
-            type="number"
-            value={gramsStr}
-            onChange={e => setGramsStr(e.target.value)}
-            onFocus={e => e.target.select()}
-            autoFocus
-          />
-          <span style={{ fontSize:'13px', color:'var(--text-tertiary)' }}>g</span>
-        </div>
+
+        {/* Toggle between grams and ingredient adjust (batch only) */}
+        {isBatch && adjIngredients.length > 0 && (
+          <div style={{ display:'flex', gap:'6px' }}>
+            <button
+              style={{ ...s.editBtn, ...((!adjMode) ? { background:'var(--text-primary)', color:'var(--text-inverse)' } : {}) }}
+              onClick={() => setAdjMode(false)}
+            >Grams</button>
+            <button
+              style={{ ...s.editBtn, ...(adjMode ? { background:'var(--text-primary)', color:'var(--text-inverse)' } : {}) }}
+              onClick={() => setAdjMode(true)}
+            >Ingredients</button>
+          </div>
+        )}
+
+        {adjMode ? (
+          <div style={s.adjCard}>
+            {adjIngredients.map((ing, i) => (
+              <div key={i} style={s.adjRow}>
+                <span style={s.adjName}>{ing.name}</span>
+                <div style={{ display:'flex', alignItems:'center', gap:'4px', flexShrink:0 }}>
+                  <input
+                    style={s.gramsInput}
+                    type="number"
+                    inputMode="decimal"
+                    value={ing.gramsInput}
+                    onChange={e => setAdjIngredients(prev =>
+                      prev.map((x, j) => j === i ? { ...x, gramsInput: e.target.value } : x)
+                    )}
+                  />
+                  <span style={{ fontSize:'12px', color:'var(--text-tertiary)' }}>g</span>
+                </div>
+              </div>
+            ))}
+            <div style={{ ...s.adjRow, justifyContent:'space-between', borderBottom:'none' }}>
+              <span style={{ fontSize:'11px', color:'var(--text-tertiary)', fontWeight:'700', textTransform:'uppercase', letterSpacing:'0.06em' }}>Total</span>
+              <span style={{ fontSize:'13px', fontWeight:'600', fontFamily:'var(--font-mono)', color:'var(--text-primary)' }}>{Math.round(adjTotalGrams)}g</span>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+            <input
+              style={s.gramsInput}
+              type="number"
+              value={gramsStr}
+              onChange={e => setGramsStr(e.target.value)}
+              onFocus={e => e.target.select()}
+              autoFocus
+            />
+            <span style={{ fontSize:'13px', color:'var(--text-tertiary)' }}>g</span>
+          </div>
+        )}
+
         <div style={s.macroPreview}>
           <span style={s.previewVal}>{preview.calories} kcal</span>
+          <span style={s.dot}>·</span>
+          <span style={s.previewVal}>{previewGrams > 0 ? `${Math.round(previewGrams)}g` : '—'}</span>
           <span style={s.dot}>·</span>
           <span style={s.previewVal}>{preview.protein}g P</span>
           <span style={s.dot}>·</span>
@@ -310,7 +393,6 @@ function FoodEntryRow({ entry, onDelete, onEdit }) {
     <div style={s.entryRow} onClick={() => setMode(m => m === 'actions' ? 'collapsed' : 'actions')}>
       <div style={s.entryInfo}>
         <div style={s.entryName}>{entry.name}</div>
-        {/* Meta only visible when not showing action buttons */}
         {mode !== 'actions' && (
           <div style={s.entryMeta}>{entry.grams}g · {entry.calories} kcal · {entry.protein}g P</div>
         )}
@@ -318,7 +400,7 @@ function FoodEntryRow({ entry, onDelete, onEdit }) {
 
       {mode === 'actions' ? (
         <div style={{ display:'flex', gap:'6px', flexShrink:0 }}>
-          <button style={s.editBtn} onClick={e => { e.stopPropagation(); setMode('editing') }}>Edit</button>
+          <button style={s.editBtn} onClick={e => { e.stopPropagation(); openEdit() }}>Edit</button>
           <button style={s.deleteBtn} onClick={e => { e.stopPropagation(); onDelete() }}>Remove</button>
         </div>
       ) : (
@@ -363,9 +445,12 @@ const s = {
   editBtn:      { padding:'5px 10px', background:'var(--bg-elevated)', border:'none', borderRadius:'var(--r-sm)', color:'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' },
   deleteBtn:    { padding:'5px 10px', background:'rgba(200,80,64,0.08)', border:'none', borderRadius:'var(--r-sm)', color:'var(--red)', fontSize:'12px', fontWeight:'600', cursor:'pointer' },
 
-  gramsInput:   { width:'80px', padding:'7px 10px', fontSize:'16px', fontWeight:'600', borderRadius:'var(--r-md)', border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)', color:'var(--text-primary)', outline:'none', fontFamily:'var(--font-mono)' },
+  gramsInput:   { width:'72px', padding:'7px 10px', fontSize:'15px', fontWeight:'600', borderRadius:'var(--r-md)', border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)', color:'var(--text-primary)', outline:'none', fontFamily:'var(--font-mono)', textAlign:'right' },
   macroPreview: { display:'flex', gap:'6px', alignItems:'center', flexWrap:'wrap' },
   previewVal:   { fontSize:'12px', fontWeight:'600', color:'var(--text-secondary)', fontFamily:'var(--font-mono)' },
+  adjCard:      { background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', overflow:'hidden' },
+  adjRow:       { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 12px', borderBottom:'0.5px solid var(--border-subtle)', gap:'10px' },
+  adjName:      { fontSize:'13px', color:'var(--text-primary)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
   dot:          { fontSize:'12px', color:'var(--text-tertiary)' },
   saveBtn:      { padding:'7px 16px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'13px', fontWeight:'600', cursor:'pointer' },
   cancelBtn:    { padding:'7px 12px', background:'var(--bg-elevated)', border:'none', borderRadius:'var(--r-md)', color:'var(--text-tertiary)', fontSize:'13px', fontWeight:'500', cursor:'pointer' },
