@@ -66,7 +66,7 @@ export default function AdminPanel() {
     const tables = [
       'foodLogs','workoutLogs','workoutSets','programmes',
       'weightLog','bloodWork','supplementLog','moodLog',
-      'progressPhotos','mealTemplates','reminders','measurements','waterLog',
+      'progressPhotos','mealTemplates','reminders','measurements',
     ]
     for (const t of tables) {
       if (db[t]) await db[t].where('userId').equals(userId).delete()
@@ -459,7 +459,7 @@ function FactoryReset() {
         'users','foods','batches',
         'foodLogs','weightLog','supplementLog','moodLog','bloodWork',
         'workoutLogs','workoutSets','programmes','mealTemplates',
-        'reminders','progressPhotos','measurements','waterLog','syncState',
+        'reminders','progressPhotos','measurements','syncState',
       ]
       for (const t of tables) {
         if (db[t]) await db[t].clear()

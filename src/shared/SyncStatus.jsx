@@ -3,7 +3,7 @@ import { db } from '../db/indexedDB.js'
 import { useAuth } from '../auth/useAuth.jsx'
 import { isTokenValid, initiateOAuthFlow } from '../db/driveApi.js'
 
-const TABLES = ['foodLogs', 'workoutLogs', 'weightLog', 'measurements', 'waterLog', 'supplementLog']
+const TABLES = ['foodLogs', 'workoutLogs', 'weightLog', 'measurements', 'supplementLog']
 
 export default function SyncStatus() {
   const { user } = useAuth()

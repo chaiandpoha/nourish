@@ -8,7 +8,6 @@ import { db } from '../db/indexedDB.js'
 import { seedFoodDatabase } from '../food/FoodDB.js'
 import MealChat from '../chat/MealChat.jsx'
 import { Skeleton, SkeletonCard, SkeletonRow } from '../shared/Skeleton.jsx'
-import WaterTracker from '../shared/WaterTracker.jsx'
 import SyncStatus from '../shared/SyncStatus.jsx'
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
@@ -248,9 +247,6 @@ export default function Home() {
           )}
         </button>
       </div>
-
-      {/* Water tracker */}
-      <WaterTracker />
 
       {/* Supplements */}
       {supplements.length > 0 && (
