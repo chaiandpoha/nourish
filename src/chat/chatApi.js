@@ -22,7 +22,7 @@ User profile:
 - Name: ${user?.name || 'User'}
 - Daily goals: ${user?.macroGoals?.calories || 2000} kcal, ${user?.macroGoals?.protein || 150}g protein, ${user?.macroGoals?.carbs || 200}g carbs, ${user?.macroGoals?.fat || 65}g fat, ${user?.macroGoals?.fibre || 30}g fibre
 - Height: ${user?.height ? Math.round(user.height) + 'cm' : 'not set'}
-
+${user?.aiInstructions ? `\nDietary preferences (IMPORTANT — always follow these):\n${user.aiInstructions}` : ''}
 Keep responses under 200 words unless asked for more detail. Be warm but efficient.`
 }
 
