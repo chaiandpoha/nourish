@@ -8,11 +8,13 @@ import { generateId } from '../auth/crypto.js'
 import { toGrams, WEIGHT_UNITS } from '../food/macroCalc.js'
 import LabelScanner from '../food/LabelScanner.jsx'
 
-export default function BatchBuilder({ onSave, onCancel }) {
-  const [name,        setName]        = useState('')
-  const [shared,      setShared]      = useState(true)
-  const [ingredients, setIngredients] = useState([])
-  const [yieldGrams,  setYieldGrams]  = useState('')
+export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
+  const [name,        setName]        = useState(existingBatch?.name || '')
+  const [shared,      setShared]      = useState(existingBatch ? !!existingBatch.shared : true)
+  const [ingredients, setIngredients] = useState(
+    () => (existingBatch?.ingredients || []).map(i => ({ ...i, id: generateId(), grams: i.grams }))
+  )
+  const [yieldGrams,  setYieldGrams]  = useState(existingBatch?.yieldGrams ? String(existingBatch.yieldGrams) : '')
   const [yieldUnit,   setYieldUnit]   = useState('g')
   const [query,       setQuery]       = useState('')
   const [results,     setResults]     = useState([])
@@ -135,7 +137,8 @@ export default function BatchBuilder({ onSave, onCancel }) {
     setSaving(true)
     try {
       const batch = {
-        id:            generateId(),
+        ...(existingBatch || {}),
+        id:            existingBatch?.id || generateId(),
         name:          name.trim(),
         createdBy:     user.email || user.id,
         shared:        shared ? 1 : 0,
@@ -144,7 +147,7 @@ export default function BatchBuilder({ onSave, onCancel }) {
         yieldGrams:    yieldG,
         macrosPer100g: per100g,
         householdId:   user.householdId || null,
-        createdAt:     new Date().toISOString(),
+        createdAt:     existingBatch?.createdAt || new Date().toISOString(),
         updatedAt:     new Date().toISOString(),
         dirty:         0,
       }
@@ -193,7 +196,7 @@ export default function BatchBuilder({ onSave, onCancel }) {
       {/* Header */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <button onClick={onCancel} style={{ background:'none', border:'none', color:'var(--accent)', fontSize:'15px', cursor:'pointer', padding:0 }}>← Back</button>
-        <span style={{ fontSize:'17px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.02em' }}>New Batch</span>
+        <span style={{ fontSize:'17px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.02em' }}>{existingBatch ? 'Edit Batch' : 'New Batch'}</span>
         <div style={{ width:60 }} />
       </div>
 
@@ -451,7 +454,7 @@ export default function BatchBuilder({ onSave, onCancel }) {
 
       <button onClick={handleSave} disabled={saving}
         style={{ width:'100%', padding:'15px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'16px', fontWeight:'600', cursor:'pointer', opacity: saving ? 0.6 : 1 }}>
-        {saving ? 'Saving…' : 'Save Batch'}
+        {saving ? 'Saving…' : existingBatch ? 'Update Batch' : 'Save Batch'}
       </button>
 
       <div style={{ height:24 }} />

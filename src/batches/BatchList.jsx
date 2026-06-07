@@ -10,6 +10,7 @@ export default function BatchList({ onLogged }) {
   const [batches,  setBatches]  = useState([])
   const [screen,   setScreen]   = useState('list')
   const [selected, setSelected] = useState(null)
+  const [editing,  setEditing]  = useState(null)
   const [loading,  setLoading]  = useState(true)
   const { user } = useAuth()
 
@@ -45,6 +46,16 @@ export default function BatchList({ onLogged }) {
       <BatchBuilder
         onSave={() => { setScreen('list'); loadBatches() }}
         onCancel={() => setScreen('list')}
+      />
+    )
+  }
+
+  if (screen === 'edit' && editing) {
+    return (
+      <BatchBuilder
+        existingBatch={editing}
+        onSave={() => { setScreen('list'); setEditing(null); loadBatches() }}
+        onCancel={() => { setScreen('list'); setEditing(null) }}
       />
     )
   }
@@ -96,6 +107,7 @@ export default function BatchList({ onLogged }) {
           key={batch.id}
           batch={batch}
           onLog={() => { setSelected(batch); setScreen('log') }}
+          onEdit={() => { setEditing(batch); setScreen('edit') }}
           onClose={() => handleClose(batch.id)}
         />
       ))}
@@ -105,7 +117,7 @@ export default function BatchList({ onLogged }) {
 
 // ─── BatchCard ────────────────────────────────────────────────────────────────
 
-function BatchCard({ batch, onLog, onClose }) {
+function BatchCard({ batch, onLog, onEdit, onClose }) {
   const [showClose, setShowClose] = useState(false)
   const daysOld = Math.floor(
     (Date.now() - new Date(batch.createdAt)) / (1000 * 60 * 60 * 24)
@@ -131,9 +143,10 @@ function BatchCard({ batch, onLog, onClose }) {
           </div>
         </div>
 
-        <button style={styles.logBtn} onClick={onLog}>
-          Log portion
-        </button>
+        <div style={{ display:'flex', flexDirection:'column', gap:'6px', flexShrink:0 }}>
+          <button style={styles.logBtn} onClick={onLog}>Log portion</button>
+          <button style={styles.editBtn} onClick={onEdit}>Edit</button>
+        </div>
       </div>
 
       <div style={styles.cardFooter}>
@@ -386,7 +399,16 @@ const styles = {
     fontSize:        '13px',
     fontWeight:      '600',
     cursor:          'pointer',
-    flexShrink:      0,
+  },
+  editBtn: {
+    padding:         '6px 16px',
+    background:      'var(--bg-elevated)',
+    border:          '1px solid var(--border-default)',
+    borderRadius:    'var(--r-md)',
+    color:           'var(--text-secondary)',
+    fontSize:        '12px',
+    fontWeight:      '600',
+    cursor:          'pointer',
   },
   cardFooter: {
     borderTop:       '0.5px solid var(--border-subtle)',
