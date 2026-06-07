@@ -14,8 +14,6 @@ import { DRIVE } from './config.js'
 import HomeScreen from './screens/Home.jsx'
 import BatchList from './batches/BatchList.jsx'
 import WeightLog from './progress/WeightLog.jsx'
-import BloodWork from './progress/BloodWork.jsx'
-import MoodLog from './progress/MoodLog.jsx'
 import CalendarView from './calendar/CalendarView.jsx'
 import AdminPanel from './admin/AdminPanel.jsx'
 import ProgramManager from './workout/ProgramManager.jsx'
@@ -109,7 +107,6 @@ function AppRoutes() {
         <Route path="/admin-login"   element={<AdminLogin />} />
         <Route path="/onboarding"    element={<OnboardingScreen />} />
         <Route path="/auth/callback" element={<AuthCallbackScreen />} />
-        <Route path="/recover"       element={<RecoverScreen />} />
         <Route path="/*"             element={<AuthGate><ProtectedApp /></AuthGate>} />
       </Routes>
     </>
@@ -426,8 +423,6 @@ function SettingsScreen() {
     { id:'progress',     label:'Progress'  },
     { id:'body',         label:'Body'      },
     { id:'photos',       label:'Photos'    },
-    { id:'mood',         label:'Mood'      },
-    { id:'blood',        label:'Blood'     },
     { id:'ai',           label:'AI'        },
     { id:'admin',        label:'Admin'     },
   ]
@@ -488,14 +483,6 @@ function SettingsScreen() {
         <ProgressPhotos userId={user?.id} />
       )}
 
-      {tab === 'mood' && (
-        <MoodLog />
-      )}
-
-      {tab === 'blood' && (
-        <BloodWork />
-      )}
-
       {tab === 'admin' && user?.isAdmin && (
         <AdminPanel />
       )}
@@ -536,54 +523,6 @@ function SettingsScreen() {
   )
 }
 
-
-function RecoverScreen() {
-  const [userId,      setUserId]      = useState('')
-  const [recoveryKey, setRecoveryKey] = useState('')
-  const [newPin,      setNewPin]      = useState('')
-  const [confirmPin,  setConfirmPin]  = useState('')
-  const [error,       setError]       = useState('')
-  const [success,     setSuccess]     = useState(false)
-  const { resetPin } = useAuth()
-
-  async function handleReset() {
-    if (newPin !== confirmPin) { setError('PINs do not match'); return }
-    if (newPin.length < 4)     { setError('PIN too short'); return }
-    try {
-      await resetPin(userId, recoveryKey, newPin)
-      setSuccess(true)
-    } catch (e) {
-      setError(e.message)
-    }
-  }
-
-  if (success) {
-    return (
-      <div style={styles.splash}>
-        <div style={styles.splashLogo}>✅</div>
-        <p style={styles.splashText}>PIN reset successfully</p>
-        <button style={styles.retryBtn} onClick={() => { window.location.hash = '#/' }}>Back to login</button>
-      </div>
-    )
-  }
-
-  return (
-    <div style={styles.recoverContainer}>
-      <button style={styles.backBtn} onClick={() => { window.location.hash = '#/' }}>← Back</button>
-      <h2 style={styles.screenTitle}>Reset PIN</h2>
-      <label style={styles.label}>User ID</label>
-      <input style={styles.input} placeholder="Your user ID" value={userId} onChange={e => setUserId(e.target.value)} />
-      <label style={styles.label}>Recovery key</label>
-      <input style={styles.input} placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" value={recoveryKey} onChange={e => setRecoveryKey(e.target.value.toUpperCase())} />
-      <label style={styles.label}>New PIN</label>
-      <input style={styles.input} type="password" inputMode="numeric" placeholder="4-8 digits" value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 8))} />
-      <label style={styles.label}>Confirm new PIN</label>
-      <input style={styles.input} type="password" inputMode="numeric" placeholder="Repeat PIN" value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 8))} />
-      {error && <p style={styles.error}>{error}</p>}
-      <button style={styles.primaryBtn} onClick={handleReset}>Reset PIN</button>
-    </div>
-  )
-}
 
 // ─── SupplementStreaks ────────────────────────────────────────────────────────
 
@@ -1296,12 +1235,6 @@ const styles = {
   placeholderSub:  { fontSize: '13px', color: 'var(--text-tertiary)', margin: 0 },
   settingsCard:    { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--r-lg)', padding: '16px 20px', marginBottom: '16px' },
   settingsRow:     { fontSize: '15px', color: 'var(--text-primary)', margin: '6px 0' },
-  recoverContainer:{ display: 'flex', flexDirection: 'column', padding: '24px 20px', minHeight: '100dvh', background: 'var(--bg-base)', color: 'var(--text-primary)', boxSizing: 'border-box' },
-  backBtn:     { background: 'none', border: 'none', color: 'var(--accent)', fontSize: '16px', cursor: 'pointer', padding: '0 0 16px', alignSelf: 'flex-start' },
-  label:       { fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px', marginTop: '12px' },
-  input:       { width: '100%', padding: '13px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 'var(--r-md)', color: 'var(--text-primary)', fontSize: '16px', outline: 'none', boxSizing: 'border-box' },
-  error:       { color: 'var(--red)', fontSize: '14px', margin: '8px 0' },
-  primaryBtn:  { width: '100%', padding: '15px', background: 'var(--text-primary)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '17px', fontWeight: '700', cursor: 'pointer', marginTop: '16px' },
   screenHeader:{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' },
   lockBtn:     { background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer' },
 }

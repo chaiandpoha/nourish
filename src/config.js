@@ -7,12 +7,7 @@ export const FEATURES = {
   barcodeScanner:   true,
   labelScanner:     true,
   aiMealChat:       true,
-  bloodWork:        true,
   progressPhotos:   true,
-  moodLog:          true,
-  biometricLogin:   true,
-  voiceInput:       true,
-  weeklyAISummary:  true,
 }
 
 // ─── AI ─────────────────────────────────────────────────────────────────────
