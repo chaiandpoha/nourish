@@ -135,9 +135,17 @@ export function AuthProvider({ children }) {
     setEncryptionKey(key)
     setUser(profile)
     setIsLocked(false)
+
+    // Household sync runs independently of Drive — Supabase only needs network
+    if (profile.householdId) {
+      const { fetchHouseholdFoods, pushLocalFoodsToHousehold, pushLocalBatchesToHousehold } = await import('../food/FoodDB.js')
+      fetchHouseholdFoods(profile.householdId).catch(e => console.warn('Household fetch:', e))
+      pushLocalFoodsToHousehold(profile.householdId).catch(e => console.warn('Household push foods:', e))
+      pushLocalBatchesToHousehold(profile.householdId, profile.email).catch(e => console.warn('Household push batches:', e))
+    }
+
     try {
       const { isTokenValid, restoreToken } = await import('../db/driveApi.js')
-      // Try to restore token if not already valid
       if (!isTokenValid()) restoreToken()
       if (isTokenValid()) {
         await initStorage(profile.id, key, profile.email, profile.householdId)

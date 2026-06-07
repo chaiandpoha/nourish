@@ -5,38 +5,39 @@ import { sbFetchHouseholdFoods } from '../db/supabase.js'
 import { MACRO_COLORS } from '../config.js'
 
 export default function LabelList({ householdId }) {
-  const [foods,    setFoods]    = useState([])
-  const [editing,  setEditing]  = useState(null) // food id being edited
-  const [form,     setForm]     = useState(null)  // current edit form state
-  const [deleting, setDeleting] = useState(null)
-  const [saving,   setSaving]   = useState(false)
-  const [syncing,  setSyncing]  = useState(false)
-  const [syncErr,  setSyncErr]  = useState('')
-  const [error,    setError]    = useState('')
+  const [foods,      setFoods]      = useState([])
+  const [editing,    setEditing]    = useState(null)
+  const [form,       setForm]       = useState(null)
+  const [deleting,   setDeleting]   = useState(null)
+  const [saving,     setSaving]     = useState(false)
+  const [syncing,    setSyncing]    = useState(false)
+  const [syncErr,    setSyncErr]    = useState('')
+  const [debugInfo,  setDebugInfo]  = useState('')
+  const [error,      setError]      = useState('')
 
   async function load() {
     setSyncing(true)
     setSyncErr('')
     try {
-      // Always start from local foods
       const local = await db.foods.where('source').anyOf(['scanned', 'saved']).toArray()
       const byId = new Map(local.map(f => [f.id, f]))
 
-      // Merge household foods directly from Supabase (same pattern as BatchList)
+      let remoteCount = 0
       if (householdId) {
         const remote = await sbFetchHouseholdFoods(householdId)
+        remoteCount = remote.length
         for (const f of remote) byId.set(f.id, f)
-        // Persist to IndexedDB for offline
         if (remote.length) {
           await db.foods.bulkPut(remote.map(f => ({ tags: [], ...f }))).catch(() => {})
         }
       }
 
+      setDebugInfo(`hid:${householdId || 'none'} local:${local.length} remote:${remoteCount}`)
       const merged = [...byId.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
       setFoods(merged)
     } catch (e) {
-      setSyncErr('Could not sync household labels')
-      // Fall back to local only
+      setSyncErr(`Sync error: ${e.message}`)
+      setDebugInfo(`hid:${householdId || 'none'} error:${e.message}`)
       const local = await db.foods.where('source').anyOf(['scanned', 'saved']).toArray()
       local.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
       setFoods(local)
@@ -123,6 +124,7 @@ export default function LabelList({ householdId }) {
   if (foods.length === 0) {
     return (
       <div style={s.empty}>
+        {debugInfo && <p style={s.debugInfo}>{debugInfo}</p>}
         {syncErr && <p style={s.syncErr}>{syncErr}</p>}
         <p style={s.emptyTitle}>No saved labels yet</p>
         <p style={s.emptySub}>Scan a nutrition label or use the barcode scanner to save foods here</p>
@@ -132,6 +134,7 @@ export default function LabelList({ householdId }) {
 
   return (
     <div style={s.container}>
+      {debugInfo && <p style={s.debugInfo}>{debugInfo}</p>}
       {syncErr && <p style={s.syncErr}>{syncErr}</p>}
       {foods.map(food => {
         const isEditing  = editing === food.id
@@ -290,6 +293,7 @@ const s = {
   unit:            { fontSize: '11px', color: 'var(--text-tertiary)', flexShrink: 0 },
   error:           { fontSize: '13px', color: 'var(--red)', margin: 0 },
   syncErr:         { fontSize: '12px', color: 'var(--red)', textAlign: 'center', margin: '0 0 4px' },
+  debugInfo:       { fontSize: '11px', color: 'var(--text-tertiary)', textAlign: 'center', margin: '0 0 4px', fontFamily: 'var(--font-mono)' },
   editActions:     { display: 'flex', gap: '8px' },
   cancelBtn2:      { flex: 1, padding: '11px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500', cursor: 'pointer' },
   saveBtn:         { flex: 2, padding: '11px', background: 'var(--text-primary)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '14px', fontWeight: '600', cursor: 'pointer' },

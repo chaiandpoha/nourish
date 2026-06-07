@@ -5,6 +5,7 @@ import {
   sbCreateHousehold, sbJoinHousehold, sbFetchHousehold,
   sbUpdateHousehold, sbLeaveHousehold,
 } from '../db/supabase.js'
+import { pushLocalFoodsToHousehold, pushLocalBatchesToHousehold } from '../food/FoodDB.js'
 import { HOUSEHOLD } from '../config.js'
 
 export default function HouseholdScreen() {
@@ -30,6 +31,8 @@ function HouseholdSetup({ user, onDone }) {
     try {
       const h = await sbCreateHousehold(name.trim(), user.email, user.name)
       await db.users.update(user.id, { householdId: h.id, dirty: 1, updatedAt: new Date().toISOString() })
+      pushLocalFoodsToHousehold(h.id).catch(() => {})
+      pushLocalBatchesToHousehold(h.id, user.email).catch(() => {})
       await onDone()
     } catch (e) {
       setError(e.message)
@@ -44,6 +47,8 @@ function HouseholdSetup({ user, onDone }) {
     try {
       const h = await sbJoinHousehold(code.trim(), user.email, user.name)
       await db.users.update(user.id, { householdId: h.id, dirty: 1, updatedAt: new Date().toISOString() })
+      pushLocalFoodsToHousehold(h.id).catch(() => {})
+      pushLocalBatchesToHousehold(h.id, user.email).catch(() => {})
       await onDone()
     } catch (e) {
       setError(e.message)
