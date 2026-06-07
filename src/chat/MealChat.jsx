@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { sendChatMessage } from './chatApi.js'
 import { getDayMacros, addFoodLogEntry } from '../db/db.js'
+import { db } from '../db/indexedDB.js'
 import { MACRO_COLORS } from '../config.js'
 
 // ─── Parse AI message — strip ```foods block, return {text, foods} ─────────────
@@ -16,13 +17,15 @@ function parseMessage(content) {
 }
 
 export default function MealChat({ onClose }) {
-  const [messages,  setMessages]  = useState([])
-  const [input,     setInput]     = useState('')
-  const [loading,   setLoading]   = useState(false)
-  const [totals,    setTotals]    = useState({})
-  const [error,     setError]     = useState('')
-  const [logged,    setLogged]    = useState({})   // key: `${msgIdx}-${foodIdx}` → true
-  const [logMeal,   setLogMeal]   = useState(detectMeal)
+  const [messages,     setMessages]     = useState([])
+  const [input,        setInput]        = useState('')
+  const [loading,      setLoading]      = useState(false)
+  const [totals,       setTotals]       = useState({})
+  const [workoutData,  setWorkoutData]  = useState(null)
+  const [contextData,  setContextData]  = useState(null)
+  const [error,        setError]        = useState('')
+  const [logged,       setLogged]       = useState({})   // key: `${msgIdx}-${foodIdx}` → true
+  const [logMeal,      setLogMeal]      = useState(detectMeal)
   const bottomRef  = useRef(null)
   const inputRef   = useRef(null)
   const { user }   = useAuth()
@@ -32,6 +35,8 @@ export default function MealChat({ onClose }) {
 
   useEffect(() => {
     loadTotals()
+    loadWorkoutData()
+    loadContextData()
   }, [user])
 
   useEffect(() => {
@@ -42,6 +47,56 @@ export default function MealChat({ onClose }) {
     if (!user) return
     const t = await getDayMacros(user.id, today)
     setTotals(t)
+  }
+
+  async function loadContextData() {
+    if (!user) return
+    try {
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - 21)
+      const since = startDate.toISOString().slice(0, 10)
+
+      const [batches, recipes, recentLogs] = await Promise.all([
+        db.batches.where('closed').equals(0).toArray(),
+        db.foods.where('source').equals('recipe').toArray(),
+        db.foodLogs
+          .where('[userId+date]')
+          .between([user.id, since], [user.id, today], true, true)
+          .toArray(),
+      ])
+
+      const counts = {}
+      for (const log of recentLogs) {
+        if (log.name) counts[log.name] = (counts[log.name] || 0) + 1
+      }
+      const topFoods = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15)
+        .map(([name]) => name)
+
+      setContextData({ batches, recipes, topFoods })
+    } catch {}
+  }
+
+  async function loadWorkoutData() {
+    if (!user) return
+    try {
+      const [workout, steps] = await Promise.all([
+        db.workoutLogs.where('[userId+date]').equals([user.id, today]).first(),
+        db.stepsLog.where('[userId+date]').equals([user.id, today]).first(),
+      ])
+      if (!workout && !steps) return
+      const name = workout?.dayName || workout?.name || ''
+      const lowerName = name.toLowerCase()
+      const type = /run|cardio|cycling|walk|swim/.test(lowerName) ? 'cardio' : 'strength'
+      setWorkoutData({
+        logged:         !!workout,
+        name,
+        type,
+        durationMins:   workout?.duration ? Math.round(workout.duration / 60) : null,
+        caloriesBurned: steps?.caloriesBurned || null,
+      })
+    } catch {}
   }
 
   async function handleSend() {
@@ -57,13 +112,15 @@ export default function MealChat({ onClose }) {
 
     try {
       const reply = await sendChatMessage({
-        messages:  newMessages,
+        messages:    newMessages,
         user,
         totals,
         goals,
-        meal:      detectMeal(),
-        settings:  user?.settings,
-        userId:    user?.id,
+        meal:        detectMeal(),
+        settings:    user?.settings,
+        userId:      user?.id,
+        workoutData,
+        contextData,
       })
 
       setMessages(m => [...m, { role: 'assistant', content: reply }])
@@ -157,7 +214,7 @@ export default function MealChat({ onClose }) {
 
       {/* Privacy notice */}
       <div style={s.privacyNote}>
-        ℹ️ Your macro summary is shared with Anthropic to generate suggestions.
+        ℹ️ Today's macros, workout, batches, recipes and recent food history are shared with Anthropic to generate suggestions.
       </div>
 
       {/* Messages */}

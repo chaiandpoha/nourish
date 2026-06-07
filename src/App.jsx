@@ -26,6 +26,7 @@ import ProgressPhotos from './progress/ProgressPhotos.jsx'
 import Measurements from './progress/Measurements.jsx'
 import InstallPrompt from './shared/InstallPrompt.jsx'
 import MealEntry from './log/MealEntry.jsx'
+import MealChat from './chat/MealChat.jsx'
 import { localDate } from './log/DayLog.jsx'
 import HouseholdScreen from './household/HouseholdScreen.jsx'
 import RecipeList from './food/RecipeList.jsx'
@@ -190,6 +191,7 @@ function ProtectedApp() {
       <main style={styles.main}>
         <Routes>
           <Route path="/"             element={<HomeScreen />} />
+          <Route path="/chat"         element={<ChatScreen />} />
           <Route path="/food"         element={<FoodScreen />} />
           <Route path="/workout"      element={<WorkoutScreen />} />
           <Route path="/calendar"     element={<CalendarScreen />} />
@@ -199,10 +201,15 @@ function ProtectedApp() {
         </Routes>
       </main>
       <BottomNav />
-      {user && pathname !== '/calendar' && <MealEntry date={today} onLogged={handleGlobalLogged} />}
+      {user && pathname !== '/calendar' && pathname !== '/chat' && <MealEntry date={today} onLogged={handleGlobalLogged} />}
       <InstallPrompt />
     </div>
   )
+}
+
+function ChatScreen() {
+  const navigate = useNavigate()
+  return <MealChat onClose={() => navigate('/')} />
 }
 
 // ─── HealthSyncScreen ─────────────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth.jsx'
 import { RingWithMacros } from '../shared/RingChart.jsx'
 import StreakStrip from '../shared/StreakStrip.jsx'
@@ -6,7 +7,6 @@ import DayLog, { localDate } from '../log/DayLog.jsx'
 import { getDayMacros } from '../db/db.js'
 import { db } from '../db/indexedDB.js'
 import { seedFoodDatabase } from '../food/FoodDB.js'
-import MealChat from '../chat/MealChat.jsx'
 import { Skeleton, SkeletonCard, SkeletonRow } from '../shared/Skeleton.jsx'
 import SyncStatus from '../shared/SyncStatus.jsx'
 
@@ -50,13 +50,13 @@ function AvatarMenu({ user, logout }) {
 
 export default function Home() {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const [totals,       setTotals]       = useState({ calories:0, protein:0, carbs:0, fat:0, fibre:0 })
   const [weight,       setWeight]       = useState(null)
   const [supplements,  setSupplements]  = useState([])
   const [suppDone,     setSuppDone]     = useState({})
   const [stepsData,    setStepsData]    = useState(null)
   const [refreshKey,   setRefreshKey]   = useState(0)
-  const [showChat,     setShowChat]     = useState(false)
   const [greeting,     setGreeting]     = useState('')
   const [dateLabel,    setDateLabel]    = useState('')
   const [loading,      setLoading]      = useState(true)
@@ -160,8 +160,6 @@ export default function Home() {
   const goals     = user?.macroGoals || {}
   const stepGoal  = user?.stepGoal || 10000
   const stepPct   = stepsData?.steps ? Math.min(1, stepsData.steps / stepGoal) : 0
-
-  if (showChat) return <MealChat onClose={() => setShowChat(false)} />
 
   if (loading) {
     return (
@@ -278,7 +276,7 @@ export default function Home() {
       <DayLog date={today} onTotalsChange={setTotals} />
 
       {/* AI Chat button */}
-      <button style={styles.chatBtn} onClick={() => setShowChat(true)}>
+      <button style={styles.chatBtn} onClick={() => navigate('/chat')}>
         <span style={{ fontSize:'22px' }}>✨</span>
         <div style={{ display:'flex', flexDirection:'column', gap:'2px', textAlign:'left' }}>
           <span style={{ fontSize:'15px', fontWeight:'600', color:'var(--text-primary)' }}>Ask AI about your meals</span>
