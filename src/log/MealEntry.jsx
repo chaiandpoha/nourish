@@ -369,7 +369,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
                   placeholder={
                     listening ? "Listening…" :
                     !seeded   ? (seedFailed ? "Food database unavailable" : "Loading foods…") :
-                    "Search or type "2 eggs", "100g chicken"…"
+                    "Search or type '2 eggs', '100g chicken'…"
                   }
                   value={query}
                   onChange={e => {
