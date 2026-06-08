@@ -223,7 +223,7 @@ export async function wipeUserData(userId) {
     'foodLogs', 'workoutLogs', 'workoutSets', 'programmes',
     'weightLog', 'bloodWork', 'supplementLog', 'moodLog',
     'progressPhotos', 'mealTemplates', 'syncState', 'reminders',
-    'measurements', 'waterLog',
+    'measurements', 'waterLog', 'stepsLog',
   ]
   await Promise.all(
     userTables.map(t =>

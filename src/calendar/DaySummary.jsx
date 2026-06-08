@@ -22,13 +22,12 @@ export default function DaySummary({ date, onBack }) {
       db.workoutLogs.where('[userId+date]').equals([user.id, date]).toArray(),
       db.weightLog.where('[userId+date]').equals([user.id, date]).first(),
       db.supplementLog.where('[userId+date]').equals([user.id, date]).first(),
-      db.moodLog.where('[userId+date]').equals([user.id, date]).first(),
-    ]).then(([workoutLogs, weight, suppLog, moodLog]) => {
-      setExtra({ workoutLogs, weight, suppLog, moodLog })
+    ]).then(([workoutLogs, weight, suppLog]) => {
+      setExtra({ workoutLogs, weight, suppLog })
     })
   }, [date, user, refresh])
 
-  const { workoutLogs, weight, suppLog, moodLog } = extra || {}
+  const { workoutLogs, weight, suppLog } = extra || {}
   const supplements = user?.supplements || []
   const goals       = user?.macroGoals  || {}
 
@@ -114,22 +113,6 @@ export default function DaySummary({ date, onBack }) {
         </div>
       )}
 
-      {/* Mood */}
-      {moodLog && (
-        <div style={s.card}>
-          <div style={s.cardLabel}>Mood & Energy</div>
-          <div style={s.moodRow}>
-            <div style={s.moodItem}>
-              <span style={s.moodLabel}>Energy</span>
-              <span style={s.moodVal}>{'⚡'.repeat(moodLog.energy || 0)}</span>
-            </div>
-            <div style={s.moodItem}>
-              <span style={s.moodLabel}>Mood</span>
-              <span style={s.moodVal}>{'😊'.repeat(moodLog.mood || 0)}</span>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Add food — at the very bottom, out of the way */}
       <MealEntry
@@ -168,8 +151,4 @@ const s = {
   suppName:    { fontSize:'14px', color:'var(--text-primary)' },
   suppStatus:  { fontSize:'13px', fontWeight:'600' },
 
-  moodRow:     { display:'flex', gap:'24px' },
-  moodItem:    { display:'flex', flexDirection:'column', gap:'4px' },
-  moodLabel:   { fontSize:'11px', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em' },
-  moodVal:     { fontSize:'20px' },
 }

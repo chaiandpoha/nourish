@@ -77,9 +77,6 @@ export const LABEL_SCAN = {
   jpegQuality:  0.85,
 }
 
-// ─── Reminders ───────────────────────────────────────────────────────────────
-export const BLOOD_WORK_REMINDER_DEFAULT_DAYS = 365
-
 // ─── IndexedDB ───────────────────────────────────────────────────────────────
 export const DB_NAME    = 'nourish'
 export const DB_VERSION = 1
