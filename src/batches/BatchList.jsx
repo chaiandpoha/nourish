@@ -16,6 +16,12 @@ export default function BatchList({ onLogged }) {
 
   useEffect(() => { loadBatches() }, [user])
 
+  useEffect(() => {
+    const onFocus = () => loadBatches()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [user])
+
   async function loadBatches() {
     if (!user) return
     try {

@@ -1,8 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { searchFoods, saveFood, fetchHouseholdFoods } from './FoodDB.js'
-import { calcMacros } from './macroCalc.js'
+import { calcMacros, toGrams } from './macroCalc.js'
 import { generateId } from '../auth/crypto.js'
 import { MACRO_COLORS } from '../config.js'
+
+function ingToGrams(gramsInput, unit, servingSize) {
+  const val = parseFloat(gramsInput) || 0
+  if (unit === 'oz')      return Math.round(val * 28.3495 * 10) / 10
+  if (unit === 'serving') return val * (servingSize || 100)
+  return val  // g and ml are 1:1
+}
 
 const speechSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
 
@@ -12,7 +19,7 @@ export default function RecipeBuilder({ onSaved, onCancel, existingFood, househo
     existingFood?.servingLabel ? existingFood.servingLabel.replace(/^\d+g\s*/, '') : ''
   )
   const [ingredients,   setIngredients]   = useState(
-    () => (existingFood?.ingredients || []).map(i => ({ ...i, gramsInput: String(i.grams), unit: 'g' }))
+    () => (existingFood?.ingredients || []).map(i => ({ ...i, gramsInput: String(i.grams), unit: 'g', servingSize: i.servingSize || null }))
   )
   const [search,        setSearch]        = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -85,7 +92,7 @@ export default function RecipeBuilder({ onSaved, onCancel, existingFood, househo
   function addIngredient(food) {
     setIngredients(prev => [
       ...prev,
-      { name: food.name, grams: food.servingSize || 100, gramsInput: String(food.servingSize || 100), unit: 'g', per100g: food.per100g },
+      { name: food.name, gramsInput: String(food.servingSize || 100), unit: 'g', per100g: food.per100g, servingSize: food.servingSize || null },
     ])
     setSearch('')
     setSearchResults([])
@@ -104,8 +111,7 @@ export default function RecipeBuilder({ onSaved, onCancel, existingFood, househo
     setIngredients(prev => prev.map((x, j) => j === i ? { ...x, unit } : x))
   }
 
-  // Derived totals — ml treated as 1:1 with g (standard nutrition convention)
-  const parsed = ingredients.map(i => ({ ...i, grams: parseFloat(i.gramsInput) || 0 }))
+  const parsed = ingredients.map(i => ({ ...i, grams: ingToGrams(i.gramsInput, i.unit, i.servingSize) }))
   const totalGrams = parsed.reduce((s, i) => s + i.grams, 0)
 
   let totalMacros = { calories: 0, protein: 0, carbs: 0, fat: 0, fibre: 0 }
@@ -130,7 +136,7 @@ export default function RecipeBuilder({ onSaved, onCancel, existingFood, househo
       const label = servingLabel.trim()
         ? `${Math.round(totalGrams)}g ${servingLabel.trim()}`
         : `${Math.round(totalGrams)}g serving`
-      const clean = parsed.map(({ gramsInput, unit, ...rest }) => rest)
+      const clean = parsed.map(({ gramsInput, unit, ...rest }) => rest)  // gramsInput/unit are UI-only
       const food  = await saveFood({
         id:           existingFood?.id || generateId(),
         name:         name.trim(),
@@ -231,7 +237,11 @@ export default function RecipeBuilder({ onSaved, onCancel, existingFood, househo
                   onChange={e => updateGrams(i, e.target.value)}
                 />
                 <button style={{ ...r.unitBtn, ...((!ing.unit || ing.unit === 'g') ? r.unitBtnActive : {}) }} onClick={() => updateUnit(i, 'g')}>g</button>
-                <button style={{ ...r.unitBtn, ...(ing.unit === 'ml' ? r.unitBtnActive : {}) }} onClick={() => updateUnit(i, 'ml')}>ml</button>
+                <button style={{ ...r.unitBtn, ...(ing.unit === 'ml'      ? r.unitBtnActive : {}) }} onClick={() => updateUnit(i, 'ml')}>ml</button>
+                <button style={{ ...r.unitBtn, ...(ing.unit === 'oz'      ? r.unitBtnActive : {}) }} onClick={() => updateUnit(i, 'oz')}>oz</button>
+                {ing.servingSize > 0 && (
+                  <button style={{ ...r.unitBtn, ...(ing.unit === 'serving' ? r.unitBtnActive : {}) }} onClick={() => updateUnit(i, 'serving')}>srv</button>
+                )}
               </div>
             </div>
           ))}

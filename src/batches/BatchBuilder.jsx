@@ -149,11 +149,15 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
         householdId:   user.householdId || null,
         createdAt:     existingBatch?.createdAt || new Date().toISOString(),
         updatedAt:     new Date().toISOString(),
-        dirty:         0,
+        dirty:         1,
       }
-      await sbSaveBatch(batch, user.email, user.householdId)
+      // Save locally first — always works offline
       await db.batches.put(batch)
       onSave?.(batch)
+      // Sync to household in background — don't block the UX
+      sbSaveBatch(batch, user.email, user.householdId)
+        .then(() => db.batches.update(batch.id, { dirty: 0 }))
+        .catch(e => console.warn('Batch sync failed:', e.message))
     } catch (e) {
       setErrors([e.message])
     } finally {
