@@ -4,6 +4,7 @@ import { db } from '../db/indexedDB.js'
 import { addFoodLogEntry } from '../db/db.js'
 import { generateId } from '../auth/crypto.js'
 import { sumMacros } from '../food/macroCalc.js'
+import { localDate } from './DayLog.jsx'
 
 // ─── MealTemplates ────────────────────────────────────────────────────────────
 // Save and log meal templates — e.g. "Usual Breakfast"
@@ -25,7 +26,7 @@ export default function MealTemplates({ date, meal, onLogged, onClose }) {
 
   async function handleLogTemplate(template) {
     if (!user) return
-    const today = date || new Date().toISOString().slice(0, 10)
+    const today = date || localDate()
     for (const entry of template.entries) {
       await addFoodLogEntry(user.id, { ...entry, date: today, meal })
     }

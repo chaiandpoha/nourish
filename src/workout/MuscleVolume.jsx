@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { EXERCISES } from './ExerciseDB.js'
+import { localDate } from '../log/DayLog.jsx'
 
 // Build exerciseId → muscle lookup from the exercise list
 const EX_MUSCLE = {}
@@ -21,7 +22,7 @@ function getWeekStart(date = new Date()) {
   const d = new Date(date)
   const day = d.getDay()
   d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
-  return d.toISOString().slice(0, 10)
+  return localDate(d)
 }
 
 export default function MuscleVolume() {
@@ -37,16 +38,16 @@ export default function MuscleVolume() {
     setLoading(true)
     try {
       const today    = new Date()
-      const todayStr = today.toISOString().slice(0, 10)
+      const todayStr = localDate(today)
       const thisMon  = getWeekStart(today)
 
       const lastMon = new Date(thisMon + 'T00:00:00')
       lastMon.setDate(lastMon.getDate() - 7)
-      const lastMonStr = lastMon.toISOString().slice(0, 10)
+      const lastMonStr = localDate(lastMon)
 
       const lastSun = new Date(thisMon + 'T00:00:00')
       lastSun.setDate(lastSun.getDate() - 1)
-      const lastSunStr = lastSun.toISOString().slice(0, 10)
+      const lastSunStr = localDate(lastSun)
 
       const sets = await db.workoutSets
         .where('userId').equals(user.id)

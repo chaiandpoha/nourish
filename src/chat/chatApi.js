@@ -1,6 +1,7 @@
 // AI meal chat — builds context from user's day and calls Claude Haiku
 
 import { FIBRE_LOW_THRESHOLD, EVENING_HOUR, AI } from '../config.js'
+import { localDate } from '../log/DayLog.jsx'
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 
@@ -120,7 +121,7 @@ Privacy: ${settings?.shareFoodNamesWithAI !== false ? 'Food names may be shared'
 // ─── Send message ─────────────────────────────────────────────────────────────
 
 function checkClientRateLimit(userId, type) {
-  const date  = new Date().toISOString().slice(0, 10)
+  const date  = localDate()
   const key   = `nourish_rate_${userId}_${type}_${date}`
   const limit = type === 'vision' ? AI.dailyScanLimit : AI.dailyChatLimit
   const count = parseInt(localStorage.getItem(key) || '0', 10)

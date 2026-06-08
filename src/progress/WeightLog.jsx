@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
+import { localDate } from '../log/DayLog.jsx'
 
 export default function WeightLog() {
   const [entries,  setEntries]  = useState([])
@@ -11,7 +12,7 @@ export default function WeightLog() {
   const [unit,     setUnit]     = useState('lbs') // lbs or kg
   const { user } = useAuth()
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDate()
 
   useEffect(() => { loadEntries() }, [user])
 

@@ -2,6 +2,7 @@
 // All features import from here — never import driveApi or indexedDB directly
 
 import { db, markDirty, getDirtyRecords, clearDirty } from './indexedDB.js'
+import { localDate } from '../log/DayLog.jsx'
 import {
   isTokenValid,
   readFile,
@@ -392,8 +393,8 @@ export async function updateFoodLogEntry(id, changes) {
 export async function getWeightLog(userId, days = 30) {
   const start = new Date()
   start.setDate(start.getDate() - days)
-  const startDate = start.toISOString().slice(0, 10)
-  const today     = new Date().toISOString().slice(0, 10)
+  const startDate = localDate(start)
+  const today     = localDate()
   return db.weightLog
     .where('[userId+date]')
     .between([userId, startDate], [userId, today], true, true)

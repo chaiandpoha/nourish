@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { getWaterLog, logWater } from '../db/db.js'
+import { localDate } from '../log/DayLog.jsx'
 
 const GOAL_KEY     = 'nourish_water_goal'
 const DEFAULT_GOAL = 2500
@@ -12,7 +13,7 @@ export default function WaterTracker() {
   const [goal,      setGoal]      = useState(() => parseInt(localStorage.getItem(GOAL_KEY) || DEFAULT_GOAL, 10))
   const [editing,   setEditing]   = useState(false)
   const [goalInput, setGoalInput] = useState('')
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDate()
 
   useEffect(() => {
     if (!user) return

@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { AI } from '../config.js'
+import { localDate } from '../log/DayLog.jsx'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function isoDate(date) {
-  return date.toISOString().slice(0, 10)
+  return localDate(date)
 }
 
 function dateMinusDays(n) {
@@ -290,7 +291,7 @@ Be warm, direct, and encouraging. Under 120 words. No lists — write in short p
         <div style={s.cardLabel}>DAY BY DAY</div>
         {data.thisWeek.map((day, i) => {
           const label = new Date(day.date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' })
-          const isToday = day.date === new Date().toISOString().slice(0, 10)
+          const isToday = day.date === localDate()
           return (
             <div key={day.date} style={{ ...s.dayRow, borderBottom: i < data.thisWeek.length - 1 ? '0.5px solid var(--border-subtle)' : 'none' }}>
               <span style={{ ...s.dayLabel, fontWeight: isToday ? '700' : '500', color: isToday ? 'var(--text-primary)' : 'var(--text-secondary)' }}>

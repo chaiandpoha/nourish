@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
+import { localDate } from '../log/DayLog.jsx'
 
 // ─── StreakStrip ──────────────────────────────────────────────────────────────
 // 7-day glanceable streak — shows protein target hit, workout logged
@@ -23,7 +24,7 @@ export default function StreakStrip({ goals }) {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today)
       d.setDate(d.getDate() - i)
-      const date = d.toISOString().slice(0, 10)
+      const date = localDate(d)
       const label = d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 1)
 
       // Get food logs for this day

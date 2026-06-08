@@ -5,6 +5,7 @@ import { calcPortionMacros } from './batchCalc.js'
 import { addFoodLogEntry } from '../db/db.js'
 import { sbFetchBatches, sbCloseBatch } from '../db/supabase.js'
 import BatchBuilder from './BatchBuilder.jsx'
+import { localDate } from '../log/DayLog.jsx'
 
 export default function BatchList({ onLogged }) {
   const [batches,  setBatches]  = useState([])
@@ -221,7 +222,7 @@ function LogPortion({ batch, onLogged, onCancel }) {
         name:     batch.name,
         grams:    parsedGrams,
         meal,
-        date:     new Date().toISOString().slice(0, 10),
+        date:     localDate(),
         ...macros,
         source:   'batch',
       })

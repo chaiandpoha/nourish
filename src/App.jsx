@@ -537,7 +537,7 @@ function SupplementStreaks({ userId, supplements }) {
     const days  = Array.from({ length: 30 }, (_, i) => {
       const d = new Date(today)
       d.setDate(d.getDate() - i)
-      return d.toISOString().slice(0, 10)
+      return localDate(d)
     })
     const oldest = days[days.length - 1]
     const newest = days[0]
@@ -1042,11 +1042,11 @@ function ExportData({ userId }) {
     if (!userId) return
     setExporting(true)
     try {
-      const today     = new Date().toISOString().slice(0, 10)
+      const today     = localDate()
       const startDate = (() => {
         const d = new Date()
         d.setDate(d.getDate() - days)
-        return d.toISOString().slice(0, 10)
+        return localDate(d)
       })()
 
       const { db } = await import('./db/indexedDB.js')

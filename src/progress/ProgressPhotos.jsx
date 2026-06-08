@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { db } from '../db/indexedDB.js'
+import { localDate } from '../log/DayLog.jsx'
 
 function getWeekStart(date = new Date()) {
   const d = new Date(date)
   const day = d.getDay()
   d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
-  return d.toISOString().slice(0, 10)
+  return localDate(d)
 }
 
 function fmtWeek(weekStart) {

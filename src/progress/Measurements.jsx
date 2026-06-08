@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { getMeasurements, saveMeasurement } from '../db/db.js'
+import { localDate } from '../log/DayLog.jsx'
 
 const FIELDS = [
   { key: 'waist',  label: 'Waist'  },
@@ -17,7 +18,7 @@ export default function Measurements() {
   const [saving,  setSaving]  = useState(false)
   const [saved,   setSaved]   = useState(false)
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDate()
   const thisMonth = today.slice(0, 7)
   const [entryDate, setEntryDate] = useState(today)
 

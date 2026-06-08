@@ -5,6 +5,7 @@
 import { db } from '../db/indexedDB.js'
 import usdaFoodsData from '../data/usda_foods.json'
 import ninFoodsData  from '../data/nin_foods.json'
+import { localDate } from '../log/DayLog.jsx'
 
 // ─── Seed bundled foods into IndexedDB ───────────────────────────────────────
 // Data is bundled as static imports — no fetch needed, works offline from
@@ -183,8 +184,8 @@ function sourcePriority(source) {
 export async function getRecentFoods(userId, limit = 10) {
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-  const cutoff = sevenDaysAgo.toISOString().slice(0, 10)
-  const today  = new Date().toISOString().slice(0, 10)
+  const cutoff = localDate(sevenDaysAgo)
+  const today  = localDate()
 
   const logs = await db.foodLogs
     .where('[userId+date]')

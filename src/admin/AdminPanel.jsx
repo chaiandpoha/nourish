@@ -3,6 +3,7 @@ import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { sha256 } from '../auth/crypto.js'
 import { sbFetchBatches, sbCloseBatch, sbDeleteBatch } from '../db/supabase.js'
+import { localDate } from '../log/DayLog.jsx'
 
 export default function AdminPanel() {
   const [tab,      setTab]      = useState('members')
@@ -45,7 +46,7 @@ export default function AdminPanel() {
     setBatches(allBatches)
 
     // Calculate usage per user
-    const today    = new Date().toISOString().slice(0, 10)
+    const today    = localDate()
     const thisMonth = today.slice(0, 7)
     const usageMap  = {}
 

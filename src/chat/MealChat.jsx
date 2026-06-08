@@ -4,6 +4,7 @@ import { sendChatMessage } from './chatApi.js'
 import { getDayMacros, addFoodLogEntry } from '../db/db.js'
 import { db } from '../db/indexedDB.js'
 import { MACRO_COLORS } from '../config.js'
+import { localDate } from '../log/DayLog.jsx'
 
 // ─── Parse AI message — strip ```foods block, return {text, foods} ─────────────
 function parseMessage(content) {
@@ -30,7 +31,7 @@ export default function MealChat({ onClose }) {
   const inputRef   = useRef(null)
   const { user }   = useAuth()
 
-  const today  = new Date().toISOString().slice(0, 10)
+  const today  = localDate()
   const goals  = user?.macroGoals || {}
 
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function MealChat({ onClose }) {
     try {
       const startDate = new Date()
       startDate.setDate(startDate.getDate() - 21)
-      const since = startDate.toISOString().slice(0, 10)
+      const since = localDate(startDate)
 
       const [batches, recipes, recentLogs] = await Promise.all([
         db.batches.where('closed').equals(0).toArray(),
@@ -134,7 +135,7 @@ export default function MealChat({ onClose }) {
 
   async function handleLogFood(food, key) {
     if (!user || logged[key]) return
-    const today = new Date().toISOString().slice(0, 10)
+    const today = localDate()
     await addFoodLogEntry(user.id, {
       foodId:   null,
       batchId:  null,

@@ -3,6 +3,7 @@ import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { generateId } from '../auth/crypto.js'
 import { searchExercises, getAlternates } from './ExerciseDB.js'
+import { localDate } from '../log/DayLog.jsx'
 
 const RPE_OPTIONS = ['6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10']
 const DEFAULT_REST = 90  // seconds
@@ -214,7 +215,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
     setFinishing(true)
     try {
       const workoutLogId = generateId()
-      const date         = new Date().toISOString().slice(0, 10)
+      const date         = localDate()
       const duration     = Math.floor((Date.now() - startRef.current) / 1000)
       const prs          = []
       let totalSets = 0, totalVolume = 0
