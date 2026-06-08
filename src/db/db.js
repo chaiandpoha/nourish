@@ -96,7 +96,7 @@ export async function runDailyBackup(userId, encryptionKey) {
   try {
     await flushDirtyRecords(userId, encryptionKey)
     // Mark all records as dirty to force full backup
-    const tables = ['foodLogs','workoutLogs','workoutSets','weightLog','supplementLog','waterLog','stepsLog','measurements','programmes','reminders','mealTemplates']
+    const tables = ['foodLogs','workoutLogs','workoutSets','weightLog','supplementLog','stepsLog','measurements','programmes','reminders','mealTemplates']
     for (const table of tables) {
       const records = await db[table].where('userId').equals(userId).toArray()
       if (records.length === 0) continue
@@ -147,7 +147,6 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds) {
   // Monthly tables — health data (stored in userDir alongside profile.json)
   await _restoreMonthlyTable('weightLog',    fIds.userDir, userId)
   await _restoreMonthlyTable('supplementLog',fIds.userDir, userId)
-  await _restoreMonthlyTable('waterLog',     fIds.userDir, userId)
   await _restoreMonthlyTable('stepsLog',     fIds.userDir, userId)
   await _restoreMonthlyTable('measurements', fIds.userDir, userId)
 
@@ -231,7 +230,6 @@ export async function flushDirtyRecords(userId, encryptionKey) {
     await flushMonthlyTable('workoutSets',  userId, encryptionKey, _folderIds.workoutLogsDir)
     await flushMonthlyTable('weightLog',    userId, encryptionKey, _folderIds.userDir)
     await flushMonthlyTable('supplementLog',userId, encryptionKey, _folderIds.userDir)
-    await flushMonthlyTable('waterLog',     userId, encryptionKey, _folderIds.userDir)
     await flushMonthlyTable('stepsLog',     userId, encryptionKey, _folderIds.userDir)
     await flushMonthlyTable('measurements', userId, encryptionKey, _folderIds.userDir)
     await flushReminders(userId)
@@ -439,21 +437,6 @@ export async function saveUser(user) {
 
 export async function getAllUsers() {
   return db.users.toArray()
-}
-
-// ─── Water log helpers ────────────────────────────────────────────────────────
-
-export async function getWaterLog(userId, date) {
-  return db.waterLog.where('[userId+date]').equals([userId, date]).first()
-}
-
-export async function logWater(userId, date, amountMl) {
-  const existing = await db.waterLog.where('[userId+date]').equals([userId, date]).first()
-  if (existing) {
-    await db.waterLog.update(existing.id, { amountMl, dirty: 1, updatedAt: new Date().toISOString() })
-  } else {
-    await db.waterLog.add({ userId, date, amountMl, dirty: 1, updatedAt: new Date().toISOString() })
-  }
 }
 
 // ─── Measurements helpers ─────────────────────────────────────────────────────
