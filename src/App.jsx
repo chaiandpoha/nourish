@@ -103,6 +103,7 @@ function AppRoutes() {
     <>
       <ReminderChecker />
       <QuotaChecker />
+      <HealthSyncFromUrl />
       <Routes>
         <Route path="/admin-login"   element={<AdminLogin />} />
         <Route path="/onboarding"    element={<OnboardingScreen />} />
@@ -259,6 +260,30 @@ function HealthSyncScreen() {
       )}
     </div>
   )
+}
+
+// Reads ?steps=X&cal=Y&date=Z from the root URL (set by iOS Shortcut)
+// Saves to stepsLog then cleans the URL — no hash or redirect needed
+function HealthSyncFromUrl() {
+  const { user } = useAuth()
+  useEffect(() => {
+    if (!user) return
+    const params = new URLSearchParams(window.location.search)
+    const steps = parseInt(params.get('steps'))
+    if (!steps) return
+    const cal  = parseInt(params.get('cal'))  || 0
+    const date = params.get('date') || localDate()
+    const now  = new Date().toISOString()
+    db.stepsLog.where('[userId+date]').equals([user.id, date]).first().then(existing => {
+      if (existing) {
+        db.stepsLog.update(existing.id, { steps, caloriesBurned: cal, source: 'shortcut', dirty: 1, updatedAt: now })
+      } else {
+        db.stepsLog.add({ userId: user.id, date, steps, caloriesBurned: cal, source: 'shortcut', dirty: 1, updatedAt: now })
+      }
+    })
+    window.history.replaceState({}, '', window.location.pathname + window.location.hash)
+  }, [user?.id])
+  return null
 }
 
 function ReminderChecker() {
