@@ -3,16 +3,18 @@ import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { calcPortionMacros } from './batchCalc.js'
 import { addFoodLogEntry } from '../db/db.js'
-import { sbFetchBatches, sbCloseBatch } from '../db/supabase.js'
+import { sbFetchBatches, sbCloseBatch, sbReopenBatch } from '../db/supabase.js'
 import BatchBuilder from './BatchBuilder.jsx'
 import { localDate } from '../log/DayLog.jsx'
 
 export default function BatchList({ onLogged }) {
-  const [batches,  setBatches]  = useState([])
-  const [screen,   setScreen]   = useState('list')
-  const [selected, setSelected] = useState(null)
-  const [editing,  setEditing]  = useState(null)
-  const [loading,  setLoading]  = useState(true)
+  const [batches,       setBatches]       = useState([])
+  const [closedBatches, setClosedBatches] = useState([])
+  const [showClosed,    setShowClosed]    = useState(false)
+  const [screen,        setScreen]        = useState('list')
+  const [selected,      setSelected]      = useState(null)
+  const [editing,       setEditing]       = useState(null)
+  const [loading,       setLoading]       = useState(true)
   const { user } = useAuth()
 
   useEffect(() => { loadBatches() }, [user])
@@ -27,28 +29,36 @@ export default function BatchList({ onLogged }) {
     if (!user) return
     try {
       const remote = await sbFetchBatches(user.householdId)
-      // Safe merge: don't overwrite local batches that have ingredients when remote doesn't
       const localRecords = await db.batches.bulkGet(remote.map(b => b.id))
       const toSave = remote.filter((r, i) => {
         const local = localRecords[i]
         if (!local) return true
-        const localHasIng  = Array.isArray(local.ingredients)  && local.ingredients.length  > 0
-        const remoteHasIng = Array.isArray(r.ingredients) && r.ingredients.length > 0
-        return !(localHasIng && !remoteHasIng)
+        // Never let sync close a batch — only explicit user action can do that
+        if (!local.closed && r.closed) return false
+        // Never overwrite a local batch that has ingredients with a remote that doesn't
+        const localHasIng  = Array.isArray(local.ingredients) && local.ingredients.length > 0
+        const remoteHasIng = Array.isArray(r.ingredients)     && r.ingredients.length > 0
+        if (localHasIng && !remoteHasIng) return false
+        return true
       })
       if (toSave.length) await db.batches.bulkPut(toSave)
-      // Display from local DB — includes offline-created batches Supabase doesn't have yet
-      const localAll = await db.batches.where('closed').equals(0).toArray()
-      localAll.sort((a, b) => {
+
+      const sort = arr => arr.sort((a, b) => {
         if (a.shared && !b.shared) return -1
         if (!a.shared && b.shared) return 1
         return new Date(b.createdAt) - new Date(a.createdAt)
       })
-      setBatches(localAll)
+      const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const all    = await db.batches.toArray()
+      const open   = all.filter(b => !b.closed)
+      const closed = all.filter(b => b.closed && (!b.closedAt || b.closedAt >= cutoff))
+      setBatches(sort(open))
+      setClosedBatches(sort(closed))
     } catch {
-      // Offline fallback
-      const all = await db.batches.where('closed').equals(0).toArray()
-      setBatches(all)
+      const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const all    = await db.batches.toArray()
+      setBatches(all.filter(b => !b.closed))
+      setClosedBatches(all.filter(b => b.closed && (b.closedAt || b.updatedAt || '') >= cutoff))
     }
     setLoading(false)
   }
@@ -62,8 +72,15 @@ export default function BatchList({ onLogged }) {
   }
 
   async function handleClose(batchId) {
+    const now = new Date().toISOString()
     await sbCloseBatch(batchId).catch(e => console.warn('Supabase:', e))
-    await db.batches.update(batchId, { closed: 1, updatedAt: new Date().toISOString() })
+    await db.batches.update(batchId, { closed: 1, closedAt: now, updatedAt: now })
+    loadBatches()
+  }
+
+  async function handleReopen(batchId) {
+    await sbReopenBatch(batchId).catch(e => console.warn('Supabase:', e))
+    await db.batches.update(batchId, { closed: 0, updatedAt: new Date().toISOString() })
     loadBatches()
   }
 
@@ -137,20 +154,45 @@ export default function BatchList({ onLogged }) {
           onClose={() => handleClose(batch.id)}
         />
       ))}
+
+      {!loading && (
+        <div style={styles.closedSection}>
+          <button style={styles.closedToggle} onClick={() => setShowClosed(s => !s)}>
+            <span>Closed last 7 days</span>
+            <span style={styles.closedMeta}>
+              {closedBatches.length > 0 ? closedBatches.length : 'none'}
+              {' '}{showClosed ? '▲' : '▼'}
+            </span>
+          </button>
+
+          {showClosed && (
+            closedBatches.length === 0
+              ? <div style={styles.noClosed}>No closed batches yet</div>
+              : closedBatches.map(batch => (
+                  <BatchCard
+                    key={batch.id}
+                    batch={batch}
+                    closed
+                    onReopen={() => handleReopen(batch.id)}
+                  />
+                ))
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
 // ─── BatchCard ────────────────────────────────────────────────────────────────
 
-function BatchCard({ batch, onLog, onEdit, onClose }) {
+function BatchCard({ batch, onLog, onEdit, onClose, onReopen, closed = false }) {
   const [showClose, setShowClose] = useState(false)
   const daysOld = Math.floor(
     (Date.now() - new Date(batch.createdAt)) / (1000 * 60 * 60 * 24)
   )
 
   return (
-    <div style={styles.card}>
+    <div style={{ ...styles.card, ...(closed ? styles.cardClosed : {}) }}>
       <div style={styles.cardTop}>
         <div style={styles.cardLeft}>
           <div style={styles.batchName}>{batch.name}</div>
@@ -166,21 +208,23 @@ function BatchCard({ batch, onLog, onEdit, onClose }) {
             ) : (
               <span style={styles.privateBadge}> · Personal</span>
             )}
+            {closed && <span style={styles.closedBadge}> · Closed</span>}
           </div>
         </div>
 
-        <div style={{ display:'flex', flexDirection:'column', gap:'6px', flexShrink:0 }}>
-          <button style={styles.logBtn} onClick={onLog}>Log portion</button>
-          <button style={styles.editBtn} onClick={onEdit}>Edit</button>
-        </div>
+        {!closed && (
+          <div style={{ display:'flex', flexDirection:'column', gap:'6px', flexShrink:0 }}>
+            <button style={styles.logBtn} onClick={onLog}>Log portion</button>
+            <button style={styles.editBtn} onClick={onEdit}>Edit</button>
+          </div>
+        )}
       </div>
 
       <div style={styles.cardFooter}>
-        {!showClose ? (
-          <button
-            style={styles.closeLink}
-            onClick={() => setShowClose(true)}
-          >
+        {closed ? (
+          <button style={styles.reopenLink} onClick={onReopen}>Reopen batch</button>
+        ) : !showClose ? (
+          <button style={styles.closeLink} onClick={() => setShowClose(true)}>
             Close batch
           </button>
         ) : (
@@ -447,6 +491,53 @@ const styles = {
     fontSize:        '13px',
     cursor:          'pointer',
     padding:         0,
+  },
+  closedSection: {
+    borderTop:       '0.5px solid var(--border-subtle)',
+    paddingTop:      '4px',
+    display:         'flex',
+    flexDirection:   'column',
+    gap:             '8px',
+  },
+  closedToggle: {
+    background:      'none',
+    border:          'none',
+    color:           'var(--text-secondary)',
+    fontSize:        '13px',
+    fontWeight:      '600',
+    cursor:          'pointer',
+    padding:         '6px 0',
+    textAlign:       'left',
+    display:         'flex',
+    justifyContent:  'space-between',
+    width:           '100%',
+  },
+  closedMeta: {
+    color:           'var(--text-tertiary)',
+    fontWeight:      '400',
+  },
+  noClosed: {
+    fontSize:        '13px',
+    color:           'var(--text-tertiary)',
+    textAlign:       'center',
+    padding:         '12px 0',
+    fontStyle:       'italic',
+  },
+  cardClosed: {
+    opacity:         0.65,
+  },
+  closedBadge: {
+    color:           'var(--text-tertiary)',
+    fontStyle:       'italic',
+  },
+  reopenLink: {
+    background:      'none',
+    border:          'none',
+    color:           'var(--accent)',
+    fontSize:        '13px',
+    cursor:          'pointer',
+    padding:         0,
+    fontWeight:      '500',
   },
   confirmRow: {
     display:         'flex',

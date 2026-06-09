@@ -153,7 +153,11 @@ export default function Home() {
 
   useEffect(() => {
     window.addEventListener('nourish:food-logged', handleLogged)
-    return () => window.removeEventListener('nourish:food-logged', handleLogged)
+    window.addEventListener('nourish:steps-synced', handleLogged)
+    return () => {
+      window.removeEventListener('nourish:food-logged', handleLogged)
+      window.removeEventListener('nourish:steps-synced', handleLogged)
+    }
   }, [])
 
   const suppCount = supplements.filter(s => suppDone[s]).length
@@ -227,7 +231,7 @@ export default function Home() {
               </div>
             </>
           ) : (
-            <div style={styles.statEmpty}>Tap to add</div>
+            <div style={styles.statEmpty}>Tap to log</div>
           )}
         </button>
 
@@ -292,7 +296,7 @@ export default function Home() {
           <div style={styles.sheet} onClick={e => e.stopPropagation()}>
             <div style={styles.sheetHandle} />
             <h3 style={styles.sheetTitle}>Today's Activity</h3>
-            <p style={styles.sheetSub}>Enter manually or set up auto-sync via iPhone Shortcuts</p>
+            <p style={styles.sheetSub}>Open your Apple Health app to check your steps, then enter them here</p>
 
             <div style={styles.fieldRow}>
               <div style={styles.field}>

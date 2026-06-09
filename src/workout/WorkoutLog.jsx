@@ -25,6 +25,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   const [finishing,  setFinishing]  = useState(false)
   const [summary,    setSummary]    = useState(null)
   const [rpePicker,  setRpePicker]  = useState(null)  // {exId, setIdx}
+  const [unit,       setUnit]       = useState(() => localStorage.getItem('workoutUnit') || 'lbs')
 
   const startRef = useRef(Date.now())
   const timerRef = useRef(null)
@@ -84,7 +85,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
         (parseFloat(s.weight) || 0) > (parseFloat(b?.weight) || 0) ? s : b, lastSession[0])
 
       result[ex.id] = {
-        label:   `${lastSession.length} sets · best ${best.weight} kg × ${best.reps}`,
+        label:   `${lastSession.length} sets · best ${best.weight} ${localStorage.getItem('workoutUnit') || 'lbs'} × ${best.reps}`,
         weight:  parseFloat(best.weight) || 0,
         reps:    parseInt(best.reps)     || 10,
         allSets: lastSession,
@@ -191,6 +192,12 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
     }))
   }
 
+  function toggleUnit() {
+    const next = unit === 'kg' ? 'lbs' : 'kg'
+    setUnit(next)
+    localStorage.setItem('workoutUnit', next)
+  }
+
   function swapExercise(oldEx, newEx) {
     setExtraEx(prev => [
       ...prev.filter(e => e.id !== oldEx.id),
@@ -279,7 +286,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
           {[
             { val: fmt(summary.duration),                             lbl: 'Duration' },
             { val: summary.totalSets,                                 lbl: 'Sets'     },
-            { val: `${Math.round(summary.totalVolume).toLocaleString()}`, lbl: 'Volume kg' },
+            { val: `${Math.round(summary.totalVolume).toLocaleString()}`, lbl: `Volume ${unit}` },
           ].map(({ val, lbl }) => (
             <div key={lbl} style={st.summaryStat}>
               <div style={st.summaryVal}>{val}</div>
@@ -294,7 +301,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
             {summary.prs.map((pr, i) => (
               <div key={i} style={st.prRow}>
                 <span style={st.prName}>{pr.exercise}</span>
-                <span style={st.prVal}>{pr.value} kg</span>
+                <span style={st.prVal}>{pr.value} {unit}</span>
               </div>
             ))}
           </div>
@@ -345,10 +352,13 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
           <div style={st.sessionName}>{sessionName}</div>
           <div style={st.elapsed}>{fmt(elapsed)}</div>
         </div>
-        <button style={{ ...st.finishBtn, opacity: finishing ? 0.6 : 1 }}
-          onClick={handleFinish} disabled={finishing}>
-          {finishing ? 'Saving…' : 'Finish'}
-        </button>
+        <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+          <button style={st.unitToggle} onClick={toggleUnit}>{unit.toUpperCase()}</button>
+          <button style={{ ...st.finishBtn, opacity: finishing ? 0.6 : 1 }}
+            onClick={handleFinish} disabled={finishing}>
+            {finishing ? 'Saving…' : 'Finish'}
+          </button>
+        </div>
       </div>
 
       {/* ── Rest timer ── */}
@@ -405,7 +415,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
             <div style={st.colHeader}>
               <span style={{ ...st.colLbl, width:'26px' }}>SET</span>
               <span style={{ ...st.colLbl, width:'56px' }}>PREV</span>
-              <span style={{ ...st.colLbl, flex:1 }}>KG</span>
+              <span style={{ ...st.colLbl, flex:1 }}>{unit.toUpperCase()}</span>
               <span style={{ ...st.colLbl, flex:1 }}>REPS</span>
               <span style={{ ...st.colLbl, width:'42px' }}>RPE</span>
               <span style={{ ...st.colLbl, width:'34px' }}></span>
@@ -540,6 +550,7 @@ const st = {
   sessionName:  { fontSize:'18px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.03em' },
   elapsed:      { fontSize:'13px', color:'var(--text-tertiary)', marginTop:'2px', fontFamily:'var(--font-mono)' },
   finishBtn:    { padding:'10px 22px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'#fff', fontSize:'15px', fontWeight:'600', cursor:'pointer', letterSpacing:'-0.01em' },
+  unitToggle:   { padding:'8px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'12px', fontWeight:'700', cursor:'pointer', letterSpacing:'0.04em' },
 
   // Rest timer banner
   restBanner:   { borderRadius:'var(--r-xl)', overflow:'hidden', background:'var(--accent-dim)', border:'1px solid var(--accent)' },

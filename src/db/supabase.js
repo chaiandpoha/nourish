@@ -72,6 +72,15 @@ export async function sbCloseBatch(id) {
   if (error) throw error
 }
 
+export async function sbReopenBatch(id) {
+  if (!supabase) throw new Error('Supabase not configured')
+  const { error } = await supabase
+    .from('batches')
+    .update({ closed: false, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
 export async function sbDeleteBatch(id) {
   if (!supabase) throw new Error('Supabase not configured')
   const { error } = await supabase.from('batches').delete().eq('id', id)

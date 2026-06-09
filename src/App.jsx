@@ -103,7 +103,7 @@ function AppRoutes() {
     <>
       <ReminderChecker />
       <QuotaChecker />
-      <HealthSyncFromUrl />
+      <HealthClipboardSync />
       <Routes>
         <Route path="/admin-login"   element={<AdminLogin />} />
         <Route path="/onboarding"    element={<OnboardingScreen />} />
@@ -194,7 +194,6 @@ function ProtectedApp() {
           <Route path="/workout"      element={<WorkoutScreen />} />
           <Route path="/calendar"     element={<CalendarScreen />} />
           <Route path="/settings"     element={<SettingsScreen />} />
-          <Route path="/health-sync"  element={<HealthSyncScreen />} />
           <Route path="*"             element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -210,82 +209,6 @@ function ChatScreen() {
   return <MealChat onClose={() => navigate('/')} />
 }
 
-// ─── HealthSyncScreen ─────────────────────────────────────────────────────────
-// Handles the iOS Shortcuts URL: /#/health-sync?steps=8000&cal=350
-// Saves to IndexedDB and redirects home.
-
-function HealthSyncScreen() {
-  const { user } = useAuth()
-  const navigate  = useNavigate()
-  const { search } = useLocation()
-  const [status, setStatus] = useState('saving')
-
-  useEffect(() => {
-    if (!user) return
-    ;(async () => {
-      const params = new URLSearchParams(search)
-      const steps          = parseInt(params.get('steps'))  || 0
-      const caloriesBurned = parseInt(params.get('cal'))    || 0
-      const date           = params.get('date') || localDate()
-      const now = new Date().toISOString()
-
-      const existing = await db.stepsLog
-        .where('[userId+date]')
-        .equals([user.id, date])
-        .first()
-
-      if (existing) {
-        await db.stepsLog.update(existing.id, { steps, caloriesBurned, source:'shortcut', dirty:1, updatedAt:now })
-      } else {
-        await db.stepsLog.add({ userId:user.id, date, steps, caloriesBurned, source:'shortcut', dirty:1, updatedAt:now })
-      }
-
-      setStatus('done')
-      setTimeout(() => navigate('/', { replace:true }), 1200)
-    })()
-  }, [user])
-
-  return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'60dvh', gap:'12px', padding:'24px' }}>
-      {status === 'saving' ? (
-        <>
-          <div style={{ fontSize:'40px' }}>⌛</div>
-          <p style={{ fontSize:'16px', color:'var(--text-secondary)' }}>Syncing activity…</p>
-        </>
-      ) : (
-        <>
-          <div style={{ fontSize:'40px' }}>✅</div>
-          <p style={{ fontSize:'16px', color:'var(--text-secondary)', fontWeight:'600' }}>Activity synced!</p>
-        </>
-      )}
-    </div>
-  )
-}
-
-// Reads ?steps=X&cal=Y&date=Z from the root URL (set by iOS Shortcut)
-// Saves to stepsLog then cleans the URL — no hash or redirect needed
-function HealthSyncFromUrl() {
-  const { user } = useAuth()
-  useEffect(() => {
-    if (!user) return
-    const params = new URLSearchParams(window.location.search)
-    const steps = parseInt(params.get('steps'))
-    if (!steps) return
-    const cal  = parseInt(params.get('cal'))  || 0
-    const date = params.get('date') || localDate()
-    const now  = new Date().toISOString()
-    db.stepsLog.where('[userId+date]').equals([user.id, date]).first().then(existing => {
-      if (existing) {
-        db.stepsLog.update(existing.id, { steps, caloriesBurned: cal, source: 'shortcut', dirty: 1, updatedAt: now })
-      } else {
-        db.stepsLog.add({ userId: user.id, date, steps, caloriesBurned: cal, source: 'shortcut', dirty: 1, updatedAt: now })
-      }
-    })
-    window.history.replaceState({}, '', window.location.pathname + window.location.hash)
-  }, [user?.id])
-  return null
-}
-
 function ReminderChecker() {
   const { user } = useAuth()
   const { addBanner } = useBanners()
@@ -293,6 +216,49 @@ function ReminderChecker() {
     if (!user) return
     checkReminders(user.id, addBanner)
   }, [user?.id])
+  return null
+}
+
+// Reads clipboard for health data written by iOS Personal Automation shortcut.
+// Format: nourish-steps:8432,cal:312,date:2026-06-08
+// Runs on mount (shortcut fires when app opens) and on every foreground resume.
+function HealthClipboardSync() {
+  const { user } = useAuth()
+
+  useEffect(() => {
+    if (!user) return
+
+    async function trySync() {
+      try {
+        const text = await navigator.clipboard.readText()
+        if (!text?.startsWith('nourish-steps:')) return
+        const m = text.match(/nourish-steps:(\d+)(?:,cal:(\d+))?(?:,date:([\d-]+))?/)
+        if (!m) return
+        const steps = parseInt(m[1])
+        if (!steps) return
+        const cal  = parseInt(m[2]) || 0
+        const date = m[3] || localDate()
+        const now  = new Date().toISOString()
+        const existing = await db.stepsLog.where('[userId+date]').equals([user.id, date]).first()
+        if (existing) {
+          await db.stepsLog.update(existing.id, { steps, caloriesBurned: cal, source: 'health', dirty: 1, updatedAt: now })
+        } else {
+          await db.stepsLog.add({ userId: user.id, date, steps, caloriesBurned: cal, source: 'health', dirty: 1, updatedAt: now })
+        }
+        navigator.clipboard.writeText('').catch(() => {})
+        window.dispatchEvent(new CustomEvent('nourish:steps-synced'))
+      } catch {} // clipboard unavailable or denied — silent fail
+    }
+
+    // Delay slightly so Personal Automation has time to write clipboard after app opens
+    const t = setTimeout(trySync, 1200)
+
+    const onVisible = () => { if (document.visibilityState === 'visible') setTimeout(trySync, 500) }
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => { clearTimeout(t); document.removeEventListener('visibilitychange', onVisible) }
+  }, [user?.id])
+
   return null
 }
 

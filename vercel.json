@@ -1,6 +1,5 @@
 {
   "rewrites": [
-    { "source": "/health-sync", "destination": "/health-sync.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
