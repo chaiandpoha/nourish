@@ -33,7 +33,8 @@ export default function WeightLog() {
       const weightKg  = unit === 'lbs' ? val * 0.453592 : val
       const weightLbs = unit === 'lbs' ? val : val * 2.20462
 
-      await db.weightLog.put({
+      const existing = await db.weightLog.where('[userId+date]').equals([user.id, today]).first()
+      const payload = {
         userId:    user.id,
         date:      today,
         weightKg:  Math.round(weightKg * 10) / 10,
@@ -41,7 +42,12 @@ export default function WeightLog() {
         note:      note.trim(),
         dirty:     1,
         updatedAt: new Date().toISOString(),
-      })
+      }
+      if (existing) {
+        await db.weightLog.update(existing.id, payload)
+      } else {
+        await db.weightLog.add(payload)
+      }
       setWeight('')
       setNote('')
       setSaved(true)
@@ -117,7 +123,7 @@ export default function WeightLog() {
             <div style={s.inputRow}>
               <input
                 style={s.weightInput}
-                type="number"
+                type="text"
                 inputMode="decimal"
                 placeholder={unit === 'lbs' ? '175' : '80'}
                 value={weight}

@@ -143,7 +143,7 @@ export default function Home() {
     if (!val || isNaN(val)) return
     const wKg  = weightUnit === 'lbs' ? val * 0.453592 : val
     const wLbs = weightUnit === 'lbs' ? val : val * 2.20462
-    await db.weightLog.put({
+    const payload = {
       userId:    user.id,
       date:      today,
       weightKg:  Math.round(wKg  * 10) / 10,
@@ -151,7 +151,13 @@ export default function Home() {
       note:      '',
       dirty:     1,
       updatedAt: new Date().toISOString(),
-    })
+    }
+    const existing = await db.weightLog.where('[userId+date]').equals([user.id, today]).first()
+    if (existing) {
+      await db.weightLog.update(existing.id, payload)
+    } else {
+      await db.weightLog.add(payload)
+    }
     setWeight(Math.round(wKg * 10) / 10)
     setEditingWeight(false)
   }
@@ -337,7 +343,7 @@ export default function Home() {
                 <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
                   <input
                     style={{ ...styles.input, fontSize:'28px', fontWeight:'300', letterSpacing:'-0.02em' }}
-                    type="number"
+                    type="text"
                     inputMode="decimal"
                     placeholder={weightUnit === 'lbs' ? '175' : '80'}
                     value={weightInput}
