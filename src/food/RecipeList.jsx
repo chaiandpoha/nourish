@@ -19,17 +19,21 @@ export default function RecipeList({ householdId }) {
 
       if (householdId) {
         const remote = await sbFetchHouseholdFoods(householdId)
+        const toSave = []
         for (const f of remote) {
           const isRecipe = f.source === 'recipe' || (Array.isArray(f.ingredients) && f.ingredients.length > 0)
           if (!isRecipe) continue
-          const localEntry = byId.get(f.id)
+          const localEntry           = byId.get(f.id)
           const remoteHasIngredients = Array.isArray(f.ingredients) && f.ingredients.length > 0
           const localHasIngredients  = localEntry && Array.isArray(localEntry.ingredients) && localEntry.ingredients.length > 0
-          // If local has ingredients but remote doesn't (Supabase column missing), keep local
+          // Keep local if it has ingredients and remote doesn't (Supabase column may lag)
           if (localHasIngredients && !remoteHasIngredients) continue
-          byId.set(f.id, { ...f, source: 'recipe' })
+          const entry = { ...f, source: 'recipe' }  // force source so DB query always finds them
+          byId.set(f.id, entry)
+          toSave.push(entry)
         }
-        // Never bulkPut remote data — it corrupts local source fields
+        // Persist remote recipes to local DB so they appear in food search and work offline
+        if (toSave.length) await db.foods.bulkPut(toSave)
       }
 
       const merged = [...byId.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
