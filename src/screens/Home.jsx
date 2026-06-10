@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { parseHealthClipboard } from '../App.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth.jsx'
 import { RingWithMacros } from '../shared/RingChart.jsx'
@@ -179,12 +180,10 @@ export default function Home() {
   async function doHealthSync() {
     try {
       const text = await navigator.clipboard.readText()
-      if (!text?.startsWith('nourish-steps:')) return { ok: false, msg: 'No Health data — run your shortcut first' }
-      const m = text.match(/nourish-steps:(\d+)(?:,cal:(\d+))?(?:,date:([\d-]+))?/)
-      if (!m) return { ok: false, msg: 'Could not read clipboard data' }
-      const steps = parseInt(m[1])
-      const cal   = parseInt(m[2]) || 0
-      const date  = m[3] || today
+      const parsed = parseHealthClipboard(text)
+      if (!parsed) return { ok: false, msg: text?.includes('nourish-steps:') ? 'Could not parse Health data — check shortcut format' : 'No Health data — automation not run yet today' }
+      const { steps, cal, date: parsedDate } = parsed
+      const date = parsedDate || today
       const now   = new Date().toISOString()
       const existing = await db.stepsLog.where('[userId+date]').equals([user.id, date]).first()
       if (existing) {
