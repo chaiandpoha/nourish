@@ -354,8 +354,11 @@ export default function Home() {
         disabled={syncing}
       >
         <span style={{ fontSize:'16px' }}>♥</span>
-        <span>{syncing ? 'Syncing…' : 'Sync from Health'}</span>
-        {homeSyncMsg ? <span style={{ marginLeft:'auto', fontSize:'12px', color: homeSyncMsg.startsWith('Synced') ? 'var(--accent)' : 'var(--red)', fontWeight:'500' }}>{homeSyncMsg}</span> : null}
+        <div style={{ display:'flex', flexDirection:'column', gap:'1px' }}>
+          <span>{syncing ? 'Syncing…' : 'Sync Steps from Health'}</span>
+          {!homeSyncMsg && <span style={{ fontSize:'11px', color:'var(--text-tertiary)', fontWeight:'400' }}>Auto-syncs 3× daily · tap to sync now</span>}
+        </div>
+        {homeSyncMsg ? <span style={{ marginLeft:'auto', fontSize:'12px', color: homeSyncMsg.startsWith('Synced') ? 'var(--accent)' : 'var(--red)', fontWeight:'500', textAlign:'right', maxWidth:'140px' }}>{homeSyncMsg}</span> : null}
       </button>
 
       {/* Supplements */}
@@ -462,7 +465,7 @@ export default function Home() {
                 {syncMsg ? (
                   <p style={{ fontSize:'13px', color: syncMsg.startsWith('Synced') ? 'var(--accent)' : 'var(--red)', margin:'-4px 0 0', lineHeight:'1.4' }}>{syncMsg}</p>
                 ) : (
-                  <p style={styles.sheetSub}>Automations keep this updated — or enter manually below</p>
+                  <p style={styles.sheetSub}>Your iOS automations sync steps automatically 3× a day. Tap Sync if you need the latest now, or enter manually below.</p>
                 )}
 
                 <div style={styles.fieldRow}>
