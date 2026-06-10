@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth.jsx'
 import { RingWithMacros } from '../shared/RingChart.jsx'
@@ -398,101 +399,107 @@ export default function Home() {
 
       <div style={{ height:'24px' }} />
 
-      {/* Weight log sheet */}
-      {editingWeight && (
-        <div style={styles.sheetOverlay} onClick={() => setEditingWeight(false)}>
-          <div style={styles.sheet} onClick={e => e.stopPropagation()}>
-            <div style={styles.sheetHandle} />
-            <h3 style={styles.sheetTitle}>Log Weight</h3>
 
-            <div style={{ display:'flex', gap:'12px', alignItems:'flex-end' }}>
-              <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
-                <label style={lbl}>Weight</label>
-                <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                  <input
-                    style={{ ...styles.input, fontSize:'28px', fontWeight:'300', letterSpacing:'-0.02em' }}
-                    type="text"
-                    inputMode="decimal"
-                    placeholder={weightUnit === 'lbs' ? '175' : '80'}
-                    value={weightInput}
-                    onChange={e => setWeightInput(e.target.value)}
-                    autoFocus
-                  />
-                  <span style={{ fontSize:'16px', color:'var(--text-tertiary)', fontWeight:'500', flexShrink:0 }}>{weightUnit}</span>
+      {createPortal(
+        <>
+          {/* Weight sheet */}
+          {editingWeight && (
+            <div style={styles.sheetOverlay} onClick={() => setEditingWeight(false)}>
+              <div style={styles.sheet} onClick={e => e.stopPropagation()}>
+                <div style={styles.sheetHandle} />
+                <h3 style={styles.sheetTitle}>Log Weight</h3>
+
+                <div style={{ display:'flex', gap:'12px', alignItems:'flex-end' }}>
+                  <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+                    <label style={lbl}>Weight</label>
+                    <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                      <input
+                        style={{ ...styles.input, fontSize:'28px', fontWeight:'300', letterSpacing:'-0.02em' }}
+                        type="text"
+                        inputMode="decimal"
+                        placeholder={weightUnit === 'lbs' ? '175' : '80'}
+                        value={weightInput}
+                        onChange={e => setWeightInput(e.target.value)}
+                        autoFocus
+                      />
+                      <span style={{ fontSize:'16px', color:'var(--text-tertiary)', fontWeight:'500', flexShrink:0 }}>{weightUnit}</span>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', background:'var(--bg-elevated)', borderRadius:'var(--r-md)', padding:'3px', gap:'2px', marginBottom:'1px', flexShrink:0 }}>
+                    {['lbs','kg'].map(u => (
+                      <button
+                        key={u}
+                        style={{ padding:'6px 12px', background: weightUnit === u ? 'var(--bg-surface)' : 'transparent', border:'none', borderRadius:'9px', fontSize:'13px', fontWeight:'500', color: weightUnit === u ? 'var(--text-primary)' : 'var(--text-secondary)', cursor:'pointer' }}
+                        onClick={() => { setWeightUnit(u); localStorage.setItem('weightUnit', u) }}
+                      >
+                        {u}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={styles.sheetActions}>
+                  <button style={styles.cancelBtn} onClick={() => setEditingWeight(false)}>Cancel</button>
+                  <button style={styles.saveBtn} onClick={saveWeight}>Save</button>
                 </div>
               </div>
-              <div style={{ display:'flex', background:'var(--bg-elevated)', borderRadius:'var(--r-md)', padding:'3px', gap:'2px', marginBottom:'1px', flexShrink:0 }}>
-                {['lbs','kg'].map(u => (
-                  <button
-                    key={u}
-                    style={{ padding:'6px 12px', background: weightUnit === u ? 'var(--bg-surface)' : 'transparent', border:'none', borderRadius:'9px', fontSize:'13px', fontWeight:'500', color: weightUnit === u ? 'var(--text-primary)' : 'var(--text-secondary)', cursor:'pointer' }}
-                    onClick={() => { setWeightUnit(u); localStorage.setItem('weightUnit', u) }}
-                  >
-                    {u}
-                  </button>
-                ))}
+            </div>
+          )}
+
+          {/* Steps sheet */}
+          {editingSteps && (
+            <div style={styles.sheetOverlay} onClick={() => setEditingSteps(false)}>
+              <div style={styles.sheet} onClick={e => e.stopPropagation()}>
+                <div style={styles.sheetHandle} />
+                <h3 style={styles.sheetTitle}>Today's Activity</h3>
+
+                <button
+                  style={{ ...styles.syncBtn, opacity: syncing ? 0.6 : 1 }}
+                  onClick={syncFromClipboard}
+                  disabled={syncing}
+                >
+                  {syncing ? 'Syncing…' : '⟳  Sync from Health'}
+                </button>
+                {syncMsg ? (
+                  <p style={{ fontSize:'13px', color: syncMsg.startsWith('Synced') ? 'var(--accent)' : 'var(--red)', margin:'-4px 0 0', lineHeight:'1.4' }}>{syncMsg}</p>
+                ) : (
+                  <p style={styles.sheetSub}>Automations keep this updated — or enter manually below</p>
+                )}
+
+                <div style={styles.fieldRow}>
+                  <div style={styles.field}>
+                    <label style={lbl}>Steps</label>
+                    <input
+                      style={styles.input}
+                      type="number"
+                      inputMode="numeric"
+                      placeholder="e.g. 8000"
+                      value={stepsInput}
+                      onChange={e => setStepsInput(e.target.value)}
+                    />
+                  </div>
+                  <div style={styles.field}>
+                    <label style={lbl}>Calories Burned</label>
+                    <input
+                      style={styles.input}
+                      type="number"
+                      inputMode="numeric"
+                      placeholder="e.g. 350"
+                      value={calInput}
+                      onChange={e => setCalInput(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div style={styles.sheetActions}>
+                  <button style={styles.cancelBtn} onClick={() => setEditingSteps(false)}>Cancel</button>
+                  <button style={styles.saveBtn} onClick={saveSteps}>Save</button>
+                </div>
               </div>
             </div>
-
-            <div style={styles.sheetActions}>
-              <button style={styles.cancelBtn} onClick={() => setEditingWeight(false)}>Cancel</button>
-              <button style={styles.saveBtn} onClick={saveWeight}>Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Steps edit sheet */}
-      {editingSteps && (
-        <div style={styles.sheetOverlay} onClick={() => setEditingSteps(false)}>
-          <div style={styles.sheet} onClick={e => e.stopPropagation()}>
-            <div style={styles.sheetHandle} />
-            <h3 style={styles.sheetTitle}>Today's Activity</h3>
-
-            <button
-              style={{ ...styles.syncBtn, opacity: syncing ? 0.6 : 1 }}
-              onClick={syncFromClipboard}
-              disabled={syncing}
-            >
-              {syncing ? 'Syncing…' : '⟳  Sync from Health'}
-            </button>
-            {syncMsg ? (
-              <p style={{ fontSize:'13px', color: syncMsg.startsWith('Synced') ? 'var(--accent)' : 'var(--red)', margin:'-4px 0 0', lineHeight:'1.4' }}>{syncMsg}</p>
-            ) : (
-              <p style={styles.sheetSub}>Run your Health shortcut, then tap Sync — or enter manually below</p>
-            )}
-
-            <div style={styles.fieldRow}>
-              <div style={styles.field}>
-                <label style={lbl}>Steps</label>
-                <input
-                  style={styles.input}
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="e.g. 8000"
-                  value={stepsInput}
-                  onChange={e => setStepsInput(e.target.value)}
-                />
-              </div>
-              <div style={styles.field}>
-                <label style={lbl}>Calories Burned</label>
-                <input
-                  style={styles.input}
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="e.g. 350"
-                  value={calInput}
-                  onChange={e => setCalInput(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div style={styles.sheetActions}>
-              <button style={styles.cancelBtn} onClick={() => setEditingSteps(false)}>Cancel</button>
-              <button style={styles.saveBtn} onClick={saveSteps}>Save</button>
-            </div>
-          </div>
-        </div>
+          )}
+        </>,
+        document.body
       )}
     </div>
   )
