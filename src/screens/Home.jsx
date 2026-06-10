@@ -60,9 +60,12 @@ export default function Home() {
   const [greeting,     setGreeting]     = useState('')
   const [dateLabel,    setDateLabel]    = useState('')
   const [loading,      setLoading]      = useState(true)
-  const [editingSteps, setEditingSteps] = useState(false)
-  const [stepsInput,   setStepsInput]   = useState('')
-  const [calInput,     setCalInput]     = useState('')
+  const [editingSteps,  setEditingSteps]  = useState(false)
+  const [stepsInput,    setStepsInput]    = useState('')
+  const [calInput,      setCalInput]      = useState('')
+  const [editingWeight, setEditingWeight] = useState(false)
+  const [weightInput,   setWeightInput]   = useState('')
+  const [weightUnit,    setWeightUnit]    = useState(() => localStorage.getItem('weightUnit') || 'lbs')
 
   const today = localDate()
 
@@ -123,6 +126,34 @@ export default function Home() {
     } else {
       await db.supplementLog.add({ userId:user.id, date:today, done, dirty:1, updatedAt: new Date().toISOString() })
     }
+  }
+
+  function openWeightEdit() {
+    if (weight) {
+      const display = weightUnit === 'lbs' ? Math.round(weight * 2.20462 * 10) / 10 : weight
+      setWeightInput(String(display))
+    } else {
+      setWeightInput('')
+    }
+    setEditingWeight(true)
+  }
+
+  async function saveWeight() {
+    const val = parseFloat(weightInput)
+    if (!val || isNaN(val)) return
+    const wKg  = weightUnit === 'lbs' ? val * 0.453592 : val
+    const wLbs = weightUnit === 'lbs' ? val : val * 2.20462
+    await db.weightLog.put({
+      userId:    user.id,
+      date:      today,
+      weightKg:  Math.round(wKg  * 10) / 10,
+      weightLbs: Math.round(wLbs * 10) / 10,
+      note:      '',
+      dirty:     1,
+      updatedAt: new Date().toISOString(),
+    })
+    setWeight(Math.round(wKg * 10) / 10)
+    setEditingWeight(false)
   }
 
   function openStepsEdit() {
@@ -209,14 +240,17 @@ export default function Home() {
 
       {/* 2×2 Stat grid */}
       <div style={styles.statGrid}>
-        <div style={styles.statCard}>
+        <button style={{ ...styles.statCard, ...styles.statCardBtn }} onClick={openWeightEdit}>
           <div style={styles.statLabel}>Weight</div>
           {weight ? (
-            <div style={styles.statVal}>{weight}<span style={styles.statUnit}> kg</span></div>
+            <div style={styles.statVal}>
+              {weightUnit === 'lbs' ? Math.round(weight * 2.20462 * 10) / 10 : weight}
+              <span style={styles.statUnit}> {weightUnit}</span>
+            </div>
           ) : (
-            <div style={styles.statEmpty}>Not logged</div>
+            <div style={styles.statEmpty}>Tap to log</div>
           )}
-        </div>
+        </button>
 
         <button style={{ ...styles.statCard, ...styles.statCardBtn }} onClick={openStepsEdit}>
           <div style={styles.statLabel}>Steps</div>
@@ -289,6 +323,50 @@ export default function Home() {
       </button>
 
       <div style={{ height:'24px' }} />
+
+      {/* Weight log sheet */}
+      {editingWeight && (
+        <div style={styles.sheetOverlay} onClick={() => setEditingWeight(false)}>
+          <div style={styles.sheet} onClick={e => e.stopPropagation()}>
+            <div style={styles.sheetHandle} />
+            <h3 style={styles.sheetTitle}>Log Weight</h3>
+
+            <div style={{ display:'flex', gap:'12px', alignItems:'flex-end' }}>
+              <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+                <label style={lbl}>Weight</label>
+                <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                  <input
+                    style={{ ...styles.input, fontSize:'28px', fontWeight:'300', letterSpacing:'-0.02em' }}
+                    type="number"
+                    inputMode="decimal"
+                    placeholder={weightUnit === 'lbs' ? '175' : '80'}
+                    value={weightInput}
+                    onChange={e => setWeightInput(e.target.value)}
+                    autoFocus
+                  />
+                  <span style={{ fontSize:'16px', color:'var(--text-tertiary)', fontWeight:'500', flexShrink:0 }}>{weightUnit}</span>
+                </div>
+              </div>
+              <div style={{ display:'flex', background:'var(--bg-elevated)', borderRadius:'var(--r-md)', padding:'3px', gap:'2px', marginBottom:'1px', flexShrink:0 }}>
+                {['lbs','kg'].map(u => (
+                  <button
+                    key={u}
+                    style={{ padding:'6px 12px', background: weightUnit === u ? 'var(--bg-surface)' : 'transparent', border:'none', borderRadius:'9px', fontSize:'13px', fontWeight:'500', color: weightUnit === u ? 'var(--text-primary)' : 'var(--text-secondary)', cursor:'pointer' }}
+                    onClick={() => { setWeightUnit(u); localStorage.setItem('weightUnit', u) }}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={styles.sheetActions}>
+              <button style={styles.cancelBtn} onClick={() => setEditingWeight(false)}>Cancel</button>
+              <button style={styles.saveBtn} onClick={saveWeight}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Steps edit sheet */}
       {editingSteps && (
