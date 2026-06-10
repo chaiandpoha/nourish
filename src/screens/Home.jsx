@@ -63,6 +63,8 @@ export default function Home() {
   const [editingSteps,  setEditingSteps]  = useState(false)
   const [stepsInput,    setStepsInput]    = useState('')
   const [calInput,      setCalInput]      = useState('')
+  const [syncing,       setSyncing]       = useState(false)
+  const [syncMsg,       setSyncMsg]       = useState('')
   const [editingWeight, setEditingWeight] = useState(false)
   const [weightInput,   setWeightInput]   = useState('')
   const [weightUnit,    setWeightUnit]    = useState(() => localStorage.getItem('weightUnit') || 'lbs')
@@ -172,9 +174,43 @@ export default function Home() {
     setEditingWeight(false)
   }
 
+  async function syncFromClipboard() {
+    setSyncing(true)
+    setSyncMsg('')
+    try {
+      const text = await navigator.clipboard.readText()
+      if (!text?.startsWith('nourish-steps:')) {
+        setSyncMsg('No Health data in clipboard — run your shortcut first')
+        return
+      }
+      const m = text.match(/nourish-steps:(\d+)(?:,cal:(\d+))?(?:,date:([\d-]+))?/)
+      if (!m) { setSyncMsg('Could not read clipboard data'); return }
+      const steps = parseInt(m[1])
+      const cal   = parseInt(m[2]) || 0
+      const date  = m[3] || today
+      const now   = new Date().toISOString()
+      const existing = await db.stepsLog.where('[userId+date]').equals([user.id, date]).first()
+      if (existing) {
+        await db.stepsLog.update(existing.id, { steps, caloriesBurned: cal, source: 'health', dirty: 1, updatedAt: now })
+        setStepsData({ ...existing, steps, caloriesBurned: cal })
+      } else {
+        const id = await db.stepsLog.add({ userId: user.id, date, steps, caloriesBurned: cal, source: 'health', dirty: 1, updatedAt: now })
+        setStepsData({ id, userId: user.id, date, steps, caloriesBurned: cal })
+      }
+      await navigator.clipboard.writeText('').catch(() => {})
+      setSyncMsg(`Synced — ${steps.toLocaleString()} steps${cal ? `, ${cal} kcal` : ''}`)
+      setTimeout(() => setEditingSteps(false), 1200)
+    } catch {
+      setSyncMsg('Could not read clipboard — tap Allow if prompted')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   function openStepsEdit() {
     setStepsInput(stepsData?.steps ? String(stepsData.steps) : '')
     setCalInput(stepsData?.caloriesBurned ? String(stepsData.caloriesBurned) : '')
+    setSyncMsg('')
     setEditingSteps(true)
   }
 
@@ -390,7 +426,19 @@ export default function Home() {
           <div style={styles.sheet} onClick={e => e.stopPropagation()}>
             <div style={styles.sheetHandle} />
             <h3 style={styles.sheetTitle}>Today's Activity</h3>
-            <p style={styles.sheetSub}>Open your Apple Health app to check your steps, then enter them here</p>
+
+            <button
+              style={{ ...styles.syncBtn, opacity: syncing ? 0.6 : 1 }}
+              onClick={syncFromClipboard}
+              disabled={syncing}
+            >
+              {syncing ? 'Syncing…' : '⟳  Sync from Health'}
+            </button>
+            {syncMsg ? (
+              <p style={{ fontSize:'13px', color: syncMsg.startsWith('Synced') ? 'var(--accent)' : 'var(--red)', margin:'-4px 0 0', lineHeight:'1.4' }}>{syncMsg}</p>
+            ) : (
+              <p style={styles.sheetSub}>Run your Health shortcut, then tap Sync — or enter manually below</p>
+            )}
 
             <div style={styles.fieldRow}>
               <div style={styles.field}>
@@ -402,7 +450,6 @@ export default function Home() {
                   placeholder="e.g. 8000"
                   value={stepsInput}
                   onChange={e => setStepsInput(e.target.value)}
-                  autoFocus
                 />
               </div>
               <div style={styles.field}>
@@ -706,6 +753,17 @@ const styles = {
     outline:      'none',
     width:        '100%',
     boxSizing:    'border-box',
+  },
+  syncBtn: {
+    padding:      '13px',
+    background:   'var(--accent-dim)',
+    border:       '1px solid var(--accent)',
+    borderRadius: 'var(--r-lg)',
+    fontSize:     '15px',
+    fontWeight:   '600',
+    color:        'var(--accent)',
+    cursor:       'pointer',
+    width:        '100%',
   },
   sheetActions: {
     display: 'flex',
