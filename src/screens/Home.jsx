@@ -86,13 +86,23 @@ export default function Home() {
       const macros = await getDayMacros(user.id, today)
       setTotals(macros)
 
-      const weights = await db.weightLog
-        .where('[userId+date]')
-        .between([user.id, '2000-01-01'], [user.id, today], true, true)
-        .toArray()
+      const weights = await db.weightLog.where('userId').equals(user.id).toArray()
       if (weights.length) {
-        const latest = weights.sort((a,b) => b.date.localeCompare(a.date))[0]
-        setWeight(latest.weightKg)
+        // Deduplicate per date — keep newest, delete older duplicates
+        const byDate = new Map()
+        const toDelete = []
+        for (const e of weights) {
+          const cur = byDate.get(e.date)
+          if (!cur || (e.updatedAt || '') >= (cur.updatedAt || '')) {
+            if (cur) toDelete.push(cur.id)
+            byDate.set(e.date, e)
+          } else {
+            toDelete.push(e.id)
+          }
+        }
+        if (toDelete.length) await db.weightLog.bulkDelete(toDelete)
+        const latest = [...byDate.values()].sort((a, b) => b.date.localeCompare(a.date))[0]
+        if (latest) setWeight(latest.weightKg)
       }
 
       const supps = user.supplements || []
