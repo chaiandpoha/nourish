@@ -9,7 +9,7 @@ export default function WeightLog() {
   const [note,     setNote]     = useState('')
   const [saving,   setSaving]   = useState(false)
   const [saved,    setSaved]    = useState(false)
-  const [unit,     setUnit]     = useState('lbs') // lbs or kg
+  const [unit,     setUnit]     = useState(() => localStorage.getItem('weightUnit') || 'lbs')
   const { user } = useAuth()
 
   const today = localDate()
@@ -29,15 +29,15 @@ export default function WeightLog() {
     if (!weight || isNaN(parseFloat(weight))) return
     setSaving(true)
     try {
-      const weightKg = unit === 'lbs'
-        ? parseFloat(weight) * 0.453592
-        : parseFloat(weight)
+      const val = parseFloat(weight)
+      const weightKg  = unit === 'lbs' ? val * 0.453592 : val
+      const weightLbs = unit === 'lbs' ? val : val * 2.20462
 
       await db.weightLog.put({
         userId:    user.id,
         date:      today,
         weightKg:  Math.round(weightKg * 10) / 10,
-        weightLbs: Math.round(parseFloat(weight) * 10) / 10,
+        weightLbs: Math.round(weightLbs * 10) / 10,
         note:      note.trim(),
         dirty:     1,
         updatedAt: new Date().toISOString(),
@@ -83,13 +83,13 @@ export default function WeightLog() {
       <div style={s.unitToggle}>
         <button
           style={{ ...s.unitBtn, ...(unit === 'lbs' ? s.unitBtnActive : {}) }}
-          onClick={() => setUnit('lbs')}
+          onClick={() => { setUnit('lbs'); localStorage.setItem('weightUnit', 'lbs') }}
         >
           lbs
         </button>
         <button
           style={{ ...s.unitBtn, ...(unit === 'kg' ? s.unitBtnActive : {}) }}
-          onClick={() => setUnit('kg')}
+          onClick={() => { setUnit('kg'); localStorage.setItem('weightUnit', 'kg') }}
         >
           kg
         </button>
