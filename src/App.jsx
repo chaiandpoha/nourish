@@ -8,6 +8,7 @@ import Onboarding from './auth/Onboarding.jsx'
 import BottomNav from './shared/BottomNav.jsx'
 import { runMigrations } from './db/migrations.js'
 import { db } from './db/indexedDB.js'
+import { parseHealthClipboard } from './utils/healthSync.js'
 import { saveRemindersToCloud, saveUser } from './db/db.js'
 import { generateId } from './auth/crypto.js'
 import { DRIVE } from './config.js'
@@ -219,21 +220,6 @@ function ReminderChecker() {
   return null
 }
 
-// Parses the nourish-steps: clipboard format written by the iOS shortcut.
-// Handles locale formatting: commas (8,432), decimals (8432.0), spaces.
-export function parseHealthClipboard(text) {
-  if (!text?.includes('nourish-steps:')) return null
-  // Strip everything before nourish-steps: in case of leading whitespace/newline
-  const raw = text.slice(text.indexOf('nourish-steps:'))
-  // Match numbers that may contain commas or decimals
-  const m = raw.match(/nourish-steps:([\d,. ]+?)(?:,cal:([\d,. ]+?))?(?:,date:([\d-]+))?$/)
-  if (!m) return null
-  const steps = parseInt(m[1].replace(/[^\d]/g, ''))
-  const cal   = m[2] ? parseInt(m[2].replace(/[^\d]/g, '')) : 0
-  const date  = m[3] || null
-  if (!steps) return null
-  return { steps, cal, date }
-}
 
 // Reads clipboard for health data written by iOS Personal Automation shortcut.
 // Format: nourish-steps:8432,cal:312,date:2026-06-08

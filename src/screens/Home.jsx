@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { parseHealthClipboard } from '../App.jsx'
+import { parseHealthClipboard } from '../utils/healthSync.js'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth.jsx'
 import { RingWithMacros } from '../shared/RingChart.jsx'
