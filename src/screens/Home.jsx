@@ -354,10 +354,7 @@ export default function Home() {
         disabled={syncing}
       >
         <span style={{ fontSize:'16px' }}>♥</span>
-        <div style={{ display:'flex', flexDirection:'column', gap:'1px' }}>
-          <span>{syncing ? 'Syncing…' : 'Sync Steps from Health'}</span>
-          {!homeSyncMsg && <span style={{ fontSize:'11px', color:'var(--text-tertiary)', fontWeight:'400' }}>Auto-syncs 3× daily · tap to sync now</span>}
-        </div>
+        <span>{syncing ? 'Syncing…' : 'Sync Steps from Health'}</span>
         {homeSyncMsg ? <span style={{ marginLeft:'auto', fontSize:'12px', color: homeSyncMsg.startsWith('Synced') ? 'var(--accent)' : 'var(--red)', fontWeight:'500', textAlign:'right', maxWidth:'140px' }}>{homeSyncMsg}</span> : null}
       </button>
 
