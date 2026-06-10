@@ -19,10 +19,12 @@ export default function RecipeList({ householdId }) {
 
       if (householdId) {
         const remote = await sbFetchHouseholdFoods(householdId)
+        const remoteIds = new Set()
         const toSave = []
         for (const f of remote) {
           const isRecipe = f.source === 'recipe' || (Array.isArray(f.ingredients) && f.ingredients.length > 0)
           if (!isRecipe) continue
+          remoteIds.add(f.id)
           const localEntry           = byId.get(f.id)
           const remoteHasIngredients = Array.isArray(f.ingredients) && f.ingredients.length > 0
           const localHasIngredients  = localEntry && Array.isArray(localEntry.ingredients) && localEntry.ingredients.length > 0
@@ -32,8 +34,14 @@ export default function RecipeList({ householdId }) {
           byId.set(f.id, entry)
           toSave.push(entry)
         }
-        // Persist remote recipes to local DB so they appear in food search and work offline
         if (toSave.length) await db.foods.bulkPut(toSave)
+
+        // Remove local recipes deleted by another household member
+        const toDelete = local.filter(f => !remoteIds.has(f.id)).map(f => f.id)
+        if (toDelete.length) {
+          await db.foods.bulkDelete(toDelete)
+          for (const id of toDelete) byId.delete(id)
+        }
       }
 
       const merged = [...byId.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
@@ -46,12 +54,15 @@ export default function RecipeList({ householdId }) {
   }
 
   useEffect(() => {
-    load()
-    // One-time push so existing recipes get their ingredients synced to Supabase
-    if (householdId && !didSync.current) {
-      didSync.current = true
-      pushLocalFoodsToHousehold(householdId).catch(() => {})
+    async function syncAndLoad() {
+      // Push local recipes first so Supabase is up-to-date before we fetch and compare
+      if (householdId && !didSync.current) {
+        didSync.current = true
+        await pushLocalFoodsToHousehold(householdId).catch(() => {})
+      }
+      load()
     }
+    syncAndLoad()
   }, [householdId])
 
   async function handleDelete(id) {
