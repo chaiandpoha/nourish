@@ -65,6 +65,7 @@ export default function Home() {
   const [calInput,      setCalInput]      = useState('')
   const [syncing,       setSyncing]       = useState(false)
   const [syncMsg,       setSyncMsg]       = useState('')
+  const [homeSyncMsg,   setHomeSyncMsg]   = useState('')
   const [editingWeight, setEditingWeight] = useState(false)
   const [weightInput,   setWeightInput]   = useState('')
   const [weightUnit,    setWeightUnit]    = useState(() => localStorage.getItem('weightUnit') || 'lbs')
@@ -174,17 +175,12 @@ export default function Home() {
     setEditingWeight(false)
   }
 
-  async function syncFromClipboard() {
-    setSyncing(true)
-    setSyncMsg('')
+  async function doHealthSync() {
     try {
       const text = await navigator.clipboard.readText()
-      if (!text?.startsWith('nourish-steps:')) {
-        setSyncMsg('No Health data in clipboard — run your shortcut first')
-        return
-      }
+      if (!text?.startsWith('nourish-steps:')) return { ok: false, msg: 'No Health data — run your shortcut first' }
       const m = text.match(/nourish-steps:(\d+)(?:,cal:(\d+))?(?:,date:([\d-]+))?/)
-      if (!m) { setSyncMsg('Could not read clipboard data'); return }
+      if (!m) return { ok: false, msg: 'Could not read clipboard data' }
       const steps = parseInt(m[1])
       const cal   = parseInt(m[2]) || 0
       const date  = m[3] || today
@@ -198,13 +194,28 @@ export default function Home() {
         setStepsData({ id, userId: user.id, date, steps, caloriesBurned: cal })
       }
       await navigator.clipboard.writeText('').catch(() => {})
-      setSyncMsg(`Synced — ${steps.toLocaleString()} steps${cal ? `, ${cal} kcal` : ''}`)
-      setTimeout(() => setEditingSteps(false), 1200)
+      return { ok: true, msg: `Synced — ${steps.toLocaleString()} steps${cal ? `, ${cal} kcal` : ''}` }
     } catch {
-      setSyncMsg('Could not read clipboard — tap Allow if prompted')
-    } finally {
-      setSyncing(false)
+      return { ok: false, msg: 'Could not read clipboard — tap Allow if prompted' }
     }
+  }
+
+  async function syncFromClipboard() {
+    setSyncing(true)
+    setSyncMsg('')
+    const { msg } = await doHealthSync()
+    setSyncMsg(msg)
+    if (msg.startsWith('Synced')) setTimeout(() => setEditingSteps(false), 1200)
+    setSyncing(false)
+  }
+
+  async function syncHealthDirect() {
+    setSyncing(true)
+    setHomeSyncMsg('')
+    const { msg } = await doHealthSync()
+    setHomeSyncMsg(msg)
+    setSyncing(false)
+    setTimeout(() => setHomeSyncMsg(''), 3000)
   }
 
   function openStepsEdit() {
@@ -335,6 +346,17 @@ export default function Home() {
           )}
         </button>
       </div>
+
+      {/* Health sync */}
+      <button
+        style={{ ...styles.healthSyncBtn, opacity: syncing ? 0.6 : 1 }}
+        onClick={syncHealthDirect}
+        disabled={syncing}
+      >
+        <span style={{ fontSize:'16px' }}>♥</span>
+        <span>{syncing ? 'Syncing…' : 'Sync from Health'}</span>
+        {homeSyncMsg ? <span style={{ marginLeft:'auto', fontSize:'12px', color: homeSyncMsg.startsWith('Synced') ? 'var(--accent)' : 'var(--red)', fontWeight:'500' }}>{homeSyncMsg}</span> : null}
+      </button>
 
       {/* Supplements */}
       {supplements.length > 0 && (
@@ -753,6 +775,22 @@ const styles = {
     outline:      'none',
     width:        '100%',
     boxSizing:    'border-box',
+  },
+  healthSyncBtn: {
+    display:      'flex',
+    alignItems:   'center',
+    gap:          '8px',
+    width:        '100%',
+    padding:      '12px 16px',
+    background:   'var(--bg-surface)',
+    border:       '0.5px solid var(--border-subtle)',
+    borderRadius: 'var(--r-xl)',
+    fontSize:     '14px',
+    fontWeight:   '600',
+    color:        'var(--text-secondary)',
+    cursor:       'pointer',
+    textAlign:    'left',
+    WebkitTapHighlightColor: 'transparent',
   },
   syncBtn: {
     padding:      '13px',
