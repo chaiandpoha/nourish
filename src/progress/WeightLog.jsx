@@ -22,7 +22,19 @@ export default function WeightLog() {
       .where('[userId+date]')
       .between([user.id, '2000-01-01'], [user.id, today], true, true)
       .toArray()
-    setEntries(all.sort((a, b) => b.date.localeCompare(a.date)))
+
+    // Deduplicate by date — keep the most recently updated entry, delete extras
+    const byDate = new Map()
+    for (const e of all) {
+      const existing = byDate.get(e.date)
+      if (!existing || (e.updatedAt || '') >= (existing.updatedAt || '')) {
+        if (existing) db.weightLog.delete(existing.id)
+        byDate.set(e.date, e)
+      } else {
+        db.weightLog.delete(e.id)
+      }
+    }
+    setEntries([...byDate.values()].sort((a, b) => b.date.localeCompare(a.date)))
   }
 
   async function handleSave() {
