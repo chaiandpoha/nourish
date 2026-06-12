@@ -338,8 +338,7 @@ function HealthClipboardSync() {
       window.dispatchEvent(new CustomEvent('nourish:steps-synced'))
     }
 
-    // Primary: read URL params written by the iOS shortcut's "Open URL" action.
-    // This works without a user gesture, so automations sync on every open.
+    // Check URL params (legacy path — kept as a no-op fallback, harmless)
     const hash = window.location.hash
     const qIdx = hash.indexOf('?')
     if (qIdx > -1) {
@@ -354,8 +353,9 @@ function HealthClipboardSync() {
       }
     }
 
-    // Fallback: clipboard read on user-gesture-based opens (works when user taps
-    // the manual Sync button; may be silently denied on iOS for auto triggers).
+    // Clipboard fallback — iOS grants access on the user gesture that opened the app
+    // (tapping the home screen icon). Reading immediately on focus/visibilitychange
+    // captures that gesture window. setTimeout delays miss it.
     async function tryClipboard() {
       try {
         const text = await navigator.clipboard.readText()
@@ -367,11 +367,19 @@ function HealthClipboardSync() {
       } catch {} // clipboard unavailable or denied — silent fail
     }
 
-    const t = setTimeout(tryClipboard, 1200)
-    const onVisible = () => { if (document.visibilityState === 'visible') setTimeout(tryClipboard, 500) }
+    // Read immediately on mount (app just opened — gesture is fresh)
+    tryClipboard()
+
+    // Re-read on every foreground — covers automation running while app is backgrounded
+    const onFocus     = () => tryClipboard()
+    const onVisible   = () => { if (document.visibilityState === 'visible') tryClipboard() }
+    window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisible)
 
-    return () => { clearTimeout(t); document.removeEventListener('visibilitychange', onVisible) }
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [user?.id])
 
   return null
@@ -724,11 +732,8 @@ const ALL_DAYS = WEEK_DAYS.map(d => d.id)
 // ─── HealthSyncSettings ───────────────────────────────────────────────────────
 
 function HealthSyncSettings({ user, onSaved }) {
-  const [goalInput,  setGoalInput]  = useState(String(user?.stepGoal || 10000))
-  const [goalSaved,  setGoalSaved]  = useState(false)
-  const [urlCopied,  setUrlCopied]  = useState(false)
-
-  const syncUrl = `${window.location.origin}/#/?steps=[Steps]&cal=[Calories]`
+  const [goalInput, setGoalInput] = useState(String(user?.stepGoal || 10000))
+  const [goalSaved, setGoalSaved] = useState(false)
 
   async function saveGoal() {
     const goal = parseInt(goalInput) || 10000
@@ -738,29 +743,23 @@ function HealthSyncSettings({ user, onSaved }) {
     setTimeout(() => setGoalSaved(false), 2000)
   }
 
-  function copyUrl() {
-    navigator.clipboard.writeText(syncUrl).then(() => {
-      setUrlCopied(true)
-      setTimeout(() => setUrlCopied(false), 2000)
-    })
-  }
-
   const shortcutSteps = [
-    'Open the Shortcuts app → tap + to create a new shortcut. Name it "Nourish Health Sync".',
-    'Add action: Health → Find Health Samples. Set Type = Steps, Sort by = Start Date descending, Limit = ON (1 sample). Rename the result variable to "Step Samples".',
-    'Add action: Scripting → Calculate Statistics on "Step Samples". Set function = Sum. Rename the result to "Steps".',
-    'Add action: Health → Find Health Samples. Set Type = Active Energy Burned, same settings. Rename result to "Energy Samples".',
-    'Add action: Scripting → Calculate Statistics on "Energy Samples". Set function = Sum. Rename result to "Calories".',
-    'Add action: Web → Open URL. Tap the URL field, then tap the URL below to paste it — replace [Steps] and [Calories] by tapping each bracket and inserting the matching variable.',
+    'Open the Shortcuts app → tap + → name the shortcut "Nourish Health Sync".',
+    'Add action: Health → Find Health Samples. Set Type = Steps, Sort by = Start Date descending, Limit = ON (1 sample). Rename result to "Step Samples".',
+    'Add action: Scripting → Calculate Statistics on "Step Samples". Function = Sum. Rename result to "Steps".',
+    'Add action: Health → Find Health Samples. Type = Active Energy Burned, same settings. Rename result to "Energy Samples".',
+    'Add action: Scripting → Calculate Statistics on "Energy Samples". Function = Sum. Rename result to "Calories".',
+    'Add action: Scripting → Text. Type: nourish-steps: then tap the token button and insert the Steps variable, then type ,cal: and insert Calories. Result: nourish-steps:[Steps],cal:[Calories]',
+    'Add action: Scripting → Set Clipboard → set it to the Text from step 6.',
     'Save the shortcut.',
   ]
 
   const automationSteps = [
     'In Shortcuts, tap Automation → + → Time of Day.',
-    'Set a time (e.g. 8:00 AM). Tap Daily. Tap Next.',
-    'Tap "New Blank Automation", then add action: Shortcuts → Run Shortcut → select "Nourish Health Sync".',
+    'Set a time (e.g. 8:00 AM). Tap Daily → Next.',
+    'Tap "New Blank Automation" → add action: Shortcuts → Run Shortcut → select "Nourish Health Sync".',
     'Turn OFF "Ask Before Running". Tap Done.',
-    'Repeat for additional times (e.g. 1:00 PM, 7:00 PM) so steps stay fresh throughout the day.',
+    'Repeat for 1:00 PM and 7:00 PM so steps stay current throughout the day.',
   ]
 
   const stepStyle    = { display:'flex', gap:'10px', marginBottom:'10px', alignItems:'flex-start' }
@@ -796,12 +795,12 @@ function HealthSyncSettings({ user, onSaved }) {
 
       <div style={{ ...styles.settingsSectionHeader, marginTop:'8px' }}>
         <span style={styles.settingsSectionTitle}>iPhone Health Sync</span>
-        <span style={styles.settingsSectionSub}>Sync steps and active calories from Apple Health via iOS Shortcuts</span>
+        <span style={styles.settingsSectionSub}>Sync steps and calories from Apple Health via clipboard</span>
       </div>
 
       <div style={styles.settingsCard}>
         <p style={{ fontSize:'14px', color:'var(--text-secondary)', margin:'0 0 16px', lineHeight:'1.5' }}>
-          The shortcut opens Nourish with your step data in the URL — no tap needed. Nourish saves it instantly when the app loads.
+          The shortcut writes steps + calories to your clipboard. Nourish reads it automatically the moment you open the app — no tap needed.
         </p>
 
         <div style={subheadStyle}>Step 1 — Build the shortcut</div>
@@ -812,18 +811,7 @@ function HealthSyncSettings({ user, onSaved }) {
           </div>
         ))}
 
-        <div style={{ fontSize:'12px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', margin:'12px 0 6px' }}>Your sync URL</div>
-        <div style={{ background:'var(--bg-base)', borderRadius:'var(--r-md)', padding:'10px 12px', fontFamily:'monospace', fontSize:'11px', color:'var(--text-secondary)', wordBreak:'break-all', lineHeight:'1.6', border:'1px solid var(--border-subtle)', marginBottom:'8px' }}>
-          {syncUrl}
-        </div>
-        <button
-          style={{ width:'100%', padding:'11px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', color:'var(--text-primary)', fontSize:'14px', fontWeight:'600', cursor:'pointer', marginBottom:'16px' }}
-          onClick={copyUrl}
-        >
-          {urlCopied ? '✓ Copied!' : 'Copy URL Template'}
-        </button>
-
-        <div style={{ ...subheadStyle, marginTop:'4px' }}>Step 2 — Automate it (no manual tapping)</div>
+        <div style={{ ...subheadStyle, marginTop:'16px' }}>Step 2 — Automate it</div>
         {automationSteps.map((step, i) => (
           <div key={i} style={stepStyle}>
             <div style={numStyle}>{i + 1}</div>
@@ -834,8 +822,7 @@ function HealthSyncSettings({ user, onSaved }) {
         <div style={{ background:'var(--bg-base)', borderRadius:'var(--r-lg)', padding:'12px', marginTop:'8px', border:'1px solid var(--border-subtle)' }}>
           <div style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'6px' }}>How it works</div>
           <p style={{ fontSize:'12px', color:'var(--text-secondary)', margin:0, lineHeight:'1.6' }}>
-            The automation runs silently and opens Nourish with your step count in the URL. Nourish reads it immediately on load — no button tap needed.
-            You can also tap <strong>♥ Sync Steps from Health</strong> on the home screen to sync manually at any time.
+            Automations run silently and copy your Health data to the clipboard. When you open Nourish, it reads the clipboard instantly on launch. You can also tap <strong>♥ Sync Steps from Health</strong> on the home screen at any time.
           </p>
         </div>
       </div>
