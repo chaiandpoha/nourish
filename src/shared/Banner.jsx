@@ -90,6 +90,7 @@ export function BannerProvider({ children }) {
   const addBanner = useCallback((banner) => {
     const id = Date.now() + Math.random()
     setBanners(b => [...b, { ...banner, id }])
+    return id
   }, [])
 
   const removeBanner = useCallback((id) => {
