@@ -195,6 +195,27 @@ export async function sbFetchProfile(email) {
   }
 }
 
+// ─── Health sync (iOS Shortcut → Supabase → PWA) ─────────────────────────────
+
+export async function sbUpsertHealthSync(token, steps, cal, date) {
+  if (!supabase || !token) return
+  const { error } = await supabase
+    .from('health_sync')
+    .upsert({ token, steps, cal, date, updated_at: new Date().toISOString() }, { onConflict: 'token' })
+  if (error) throw error
+}
+
+export async function sbFetchHealthSync(token) {
+  if (!supabase || !token) return null
+  const { data, error } = await supabase
+    .from('health_sync')
+    .select('steps, cal, date')
+    .eq('token', token)
+    .single()
+  if (error || !data) return null
+  return data
+}
+
 // ─── Household helpers ────────────────────────────────────────────────────────
 
 function fromHouseholdRow(row) {
