@@ -46,6 +46,12 @@ export default function App() {
         } catch (e) {
           console.error('OAuth error:', e)
         }
+        // Re-auth popup: token saved to localStorage — notify parent and close
+        if (window.opener && !window.opener.closed) {
+          try { window.opener.postMessage({ type: 'nourish:reauth-done' }, window.location.origin) } catch {}
+          window.close()
+          return
+        }
         window.location.replace(window.location.origin + '/#/auth/callback')
       })
       return
@@ -104,6 +110,7 @@ function AppRoutes() {
     <>
       <ReminderChecker />
       <QuotaChecker />
+      <DriveReauthWatcher />
       <HealthClipboardSync />
       <Routes>
         <Route path="/admin-login"   element={<AdminLogin />} />
@@ -208,6 +215,45 @@ function ProtectedApp() {
 function ChatScreen() {
   const navigate = useNavigate()
   return <MealChat onClose={() => navigate('/')} />
+}
+
+function DriveReauthWatcher() {
+  const { user, encryptionKey } = useAuth()
+  const { addBanner } = useBanners()
+
+  useEffect(() => {
+    if (!user || !encryptionKey) return
+
+    async function reconnect() {
+      const { initiateReauth } = await import('./db/driveApi.js')
+      initiateReauth()
+    }
+
+    function onExpired() {
+      addBanner({
+        type:    'warning',
+        message: 'Drive backup paused — token expired',
+        action:  { label: 'Reconnect', onClick: reconnect },
+        onDismiss: () => {},
+      })
+    }
+
+    async function onReauthDone(e) {
+      if (e.origin !== window.location.origin || e.data?.type !== 'nourish:reauth-done') return
+      // The popup saved a fresh admin token to localStorage — flush immediately
+      const { flushDirtyRecords } = await import('./db/db.js')
+      flushDirtyRecords(user.id, encryptionKey)
+    }
+
+    window.addEventListener('nourish:drive-token-expired', onExpired)
+    window.addEventListener('message', onReauthDone)
+    return () => {
+      window.removeEventListener('nourish:drive-token-expired', onExpired)
+      window.removeEventListener('message', onReauthDone)
+    }
+  }, [user?.id, encryptionKey, addBanner])
+
+  return null
 }
 
 function ReminderChecker() {

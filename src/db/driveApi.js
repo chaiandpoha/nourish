@@ -141,6 +141,24 @@ export function initiateOAuthFlow() {
   window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
 }
 
+/** Open a small OAuth popup to refresh the Drive token without leaving the app */
+export function initiateReauth() {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  if (!clientId) throw new Error('VITE_GOOGLE_CLIENT_ID not set')
+  const params = new URLSearchParams({
+    client_id:              clientId,
+    redirect_uri:           `${window.location.origin}/auth/callback`,
+    response_type:          'token',
+    scope:                  SCOPES,
+    include_granted_scopes: 'true',
+  })
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
+  const w = 520, h = 620
+  const left = Math.round(window.screenX + (window.outerWidth  - w) / 2)
+  const top  = Math.round(window.screenY + (window.outerHeight - h) / 2)
+  return window.open(url, 'nourish_reauth', `width=${w},height=${h},left=${left},top=${top}`)
+}
+
 export function parseOAuthCallback() {
   const params    = new URLSearchParams(window.location.hash.slice(1))
   const token     = params.get('access_token')

@@ -16,9 +16,10 @@ import { DRIVE, MACRO_KEYS } from '../config.js'
 import { shouldBackup, markBackupDone } from './syncManager.js'
 
 // ─── Sync state ───────────────────────────────────────────────────────────────
-let _syncInterval = null
-let _isSyncing    = false
-let _folderIds    = {}   // cached folder IDs per user
+let _syncInterval          = null
+let _isSyncing             = false
+let _folderIds             = {}   // cached folder IDs per user
+let _tokenExpiredNotified  = false
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
@@ -221,7 +222,15 @@ function startSyncInterval(userId, encryptionKey) {
  * Never throws — logs errors silently and retries next interval.
  */
 export async function flushDirtyRecords(userId, encryptionKey) {
-  if (_isSyncing || !isTokenValid()) return
+  if (_isSyncing) return
+  if (!isTokenValid()) {
+    if (!_tokenExpiredNotified) {
+      _tokenExpiredNotified = true
+      window.dispatchEvent(new CustomEvent('nourish:drive-token-expired'))
+    }
+    return
+  }
+  _tokenExpiredNotified = false // token is valid — reset so next expiry fires again
   _isSyncing = true
 
   try {
