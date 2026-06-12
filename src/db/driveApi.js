@@ -141,8 +141,10 @@ export function initiateOAuthFlow() {
   window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
 }
 
-/** Open a small OAuth popup to refresh the Drive token without leaving the app */
-export function initiateReauth() {
+/** Returns when the admin token expires (ms timestamp) */
+export function getAdminTokenExpiry() { return _adminExpiry }
+
+function _buildOAuthUrl(extra = {}) {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
   if (!clientId) throw new Error('VITE_GOOGLE_CLIENT_ID not set')
   const params = new URLSearchParams({
@@ -151,8 +153,27 @@ export function initiateReauth() {
     response_type:          'token',
     scope:                  SCOPES,
     include_granted_scopes: 'true',
+    ...extra,
   })
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params}`
+}
+
+/**
+ * Invisible 1×1 window re-auth using prompt=none.
+ * Succeeds silently if Google session is still active.
+ * Posts { type:'nourish:reauth-done', success } back to this window.
+ */
+export function silentReauth() {
+  try {
+    const url = _buildOAuthUrl({ prompt: 'none' })
+    window.open(url, 'nourish_silent_reauth', 'width=1,height=1,left=-2000,top=-2000')
+    return true
+  } catch { return false }
+}
+
+/** Visible centred popup — fallback when silent re-auth requires interaction */
+export function initiateReauth() {
+  const url = _buildOAuthUrl()
   const w = 520, h = 620
   const left = Math.round(window.screenX + (window.outerWidth  - w) / 2)
   const top  = Math.round(window.screenY + (window.outerHeight - h) / 2)

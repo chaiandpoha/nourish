@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/useAuth.jsx'
 import { BannerProvider, useBanners } from './shared/Banner.jsx'
@@ -38,22 +38,33 @@ export default function App() {
 
   useEffect(() => {
     const hash = window.location.hash
+    const isReauthWindow = window.name === 'nourish_silent_reauth' || window.name === 'nourish_reauth'
+
     if (hash.includes('access_token')) {
       import('./db/driveApi.js').then(async ({ parseOAuthCallback, fetchUserInfo }) => {
+        let success = false
         try {
           parseOAuthCallback()
           await fetchUserInfo()
+          success = true
         } catch (e) {
           console.error('OAuth error:', e)
         }
-        // Re-auth popup: token saved to localStorage — notify parent and close
+        // Re-auth window: notify parent and close regardless of success
         if (window.opener && !window.opener.closed) {
-          try { window.opener.postMessage({ type: 'nourish:reauth-done' }, window.location.origin) } catch {}
+          try { window.opener.postMessage({ type: 'nourish:reauth-done', success }, window.location.origin) } catch {}
           window.close()
           return
         }
         window.location.replace(window.location.origin + '/#/auth/callback')
       })
+      return
+    }
+
+    // Re-auth window that got an error back from Google (e.g. interaction_required)
+    if (isReauthWindow && window.opener && !window.opener.closed) {
+      try { window.opener.postMessage({ type: 'nourish:reauth-done', success: false }, window.location.origin) } catch {}
+      window.close()
       return
     }
     runMigrations()
@@ -219,37 +230,77 @@ function ChatScreen() {
 
 function DriveReauthWatcher() {
   const { user, encryptionKey } = useAuth()
-  const { addBanner } = useBanners()
+  const { addBanner }           = useBanners()
+  const fallbackTimer           = useRef(null)
+  const bannerShown             = useRef(false)
 
   useEffect(() => {
     if (!user || !encryptionKey) return
 
-    async function reconnect() {
-      const { initiateReauth } = await import('./db/driveApi.js')
-      initiateReauth()
+    // Try silent reauth first; if it fails within 30s show manual banner
+    async function attemptSilentReauth() {
+      const { silentReauth } = await import('./db/driveApi.js')
+      silentReauth()
+      clearTimeout(fallbackTimer.current)
+      fallbackTimer.current = setTimeout(showManualBanner, 30_000)
     }
 
-    function onExpired() {
+    function showManualBanner() {
+      if (bannerShown.current) return
+      bannerShown.current = true
       addBanner({
         type:    'warning',
-        message: 'Drive backup paused — token expired',
-        action:  { label: 'Reconnect', onClick: reconnect },
-        onDismiss: () => {},
+        message: 'Drive backup paused',
+        action:  { label: 'Reconnect', onClick: async () => {
+          const { initiateReauth } = await import('./db/driveApi.js')
+          initiateReauth()
+        }},
+        onDismiss: () => { bannerShown.current = false },
       })
     }
 
     async function onReauthDone(e) {
       if (e.origin !== window.location.origin || e.data?.type !== 'nourish:reauth-done') return
-      // The popup saved a fresh admin token to localStorage — flush immediately
+      clearTimeout(fallbackTimer.current)
+      if (!e.data.success) {
+        // Silent reauth needs interaction — show visible popup banner
+        showManualBanner()
+        return
+      }
+      bannerShown.current = false
+      // Flush immediately then schedule next proactive refresh
       const { flushDirtyRecords } = await import('./db/db.js')
       flushDirtyRecords(user.id, encryptionKey)
+      scheduleProactiveRefresh()
     }
 
-    window.addEventListener('nourish:drive-token-expired', onExpired)
+    // Schedule a silent refresh 5 min before the token expires
+    async function scheduleProactiveRefresh() {
+      const { getAdminTokenExpiry } = await import('./db/driveApi.js')
+      const expiry = getAdminTokenExpiry()
+      if (!expiry) return
+      const delay = expiry - Date.now() - 5 * 60 * 1000
+      if (delay > 0) setTimeout(attemptSilentReauth, delay)
+    }
+
+    // Also re-check when the app comes back to foreground
+    async function onVisible() {
+      if (document.visibilityState !== 'visible') return
+      const { isTokenValid } = await import('./db/driveApi.js')
+      if (!isTokenValid()) attemptSilentReauth()
+    }
+
+    window.addEventListener('nourish:drive-token-expired', attemptSilentReauth)
     window.addEventListener('message', onReauthDone)
+    document.addEventListener('visibilitychange', onVisible)
+
+    scheduleProactiveRefresh()
+
     return () => {
-      window.removeEventListener('nourish:drive-token-expired', onExpired)
+      clearTimeout(fallbackTimer.current)
+      window.removeEventListener('nourish:drive-token-expired', attemptSilentReauth)
       window.removeEventListener('message', onReauthDone)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [user?.id, encryptionKey, addBanner])
 
