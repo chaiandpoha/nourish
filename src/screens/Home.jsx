@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { parseHealthClipboard } from '../utils/healthSync.js'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth.jsx'
 import { RingWithMacros } from '../shared/RingChart.jsx'
@@ -67,7 +66,6 @@ export default function Home() {
   const [calInput,      setCalInput]      = useState('')
   const [syncing,       setSyncing]       = useState(false)
   const [syncMsg,       setSyncMsg]       = useState('')
-  const [homeSyncMsg,   setHomeSyncMsg]   = useState('')
   const [editingWeight, setEditingWeight] = useState(false)
   const [weightInput,   setWeightInput]   = useState('')
   const [weightUnit,    setWeightUnit]    = useState(() => localStorage.getItem('weightUnit') || 'lbs')
@@ -177,45 +175,34 @@ export default function Home() {
     setEditingWeight(false)
   }
 
-  async function doHealthSync() {
+  async function syncFromCloud() {
+    if (!user?.healthSyncToken) return { ok: false, msg: 'No sync token — visit Settings → iPhone Health Sync first' }
     try {
-      const text = await navigator.clipboard.readText()
-      const parsed = parseHealthClipboard(text)
-      if (!parsed) return { ok: false, msg: text?.includes('nourish-steps:') ? 'Could not parse Health data — check shortcut format' : 'No Health data — automation not run yet today' }
-      const { steps, cal, date: parsedDate } = parsed
-      const date = parsedDate || today
-      const now   = new Date().toISOString()
-      const existing = await db.stepsLog.where('[userId+date]').equals([user.id, date]).first()
+      const { sbFetchHealthSync } = await import('../db/supabase.js')
+      const data = await sbFetchHealthSync(user.healthSyncToken)
+      if (!data?.steps || !data?.date) return { ok: false, msg: 'No data in cloud yet — run your shortcut first' }
+      const now = new Date().toISOString()
+      const existing = await db.stepsLog.where('[userId+date]').equals([user.id, data.date]).first()
       if (existing) {
-        await db.stepsLog.update(existing.id, { steps, caloriesBurned: cal, source: 'health', dirty: 1, updatedAt: now })
-        setStepsData({ ...existing, steps, caloriesBurned: cal })
+        await db.stepsLog.update(existing.id, { steps: data.steps, caloriesBurned: data.cal || 0, source: 'health', dirty: 1, updatedAt: now })
+        setStepsData({ ...existing, steps: data.steps, caloriesBurned: data.cal || 0 })
       } else {
-        const id = await db.stepsLog.add({ userId: user.id, date, steps, caloriesBurned: cal, source: 'health', dirty: 1, updatedAt: now })
-        setStepsData({ id, userId: user.id, date, steps, caloriesBurned: cal })
+        const id = await db.stepsLog.add({ userId: user.id, date: data.date, steps: data.steps, caloriesBurned: data.cal || 0, source: 'health', dirty: 1, updatedAt: now })
+        setStepsData({ id, userId: user.id, date: data.date, steps: data.steps, caloriesBurned: data.cal || 0 })
       }
-      await navigator.clipboard.writeText('').catch(() => {})
-      return { ok: true, msg: `Synced — ${steps.toLocaleString()} steps${cal ? `, ${cal} kcal` : ''}` }
-    } catch {
-      return { ok: false, msg: 'Could not read clipboard — tap Allow if prompted' }
+      return { ok: true, msg: `Synced — ${Number(data.steps).toLocaleString()} steps (${data.date})` }
+    } catch (e) {
+      return { ok: false, msg: `Sync error: ${e.message}` }
     }
   }
 
   async function syncFromClipboard() {
     setSyncing(true)
     setSyncMsg('')
-    const { msg } = await doHealthSync()
+    const { ok, msg } = await syncFromCloud()
     setSyncMsg(msg)
-    if (msg.startsWith('Synced')) setTimeout(() => setEditingSteps(false), 1200)
+    if (ok) setTimeout(() => setEditingSteps(false), 1200)
     setSyncing(false)
-  }
-
-  async function syncHealthDirect() {
-    setSyncing(true)
-    setHomeSyncMsg('')
-    const { msg } = await doHealthSync()
-    setHomeSyncMsg(msg)
-    setSyncing(false)
-    setTimeout(() => setHomeSyncMsg(''), 3000)
   }
 
   function openStepsEdit() {
@@ -347,16 +334,6 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Health sync */}
-      <button
-        style={{ ...styles.healthSyncBtn, opacity: syncing ? 0.6 : 1 }}
-        onClick={syncHealthDirect}
-        disabled={syncing}
-      >
-        <span style={{ fontSize:'16px' }}>♥</span>
-        <span>{syncing ? 'Syncing…' : 'Sync Steps from Health'}</span>
-        {homeSyncMsg ? <span style={{ marginLeft:'auto', fontSize:'12px', color: homeSyncMsg.startsWith('Synced') ? 'var(--accent)' : 'var(--red)', fontWeight:'500', textAlign:'right', maxWidth:'140px' }}>{homeSyncMsg}</span> : null}
-      </button>
 
       {/* Supplements */}
       {supplements.length > 0 && (
@@ -457,12 +434,12 @@ export default function Home() {
                   onClick={syncFromClipboard}
                   disabled={syncing}
                 >
-                  {syncing ? 'Syncing…' : '⟳  Sync from Health'}
+                  {syncing ? 'Checking cloud…' : '⟳  Refresh from cloud'}
                 </button>
                 {syncMsg ? (
                   <p style={{ fontSize:'13px', color: syncMsg.startsWith('Synced') ? 'var(--accent)' : 'var(--red)', margin:'-4px 0 0', lineHeight:'1.4' }}>{syncMsg}</p>
                 ) : (
-                  <p style={styles.sheetSub}>Your iOS automations sync steps automatically 3× a day. Tap Sync if you need the latest now, or enter manually below.</p>
+                  <p style={styles.sheetSub}>Your shortcut sends steps to the cloud automatically. Tap Refresh to pull the latest, or enter manually below.</p>
                 )}
 
                 <div style={styles.fieldRow}>
@@ -781,22 +758,6 @@ const styles = {
     outline:      'none',
     width:        '100%',
     boxSizing:    'border-box',
-  },
-  healthSyncBtn: {
-    display:      'flex',
-    alignItems:   'center',
-    gap:          '8px',
-    width:        '100%',
-    padding:      '12px 16px',
-    background:   'var(--bg-surface)',
-    border:       '0.5px solid var(--border-subtle)',
-    borderRadius: 'var(--r-xl)',
-    fontSize:     '14px',
-    fontWeight:   '600',
-    color:        'var(--text-secondary)',
-    cursor:       'pointer',
-    textAlign:    'left',
-    WebkitTapHighlightColor: 'transparent',
   },
   syncBtn: {
     padding:      '13px',
