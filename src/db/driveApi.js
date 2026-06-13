@@ -165,7 +165,10 @@ function _buildOAuthUrl(extra = {}) {
  */
 export function silentReauth() {
   try {
-    const url = _buildOAuthUrl({ prompt: 'none' })
+    // login_hint bypasses the account picker for multi-account users,
+    // making prompt=none succeed silently instead of returning interaction_required.
+    const extra = { prompt: 'none', ...(_userEmail ? { login_hint: _userEmail } : {}) }
+    const url = _buildOAuthUrl(extra)
     window.open(url, 'nourish_silent_reauth', 'width=1,height=1,left=-2000,top=-2000')
     return true
   } catch { return false }

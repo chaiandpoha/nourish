@@ -275,7 +275,11 @@ function DriveReauthWatcher() {
     }
 
     async function scheduleProactiveRefresh() {
-      const { getAdminTokenExpiry } = await import('./db/driveApi.js')
+      const { isTokenValid, getAdminTokenExpiry } = await import('./db/driveApi.js')
+      // isTokenValid() reloads _adminToken/_adminExpiry from localStorage —
+      // necessary because the popup writes the new token to localStorage but
+      // the parent window's in-memory state stays stale until reloaded.
+      isTokenValid()
       const expiry = getAdminTokenExpiry()
       if (!expiry) return
       const delay = expiry - Date.now() - 5 * 60 * 1000
