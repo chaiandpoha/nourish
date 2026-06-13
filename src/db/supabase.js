@@ -155,7 +155,7 @@ export async function sbFetchHouseholdFoods(householdId) {
 
 export async function sbSaveProfile(profile) {
   if (!supabase || !profile?.email) return
-  const { error } = await supabase.from('profiles').upsert({
+  const row = {
     id:              profile.id,
     email:           profile.email.toLowerCase(),
     name:            profile.name            || null,
@@ -167,8 +167,19 @@ export async function sbSaveProfile(profile) {
     household_id:    profile.householdId     || null,
     encryption_salt: profile.encryptionSalt  || null,
     updated_at:      new Date().toISOString(),
-  })
-  if (error) console.warn('sbSaveProfile error:', error.message)
+  }
+  if (profile.healthSyncToken) row.health_sync_token = profile.healthSyncToken
+  const { error } = await supabase.from('profiles').upsert(row)
+  if (error) {
+    // If health_sync_token column doesn't exist yet, retry without it
+    if (error.message?.includes('health_sync_token')) {
+      delete row.health_sync_token
+      const { error: e2 } = await supabase.from('profiles').upsert(row)
+      if (e2) console.warn('sbSaveProfile error:', e2.message)
+    } else {
+      console.warn('sbSaveProfile error:', error.message)
+    }
+  }
 }
 
 export async function sbFetchProfile(email) {
@@ -180,18 +191,19 @@ export async function sbFetchProfile(email) {
     .single()
   if (error || !data) return null
   return {
-    id:             data.id,
-    email:          data.email,
-    name:           data.name           || '',
-    height:         data.height         || null,
-    macroGoals:     data.macro_goals    || { calories:2000, protein:150, carbs:200, fat:65, fibre:30 },
-    supplements:    data.supplements    || [],
-    aiInstructions: data.ai_instructions|| null,
-    settings:       data.settings       || { autoLockMinutes:0, shareFoodNamesWithAI:true, shareMedNamesWithAI:false, wifiOnlyPhotos:true },
-    householdId:    data.household_id   || null,
-    encryptionSalt: data.encryption_salt|| null,
-    skipPin:        true,
-    dirty:          0,
+    id:              data.id,
+    email:           data.email,
+    name:            data.name            || '',
+    height:          data.height          || null,
+    macroGoals:      data.macro_goals     || { calories:2000, protein:150, carbs:200, fat:65, fibre:30 },
+    supplements:     data.supplements     || [],
+    aiInstructions:  data.ai_instructions || null,
+    settings:        data.settings        || { autoLockMinutes:0, shareFoodNamesWithAI:true, shareMedNamesWithAI:false, wifiOnlyPhotos:true },
+    householdId:     data.household_id    || null,
+    encryptionSalt:  data.encryption_salt || null,
+    healthSyncToken: data.health_sync_token || null,
+    skipPin:         true,
+    dirty:           0,
   }
 }
 

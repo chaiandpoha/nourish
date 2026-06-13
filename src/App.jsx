@@ -378,7 +378,7 @@ function HealthClipboardSync() {
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [user?.id])
+  }, [user?.id, user?.healthSyncToken])
 
   return null
 }
@@ -734,6 +734,7 @@ function HealthSyncSettings({ user, onSaved }) {
   const [goalSaved,    setGoalSaved]    = useState(false)
   const [tokenCopied,  setTokenCopied]  = useState(false)
   const [syncToken,    setSyncToken]    = useState(user?.healthSyncToken || null)
+  const [syncStatus,   setSyncStatus]   = useState(null)   // null | 'checking' | { date, steps, cal } | 'none' | 'error'
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -741,13 +742,28 @@ function HealthSyncSettings({ user, onSaved }) {
   useEffect(() => {
     // Generate token for existing users who don't have one yet
     if (!syncToken && user?.id) {
-      import('./auth/crypto.js').then(({ generateId }) => {
+      import('./auth/crypto.js').then(async ({ generateId }) => {
         const token = generateId()
-        db.users.update(user.id, { healthSyncToken: token, dirty: 1, updatedAt: new Date().toISOString() })
+        await db.users.update(user.id, { healthSyncToken: token, dirty: 1, updatedAt: new Date().toISOString() })
         setSyncToken(token)
+        // Persist to Supabase and refresh user in memory so HealthClipboardSync picks it up
+        import('./db/supabase.js').then(({ sbSaveProfile }) => sbSaveProfile({ ...user, healthSyncToken: token })).catch(() => {})
+        onSaved?.()
       })
     }
   }, [user?.id])
+
+  async function checkSyncStatus() {
+    if (!syncToken) return
+    setSyncStatus('checking')
+    try {
+      const { sbFetchHealthSync } = await import('./db/supabase.js')
+      const data = await sbFetchHealthSync(syncToken)
+      setSyncStatus(data || 'none')
+    } catch {
+      setSyncStatus('error')
+    }
+  }
 
   async function saveGoal() {
     const goal = parseInt(goalInput) || 10000
@@ -859,9 +875,27 @@ function HealthSyncSettings({ user, onSaved }) {
         </p>
 
         <button onClick={copyToken}
-          style={{ width:'100%', padding:'11px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', color:'var(--text-primary)', fontSize:'14px', fontWeight:'600', cursor:'pointer', marginBottom:'16px' }}>
+          style={{ width:'100%', padding:'11px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', color:'var(--text-primary)', fontSize:'14px', fontWeight:'600', cursor:'pointer', marginBottom:'8px' }}>
           {tokenCopied ? '✓ Token copied!' : 'Copy my sync token'}
         </button>
+
+        <button onClick={checkSyncStatus}
+          style={{ width:'100%', padding:'11px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', color:'var(--accent)', fontSize:'14px', fontWeight:'600', cursor:'pointer', marginBottom:'16px' }}>
+          {syncStatus === 'checking' ? 'Checking…' : 'Check sync status'}
+        </button>
+
+        {syncStatus && syncStatus !== 'checking' && (
+          <div style={{ background:'var(--bg-base)', borderRadius:'var(--r-md)', padding:'10px 12px', marginBottom:'16px', border:'1px solid var(--border-subtle)', fontSize:'13px', color:'var(--text-secondary)', lineHeight:'1.5' }}>
+            {syncStatus === 'none'  && 'No data found in the cloud yet. Run your shortcut once to test it.'}
+            {syncStatus === 'error' && 'Could not reach Supabase. Check your internet connection.'}
+            {syncStatus?.date && (
+              <>
+                <b style={{ color:'var(--text-primary)' }}>Last data received:</b>{' '}
+                {syncStatus.date} — {Number(syncStatus.steps).toLocaleString()} steps, {Math.round(syncStatus.cal)} cal burned
+              </>
+            )}
+          </div>
+        )}
 
         <div style={{ ...subheadStyle }}>Step 2 — Automate it</div>
         {automationSteps.map((step, i) => (
