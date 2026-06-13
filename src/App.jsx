@@ -855,7 +855,7 @@ function HealthSyncSettings({ user, onSaved }) {
           {`{\n  "token": "${syncToken || '(loading…)'}",\n  "steps": [Steps variable],\n  "cal": [Calories variable],\n  "date": "[Today variable]"\n}`}
         </div>
         <p style={{ fontSize:'11px', color:'var(--text-tertiary)', margin:'0 0 12px', lineHeight:'1.4' }}>
-          Replace [Steps], [Calories], [Today] by tapping each bracket and selecting the variable from the list.
+          Keys must be lowercase exactly as shown (<b>steps</b>, <b>cal</b>, <b>date</b>). Tap each bracketed placeholder and select the matching Shortcut variable from the list.
         </p>
 
         <button onClick={copyToken}
