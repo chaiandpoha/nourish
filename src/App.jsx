@@ -783,9 +783,9 @@ function HealthSyncSettings({ user, onSaved }) {
 
   const shortcutSteps = [
     'Open Shortcuts → tap + → name it "Nourish Health Sync".',
-    'Add: Health → Find Health Samples. Type = Steps, Sort = Start Date descending, Limit = 1. Rename to "Step Samples".',
+    'Add: Health → Find Health Samples. Type = Steps. Tap "Add Filter" → Start Date → is after → "Beginning of Today". Remove any Limit. Rename to "Step Samples".',
     'Add: Scripting → Calculate Statistics on "Step Samples". Function = Sum. Rename to "Steps".',
-    'Add: Health → Find Health Samples. Type = Active Energy Burned, same settings. Rename to "Energy Samples".',
+    'Add: Health → Find Health Samples. Type = Active Energy Burned. Same filter (Start Date is after Beginning of Today). No Limit. Rename to "Energy Samples".',
     'Add: Scripting → Calculate Statistics on "Energy Samples". Function = Sum. Rename to "Calories".',
     'Add: Scripting → Get Current Date. Then add: Date → Format Date → Custom → yyyy-MM-dd. Rename to "Today".',
     'Add: Web → Get Contents of URL. Tap the action to expand it, then fill in the fields below.',
