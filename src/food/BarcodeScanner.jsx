@@ -2,18 +2,21 @@ import { useState, useEffect, useRef } from 'react'
 import { getFoodByBarcode, saveFood } from './FoodDB.js'
 import { generateId } from '../auth/crypto.js'
 
+const HAS_NATIVE = typeof window !== 'undefined' && 'BarcodeDetector' in window
+
 export default function BarcodeScanner({ onFound, onCancel, householdId }) {
-  const [screen,       setScreen]       = useState(() => 'BarcodeDetector' in window ? 'scanning' : 'manual')
-  const [error,        setError]        = useState('')
-  const [barcode,      setBarcode]      = useState('')
-  const [manualInput,  setManualInput]  = useState('')
-  const [manualError,  setManualError]  = useState('')
+  const [screen,      setScreen]      = useState('scanning')
+  const [error,       setError]       = useState('')
+  const [barcode,     setBarcode]     = useState('')
+  const [manualInput, setManualInput] = useState('')
+  const [manualError, setManualError] = useState('')
 
   const videoRef    = useRef(null)
   const streamRef   = useRef(null)
   const detectorRef = useRef(null)
   const rafRef      = useRef(null)
   const doneRef     = useRef(false)
+  const zxingRef    = useRef(null)
 
   useEffect(() => {
     if (screen !== 'scanning') return
@@ -24,9 +27,6 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
 
   async function startCamera() {
     try {
-      detectorRef.current = new BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'qr_code'],
-      })
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
       })
@@ -35,15 +35,39 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
       if (!v) { stop(); return }
       v.srcObject = stream
       await v.play()
-      tick()
+
+      if (HAS_NATIVE) {
+        detectorRef.current = new BarcodeDetector({
+          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'qr_code'],
+        })
+        tick()
+      } else {
+        // ZXing fallback for iOS Safari / Firefox (no native BarcodeDetector)
+        const { BrowserMultiFormatReader } = await import('@zxing/browser')
+        const reader = new BrowserMultiFormatReader()
+        zxingRef.current = reader
+        reader.decodeFromVideoElement(v, (result, err) => {
+          if (result && !doneRef.current) {
+            doneRef.current = true
+            stop()
+            handleDetected(result.getText())
+          }
+        })
+      }
     } catch (e) {
-      setError(e.name === 'NotAllowedError' ? 'Camera access denied' : 'Could not access camera')
-      setScreen('unsupported')
+      setError(e.name === 'NotAllowedError'
+        ? 'Camera access denied — please allow camera in Settings'
+        : 'Could not access camera')
+      setScreen('error')
     }
   }
 
   function stop() {
     cancelAnimationFrame(rafRef.current)
+    if (zxingRef.current) {
+      try { zxingRef.current.reset() } catch {}
+      zxingRef.current = null
+    }
     streamRef.current?.getTracks().forEach(t => t.stop())
     streamRef.current = null
   }
@@ -73,8 +97,7 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
     if (local) { onFound(local); return }
 
     try {
-      // Try global DB first, then India-specific DB for better local product coverage
-      for (const base of ['https://world.openfoodfacts.org', 'https://in.openfoodfacts.org']) {
+      for (const base of ['https://world.openfoodfacts.org', 'https://us.openfoodfacts.org']) {
         const res  = await fetch(`${base}/api/v2/product/${code}.json`)
         const data = await res.json()
         if (data.status === 1 && data.product) {
@@ -123,7 +146,7 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
     await handleDetected(code)
   }
 
-  // ─── Manual entry (fallback when BarcodeDetector unavailable) ─────────────
+  // ─── Manual entry ─────────────────────────────────────────────────────────────
   if (screen === 'manual') {
     return (
       <div style={st.container}>
@@ -131,13 +154,13 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
         <div style={st.center}>
           <div style={st.icon}>🔢</div>
           <p style={st.bigTitle}>Enter barcode</p>
-          <p style={st.sub}>Camera barcode scanning isn't supported on this device. Type the barcode number from the product packaging.</p>
+          <p style={st.sub}>Type the barcode number from the product packaging.</p>
         </div>
         <input
           style={st.manualInput}
           type="number"
           inputMode="numeric"
-          placeholder="e.g. 8901030851551"
+          placeholder="e.g. 0123456789012"
           value={manualInput}
           onChange={e => { setManualInput(e.target.value); setManualError('') }}
           onKeyDown={e => e.key === 'Enter' && handleManualLookup()}
@@ -145,12 +168,29 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
         />
         {manualError && <p style={st.manualError}>{manualError}</p>}
         <button style={st.primaryBtn} onClick={handleManualLookup}>Look Up Product</button>
+        <button style={st.outlineBtn} onClick={() => setScreen('scanning')}>Try Camera Again</button>
         <button style={st.outlineBtn} onClick={onCancel}>Go Back</button>
       </div>
     )
   }
 
-  // ─── Looking up ───────────────────────────────────────────────────────────
+  // ─── Camera error ─────────────────────────────────────────────────────────────
+  if (screen === 'error') {
+    return (
+      <div style={st.container}>
+        <Hdr onCancel={onCancel} />
+        <div style={st.center}>
+          <div style={st.icon}>📵</div>
+          <p style={st.bigTitle}>Camera unavailable</p>
+          <p style={st.sub}>{error}</p>
+        </div>
+        <button style={st.primaryBtn} onClick={() => { setManualInput(''); setScreen('manual') }}>Enter Barcode Manually</button>
+        <button style={st.outlineBtn} onClick={onCancel}>Go Back</button>
+      </div>
+    )
+  }
+
+  // ─── Looking up ───────────────────────────────────────────────────────────────
   if (screen === 'looking') {
     return (
       <div style={st.container}>
@@ -164,7 +204,7 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
     )
   }
 
-  // ─── Not found ────────────────────────────────────────────────────────────
+  // ─── Not found ────────────────────────────────────────────────────────────────
   if (screen === 'notfound') {
     return (
       <div style={st.container}>
@@ -172,18 +212,18 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
         <div style={st.center}>
           <div style={st.icon}>🤷</div>
           <p style={st.bigTitle}>Product not found</p>
-          <p style={st.sub}>Barcode {barcode} wasn't in the database. Try scanning the nutrition label instead.</p>
+          <p style={st.sub}>
+            Barcode {barcode} wasn't found. Try scanning the nutrition label instead.
+          </p>
         </div>
-        {'BarcodeDetector' in window && (
-          <button style={st.primaryBtn} onClick={() => setScreen('scanning')}>Try Again</button>
-        )}
+        <button style={st.primaryBtn} onClick={() => setScreen('scanning')}>Scan Again</button>
         <button style={st.outlineBtn} onClick={() => { setManualInput(barcode); setScreen('manual') }}>Enter Manually</button>
         <button style={st.outlineBtn} onClick={onCancel}>Go Back</button>
       </div>
     )
   }
 
-  // ─── Camera view ──────────────────────────────────────────────────────────
+  // ─── Camera view ──────────────────────────────────────────────────────────────
   return (
     <div style={st.container}>
       <Hdr onCancel={onCancel} />
@@ -194,7 +234,7 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
         </div>
       </div>
       <p style={st.hint}>Point at a barcode to scan</p>
-      <button style={st.outlineBtn} onClick={() => setScreen('manual')}>Enter barcode manually</button>
+      <button style={st.outlineBtn} onClick={() => { stop(); setScreen('manual') }}>Enter barcode manually</button>
     </div>
   )
 }
