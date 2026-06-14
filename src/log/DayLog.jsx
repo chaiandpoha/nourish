@@ -394,7 +394,9 @@ function FoodEntryRow({ entry, onDelete, onEdit }) {
       <div style={s.entryInfo}>
         <div style={s.entryName}>{entry.name}</div>
         {mode !== 'actions' && (
-          <div style={s.entryMeta}>{entry.grams}g · {entry.calories} kcal · {entry.protein}g P</div>
+          <div style={s.entryMeta}>
+          {entry.grams}g · {entry.calories} kcal · <span style={s.mp}>P</span> {entry.protein} · <span style={s.mc}>C</span> {entry.carbs} · <span style={s.mf}>F</span> {entry.fat}{entry.fibre > 0 ? <> · <span style={s.mfi}>Fi</span> {entry.fibre}</> : null}
+        </div>
         )}
       </div>
 
@@ -439,7 +441,11 @@ const s = {
   entryRow:     { display:'flex', alignItems:'center', padding:'10px 14px', borderTop:'0.5px solid var(--border-subtle)', cursor:'pointer', gap:'8px' },
   entryInfo:    { flex:1, display:'flex', flexDirection:'column', gap:'2px', minWidth:0 },
   entryName:    { fontSize:'14px', fontWeight:'500', color:'var(--text-primary)', letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' },
-  entryMeta:    { fontSize:'12px', color:'var(--text-tertiary)' },
+  entryMeta:    { fontSize:'12px', color:'var(--text-tertiary)', lineHeight:'1.4' },
+  mp:           { color:'var(--macro-protein)', fontWeight:'600' },
+  mc:           { color:'var(--macro-carbs)',   fontWeight:'600' },
+  mf:           { color:'var(--macro-fat)',     fontWeight:'600' },
+  mfi:          { color:'var(--macro-fibre)',   fontWeight:'600' },
   entryCalories:{ fontSize:'14px', fontWeight:'600', color:'var(--text-secondary)', fontFamily:'var(--font-mono)', flexShrink:0 },
 
   editBtn:      { padding:'5px 10px', background:'var(--bg-elevated)', border:'none', borderRadius:'var(--r-sm)', color:'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' },
