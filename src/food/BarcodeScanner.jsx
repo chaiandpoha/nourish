@@ -4,10 +4,13 @@ import { generateId } from '../auth/crypto.js'
 
 const HAS_NATIVE = typeof window !== 'undefined' && 'BarcodeDetector' in window
 
-export default function BarcodeScanner({ onFound, onCancel, householdId }) {
+// onFound(food) → add to log flow
+// onSaved(food) → saved to library only, back to list
+export default function BarcodeScanner({ onFound, onSaved, onCancel, householdId }) {
   const [screen,      setScreen]      = useState('scanning')
   const [error,       setError]       = useState('')
   const [barcode,     setBarcode]     = useState('')
+  const [foundFood,   setFoundFood]   = useState(null)
   const [manualInput, setManualInput] = useState('')
   const [manualError, setManualError] = useState('')
 
@@ -94,7 +97,7 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
     setScreen('looking')
 
     const local = await getFoodByBarcode(code)
-    if (local) { onFound(local); return }
+    if (local) { setFoundFood(local); setScreen('found'); return }
 
     try {
       for (const base of ['https://world.openfoodfacts.org', 'https://us.openfoodfacts.org']) {
@@ -103,7 +106,8 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
         if (data.status === 1 && data.product) {
           const food = mapProduct(data.product, code)
           await saveFood(food, householdId)
-          onFound(food)
+          setFoundFood(food)
+          setScreen('found')
           return
         }
       }
@@ -223,6 +227,42 @@ export default function BarcodeScanner({ onFound, onCancel, householdId }) {
     )
   }
 
+  // ─── Found ───────────────────────────────────────────────────────────────────
+  if (screen === 'found' && foundFood) {
+    const srv = foundFood.servingSize || 100
+    const p   = foundFood.per100g || {}
+    const cal = Math.round((p.calories || 0) * srv / 100)
+    const pro = Math.round((p.protein  || 0) * srv / 100)
+    const crb = Math.round((p.carbs    || 0) * srv / 100)
+    const fat = Math.round((p.fat      || 0) * srv / 100)
+    return (
+      <div style={st.container}>
+        <Hdr onCancel={onCancel} />
+        <div style={st.foundCard}>
+          <div style={st.foundName}>{foundFood.name}</div>
+          {foundFood.brand && <div style={st.foundBrand}>{foundFood.brand}</div>}
+          <div style={st.foundServing}>{foundFood.servingLabel || `${Math.round(srv)}g`} per serving</div>
+          <div style={st.macroRow}>
+            {[
+              { label: 'kcal', val: cal, color: 'var(--text-primary)' },
+              { label: 'P',    val: pro, color: 'var(--macro-protein)' },
+              { label: 'C',    val: crb, color: 'var(--macro-carbs)' },
+              { label: 'F',    val: fat, color: 'var(--macro-fat)' },
+            ].map(({ label, val, color }) => (
+              <div key={label} style={st.macroCell}>
+                <span style={{ ...st.macroVal, color }}>{val}</span>
+                <span style={st.macroLabel}>{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <button style={st.primaryBtn} onClick={() => onFound(foundFood)}>Add to Log</button>
+        <button style={st.outlineBtn} onClick={() => { onSaved?.(foundFood); onCancel() }}>Save to Foods Only</button>
+        <button style={st.ghostBtn}   onClick={() => setScreen('scanning')}>Scan Another</button>
+      </div>
+    )
+  }
+
   // ─── Camera view ──────────────────────────────────────────────────────────────
   return (
     <div style={st.container}>
@@ -267,4 +307,13 @@ const st = {
   outlineBtn:   { width: '100%', padding: '13px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', color: 'var(--text-secondary)', fontSize: '15px', fontWeight: '500', cursor: 'pointer' },
   manualInput:  { width: '100%', padding: '14px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', outline: 'none', textAlign: 'center', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em', boxSizing: 'border-box' },
   manualError:  { fontSize: '13px', color: 'var(--red)', margin: '0', textAlign: 'center' },
+  foundCard:    { background: 'var(--bg-surface)', border: '0.5px solid var(--border-subtle)', borderRadius: 'var(--r-lg)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' },
+  foundName:    { fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', letterSpacing: '-0.01em' },
+  foundBrand:   { fontSize: '13px', color: 'var(--text-tertiary)' },
+  foundServing: { fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '4px' },
+  macroRow:     { display: 'flex', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', overflow: 'hidden' },
+  macroCell:    { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 4px', gap: '2px' },
+  macroVal:     { fontSize: '15px', fontWeight: '600', fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em' },
+  macroLabel:   { fontSize: '9px', color: 'var(--text-tertiary)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  ghostBtn:     { width: '100%', padding: '10px', background: 'none', border: 'none', color: 'var(--text-tertiary)', fontSize: '14px', cursor: 'pointer' },
 }

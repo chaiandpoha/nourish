@@ -544,6 +544,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
             <BarcodeScanner
               householdId={user?.householdId}
               onFound={food => selectItem(food, null)}
+              onSaved={() => setScreen("list")}
               onCancel={() => setScreen("list")}
             />
           )}
