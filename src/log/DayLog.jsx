@@ -34,12 +34,12 @@ export function readMealPref() {
   return null
 }
 
-function timeSlot() {
+export function timeSlot() {
   const h = new Date().getHours()
-  if (h < 10) return 'breakfast'
-  if (h < 15) return 'lunch'
-  if (h < 19) return 'dinner'
-  return 'snack'
+  if (h < 12) return 'breakfast'
+  if (h < 16) return 'lunch'
+  if (h < 19) return 'snack'
+  return 'dinner'
 }
 
 // Returns the best meal tab for + button: first unfilled from current-time order

@@ -8,7 +8,7 @@ import BarcodeScanner from "../food/BarcodeScanner.jsx"
 import RecipeBuilder from "../food/RecipeBuilder.jsx"
 import ManualFoodCreator from "../food/ManualFoodCreator.jsx"
 import { MACRO_COLORS } from "../config.js"
-import { localDate, readMealPref } from "./DayLog.jsx"
+import { localDate, readMealPref, timeSlot } from "./DayLog.jsx"
 
 // ─── Speech recognition support ──────────────────────────────────────────────
 const speechSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
@@ -72,7 +72,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
   const [recents,    setRecents]    = useState([])
   const [batches,    setBatches]    = useState([])
   const [recipes,    setRecipes]    = useState([])
-  const [meal,       setMeal]       = useState(readMealPref() || 'breakfast')
+  const [meal,       setMeal]       = useState(readMealPref() || timeSlot())
   const [seeded,     setSeeded]     = useState(false)
   const [seedFailed, setSeedFailed] = useState(false)
   const [listening,  setListening]  = useState(false)
@@ -105,7 +105,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
   // Load recents + batches when sheet opens; pick up active tab from DayLog
   useEffect(() => {
     if (!open || !user) return
-    setMeal(readMealPref() || 'breakfast')
+    setMeal(readMealPref() || timeSlot())
     Promise.all([
       getActiveBatches(user.id),
       getRecentFoods(user.id),
