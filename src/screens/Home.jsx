@@ -11,6 +11,13 @@ import { seedFoodDatabase } from '../food/FoodDB.js'
 import { Skeleton, SkeletonCard, SkeletonRow } from '../shared/Skeleton.jsx'
 import SyncStatus from '../shared/SyncStatus.jsx'
 
+function normalizeDate(raw) {
+  if (!raw) return null
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10)
+  const d = new Date(raw)
+  return isNaN(d.getTime()) ? null : d.toLocaleDateString('en-CA')
+}
+
 // ─── Home ─────────────────────────────────────────────────────────────────────
 
 function AvatarMenu({ user, logout }) {
@@ -181,7 +188,8 @@ export default function Home() {
       const { sbFetchHealthSync } = await import('../db/supabase.js')
       const data = await sbFetchHealthSync(user.healthSyncToken)
       if (!data?.steps || !data?.date) return { ok: false, msg: 'No data in cloud yet — run your shortcut first' }
-      const dataDate = data.date.slice(0, 10)
+      const dataDate = normalizeDate(data.date)
+      if (!dataDate) return { ok: false, msg: 'Unrecognised date format from shortcut — check your setup' }
       const now = new Date().toISOString()
       const existing = await db.stepsLog.where('[userId+date]').equals([user.id, dataDate]).first()
       if (existing) {

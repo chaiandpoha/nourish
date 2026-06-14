@@ -309,6 +309,15 @@ function ReminderChecker() {
 }
 
 
+// Converts any date string the iOS shortcut might send to YYYY-MM-DD.
+// Handles: ISO "2026-06-14", timestamp "2026-06-14T00:00:00", locale "Jun 14, 2026", "6/14/2026".
+function normalizeDate(raw) {
+  if (!raw) return null
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10)
+  const d = new Date(raw)
+  return isNaN(d.getTime()) ? null : d.toLocaleDateString('en-CA')
+}
+
 // Syncs steps from iOS Shortcut via Supabase (primary) or clipboard (fallback).
 // Primary: shortcut POSTs to health_sync table → app fetches on open/foreground.
 // Fallback: clipboard read on focus for users who haven't migrated shortcut yet.
@@ -338,7 +347,8 @@ function HealthClipboardSync() {
         const { sbFetchHealthSync } = await import('./db/supabase.js')
         const data = await sbFetchHealthSync(user.healthSyncToken)
         if (!data?.steps || !data?.date) return
-        const dataDate = data.date.slice(0, 10)
+        const dataDate = normalizeDate(data.date)
+        if (!dataDate) return
         const existing = await db.stepsLog.where('[userId+date]').equals([user.id, dataDate]).first()
         if (existing && existing.steps === data.steps) return // already up to date
         await saveSteps(data.steps, data.cal || 0, dataDate)
