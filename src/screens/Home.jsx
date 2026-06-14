@@ -181,7 +181,7 @@ export default function Home() {
       const { sbFetchHealthSync } = await import('../db/supabase.js')
       const data = await sbFetchHealthSync(user.healthSyncToken)
       if (!data?.steps || !data?.date) return { ok: false, msg: 'No data in cloud yet — run your shortcut first' }
-      if (data.date !== today) return { ok: false, msg: `Shortcut last ran on ${data.date} — today's data not posted yet` }
+      if (data.date.slice(0, 10) !== today) return { ok: false, msg: `Shortcut last ran on ${data.date.slice(0, 10)} — today's data not posted yet` }
       const now = new Date().toISOString()
       const existing = await db.stepsLog.where('[userId+date]').equals([user.id, today]).first()
       if (existing) {

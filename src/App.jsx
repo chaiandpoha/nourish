@@ -336,7 +336,8 @@ function HealthClipboardSync() {
         const data = await sbFetchHealthSync(user.healthSyncToken)
         if (!data?.steps || !data?.date) return
         // Only import today's data — skip stale entries from previous days
-        if (data.date !== localDate()) return
+        // Slice to 10 chars (YYYY-MM-DD) in case Supabase returns a timestamp
+        if (data.date.slice(0, 10) !== localDate()) return
         const existing = await db.stepsLog.where('[userId+date]').equals([user.id, data.date]).first()
         if (existing && existing.steps === data.steps) return // already up to date
         await saveSteps(data.steps, data.cal || 0, data.date)
