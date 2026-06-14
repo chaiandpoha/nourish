@@ -181,17 +181,21 @@ export default function Home() {
       const { sbFetchHealthSync } = await import('../db/supabase.js')
       const data = await sbFetchHealthSync(user.healthSyncToken)
       if (!data?.steps || !data?.date) return { ok: false, msg: 'No data in cloud yet — run your shortcut first' }
-      if (data.date.slice(0, 10) !== today) return { ok: false, msg: `Shortcut last ran on ${data.date.slice(0, 10)} — today's data not posted yet` }
+      const dataDate = data.date.slice(0, 10)
       const now = new Date().toISOString()
-      const existing = await db.stepsLog.where('[userId+date]').equals([user.id, today]).first()
+      const existing = await db.stepsLog.where('[userId+date]').equals([user.id, dataDate]).first()
       if (existing) {
         await db.stepsLog.update(existing.id, { steps: data.steps, caloriesBurned: data.cal || 0, source: 'health', dirty: 1, updatedAt: now })
-        setStepsData({ ...existing, steps: data.steps, caloriesBurned: data.cal || 0 })
       } else {
-        const id = await db.stepsLog.add({ userId: user.id, date: today, steps: data.steps, caloriesBurned: data.cal || 0, source: 'health', dirty: 1, updatedAt: now })
-        setStepsData({ id, userId: user.id, date: today, steps: data.steps, caloriesBurned: data.cal || 0 })
+        await db.stepsLog.add({ userId: user.id, date: dataDate, steps: data.steps, caloriesBurned: data.cal || 0, source: 'health', dirty: 1, updatedAt: now })
       }
-      return { ok: true, msg: `Synced — ${Number(data.steps).toLocaleString()} steps` }
+      // Only update home screen display if data is for today
+      if (dataDate === today) {
+        const updated = await db.stepsLog.where('[userId+date]').equals([user.id, today]).first()
+        if (updated) setStepsData(updated)
+        return { ok: true, msg: `Synced — ${Number(data.steps).toLocaleString()} steps` }
+      }
+      return { ok: false, msg: `Shortcut last ran on ${dataDate} — today's data not yet posted` }
     } catch (e) {
       return { ok: false, msg: `Sync error: ${e.message}` }
     }

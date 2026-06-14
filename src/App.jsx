@@ -326,7 +326,10 @@ function HealthClipboardSync() {
       } else {
         await db.stepsLog.add({ userId: user.id, date, steps, caloriesBurned: cal, source: 'health', dirty: 1, updatedAt: now })
       }
-      window.dispatchEvent(new CustomEvent('nourish:steps-synced'))
+      // Only trigger home screen refresh if this is today's data
+      if (date === localDate()) {
+        window.dispatchEvent(new CustomEvent('nourish:steps-synced'))
+      }
     }
 
     async function syncFromSupabase() {
@@ -335,12 +338,10 @@ function HealthClipboardSync() {
         const { sbFetchHealthSync } = await import('./db/supabase.js')
         const data = await sbFetchHealthSync(user.healthSyncToken)
         if (!data?.steps || !data?.date) return
-        // Only import today's data — skip stale entries from previous days
-        // Slice to 10 chars (YYYY-MM-DD) in case Supabase returns a timestamp
-        if (data.date.slice(0, 10) !== localDate()) return
-        const existing = await db.stepsLog.where('[userId+date]').equals([user.id, data.date]).first()
+        const dataDate = data.date.slice(0, 10)
+        const existing = await db.stepsLog.where('[userId+date]').equals([user.id, dataDate]).first()
         if (existing && existing.steps === data.steps) return // already up to date
-        await saveSteps(data.steps, data.cal || 0, data.date)
+        await saveSteps(data.steps, data.cal || 0, dataDate)
       } catch {}
     }
 
