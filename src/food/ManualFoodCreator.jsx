@@ -2,19 +2,27 @@ import { useState } from 'react'
 import { saveFood } from './FoodDB.js'
 import { generateId } from '../auth/crypto.js'
 
-// macroMode:
-//   'serving' — macros are for one serving (servingSize grams)
-//   'per100'  — macros are per 100g (no conversion)
-//   'total'   — macros are for the entire thing (totalWeight grams)
-//               serving = total weight, so user logs 0.5 servings to log half
+const UNITS = [
+  { id: 'g',   label: 'g',   toG: v => v              },
+  { id: 'oz',  label: 'oz',  toG: v => v * 28.3495    },
+  { id: 'ml',  label: 'ml',  toG: v => v               }, // treat ml as g (standard)
+  { id: 'fl',  label: 'fl oz', toG: v => v * 29.5735  },
+]
+
+function toGrams(value, unitId) {
+  const u = UNITS.find(u => u.id === unitId) || UNITS[0]
+  return u.toG(parseFloat(value) || 0)
+}
 
 export default function ManualFoodCreator({ onSaved, onCancel, householdId, prefillName = '' }) {
-  const [name,         setName]         = useState(prefillName)
-  const [brand,        setBrand]        = useState('')
-  const [servingSize,  setServingSize]  = useState('100')
-  const [servingLabel, setServingLabel] = useState('')
-  const [totalWeight,  setTotalWeight]  = useState('100')
-  const [macroMode,    setMacroMode]    = useState('serving') // 'serving' | 'per100' | 'total'
+  const [name,          setName]          = useState(prefillName)
+  const [brand,         setBrand]         = useState('')
+  const [servingAmt,    setServingAmt]    = useState('100')
+  const [servingUnit,   setServingUnit]   = useState('g')
+  const [servingLabel,  setServingLabel]  = useState('')
+  const [totalAmt,      setTotalAmt]      = useState('100')
+  const [totalUnit,     setTotalUnit]     = useState('g')
+  const [macroMode,     setMacroMode]     = useState('serving') // 'serving' | 'per100' | 'total'
   const [macros, setMacros] = useState({ calories: '', protein: '', carbs: '', fat: '', fibre: '', sodium: '' })
   const [error,  setError]  = useState('')
   const [saving, setSaving] = useState(false)
@@ -26,26 +34,28 @@ export default function ManualFoodCreator({ onSaved, onCancel, householdId, pref
   async function handleSave(addToLog) {
     if (!name.trim()) { setError('Food name is required'); return }
 
-    let refWeight, srv, label
+    let refWeightG, srvG, label
     if (macroMode === 'per100') {
-      refWeight = 100
-      srv = parseFloat(servingSize) || 100
-      label = servingLabel.trim() || `${Math.round(srv)}g`
+      refWeightG = 100
+      srvG  = toGrams(servingAmt, servingUnit)
+      label = servingLabel.trim() || `${parseFloat(servingAmt) || 100}${servingUnit}`
     } else if (macroMode === 'total') {
-      refWeight = parseFloat(totalWeight) || 100
-      srv = refWeight                         // 1 serving = the whole thing
-      label = servingLabel.trim() || 'whole'
+      refWeightG = toGrams(totalAmt, totalUnit)
+      srvG  = refWeightG
+      label = servingLabel.trim() || `${parseFloat(totalAmt) || 100}${totalUnit}`
     } else {
-      refWeight = parseFloat(servingSize) || 100
-      srv = refWeight
-      label = servingLabel.trim() || `${Math.round(srv)}g`
+      srvG  = toGrams(servingAmt, servingUnit)
+      refWeightG = srvG
+      label = servingLabel.trim() || `${parseFloat(servingAmt) || 100}${servingUnit}`
     }
 
-    if (refWeight <= 0) { setError('Weight must be greater than 0'); return }
+    if (refWeightG <= 0) { setError('Weight must be greater than 0'); return }
     setError('')
     setSaving(true)
 
-    const toP100 = v => Math.round((parseFloat(v) || 0) / refWeight * 100 * 10) / 10
+    const toP100 = v => macroMode === 'per100'
+      ? Math.round((parseFloat(v) || 0) * 10) / 10
+      : Math.round((parseFloat(v) || 0) / refWeightG * 100 * 10) / 10
 
     const food = {
       id:           generateId(),
@@ -53,15 +63,15 @@ export default function ManualFoodCreator({ onSaved, onCancel, householdId, pref
       source:       'saved',
       barcode:      null,
       tags:         [],
-      servingSize:  srv,
+      servingSize:  Math.round(srvG * 10) / 10,
       servingLabel: label,
       per100g: {
-        calories:    macroMode === 'per100' ? Math.round((parseFloat(macros.calories) || 0) * 10) / 10 : toP100(macros.calories),
-        protein:     macroMode === 'per100' ? Math.round((parseFloat(macros.protein)  || 0) * 10) / 10 : toP100(macros.protein),
-        carbs:       macroMode === 'per100' ? Math.round((parseFloat(macros.carbs)    || 0) * 10) / 10 : toP100(macros.carbs),
-        fat:         macroMode === 'per100' ? Math.round((parseFloat(macros.fat)      || 0) * 10) / 10 : toP100(macros.fat),
-        fibre:       macroMode === 'per100' ? Math.round((parseFloat(macros.fibre)    || 0) * 10) / 10 : toP100(macros.fibre),
-        sodium:      macroMode === 'per100' ? Math.round((parseFloat(macros.sodium)   || 0) * 10) / 10 : toP100(macros.sodium),
+        calories:    toP100(macros.calories),
+        protein:     toP100(macros.protein),
+        carbs:       toP100(macros.carbs),
+        fat:         toP100(macros.fat),
+        fibre:       toP100(macros.fibre),
+        sodium:      toP100(macros.sodium),
         sugar:       0,
         saturatedFat: 0,
       },
@@ -87,15 +97,17 @@ export default function ManualFoodCreator({ onSaved, onCancel, householdId, pref
   ]
 
   const modeHints = {
-    serving: 'Enter macros for one serving',
-    per100:  'Enter macros per 100g (as printed on label)',
-    total:   'Enter macros for the entire thing — log half by choosing 0.5 servings',
+    serving: 'Macros are for one serving',
+    per100:  'Macros per 100g — as printed on most labels',
+    total:   'Macros for the entire thing. Log 0.5 servings to track half.',
   }
 
+  const srvG   = toGrams(servingAmt, servingUnit)
+  const totG   = toGrams(totalAmt, totalUnit)
   const macroCardLabel = {
-    serving: `Per serving · ${Math.round(parseFloat(servingSize) || 100)}g`,
+    serving: `Per serving · ${Math.round(srvG * 10) / 10}g`,
     per100:  'Per 100g',
-    total:   `Whole thing · ${Math.round(parseFloat(totalWeight) || 100)}g total`,
+    total:   `Whole thing · ${Math.round(totG * 10) / 10}g`,
   }[macroMode]
 
   return (
@@ -148,19 +160,24 @@ export default function ManualFoodCreator({ onSaved, onCancel, householdId, pref
 
       <p style={st.hint}>{modeHints[macroMode]}</p>
 
-      {/* Weight fields — conditional per mode */}
+      {/* Weight / serving fields */}
       {macroMode === 'total' ? (
         <div style={st.row}>
           <div style={st.field}>
-            <label style={st.label}>Total weight (g)</label>
-            <input
-              style={st.input}
-              type="number"
-              inputMode="decimal"
-              placeholder="e.g. 600"
-              value={totalWeight}
-              onChange={e => setTotalWeight(e.target.value)}
-            />
+            <label style={st.label}>Total weight</label>
+            <div style={st.amtRow}>
+              <input
+                style={{ ...st.input, flex: 1 }}
+                type="number"
+                inputMode="decimal"
+                placeholder="e.g. 600"
+                value={totalAmt}
+                onChange={e => setTotalAmt(e.target.value)}
+              />
+              <select style={st.unitSel} value={totalUnit} onChange={e => setTotalUnit(e.target.value)}>
+                {UNITS.map(u => <option key={u.id} value={u.id}>{u.label}</option>)}
+              </select>
+            </div>
           </div>
           <div style={st.field}>
             <label style={st.label}>Label (optional)</label>
@@ -172,17 +189,22 @@ export default function ManualFoodCreator({ onSaved, onCancel, householdId, pref
             />
           </div>
         </div>
-      ) : macroMode === 'serving' ? (
+      ) : (
         <div style={st.row}>
           <div style={st.field}>
-            <label style={st.label}>Serving size (g)</label>
-            <input
-              style={st.input}
-              type="number"
-              inputMode="decimal"
-              value={servingSize}
-              onChange={e => setServingSize(e.target.value)}
-            />
+            <label style={st.label}>{macroMode === 'per100' ? 'Serving size' : 'Serving size'}</label>
+            <div style={st.amtRow}>
+              <input
+                style={{ ...st.input, flex: 1 }}
+                type="number"
+                inputMode="decimal"
+                value={servingAmt}
+                onChange={e => setServingAmt(e.target.value)}
+              />
+              <select style={st.unitSel} value={servingUnit} onChange={e => setServingUnit(e.target.value)}>
+                {UNITS.map(u => <option key={u.id} value={u.id}>{u.label}</option>)}
+              </select>
+            </div>
           </div>
           <div style={st.field}>
             <label style={st.label}>Serving label</label>
@@ -191,29 +213,6 @@ export default function ManualFoodCreator({ onSaved, onCancel, householdId, pref
               value={servingLabel}
               onChange={e => setServingLabel(e.target.value)}
               placeholder="e.g. 1 cup"
-            />
-          </div>
-        </div>
-      ) : (
-        /* per100 — still need serving size for logging purposes */
-        <div style={st.row}>
-          <div style={st.field}>
-            <label style={st.label}>Serving size (g)</label>
-            <input
-              style={st.input}
-              type="number"
-              inputMode="decimal"
-              value={servingSize}
-              onChange={e => setServingSize(e.target.value)}
-            />
-          </div>
-          <div style={st.field}>
-            <label style={st.label}>Serving label</label>
-            <input
-              style={st.input}
-              value={servingLabel}
-              onChange={e => setServingLabel(e.target.value)}
-              placeholder="e.g. 1 serving"
             />
           </div>
         </div>
@@ -266,6 +265,8 @@ const st = {
   field:         { display: 'flex', flexDirection: 'column', gap: '5px' },
   label:         { fontSize: '11px', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' },
   input:         { padding: '11px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 'var(--r-md)', fontSize: '15px', color: 'var(--text-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' },
+  amtRow:        { display: 'flex', gap: '6px', alignItems: 'center' },
+  unitSel:       { padding: '11px 8px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 'var(--r-md)', fontSize: '14px', color: 'var(--text-primary)', outline: 'none', flexShrink: 0, cursor: 'pointer' },
   toggle:        { display: 'flex', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: '3px', gap: '3px' },
   toggleBtn:     { flex: 1, padding: '8px 4px', background: 'none', border: 'none', borderRadius: 'var(--r-sm)', fontSize: '12px', fontWeight: '500', color: 'var(--text-secondary)', cursor: 'pointer' },
   toggleActive:  { background: 'var(--bg-surface)', color: 'var(--text-primary)', fontWeight: '600', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' },
