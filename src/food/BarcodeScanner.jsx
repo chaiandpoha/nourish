@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { getFoodByBarcode, saveFood } from './FoodDB.js'
 import { generateId } from '../auth/crypto.js'
+import ManualFoodCreator from './ManualFoodCreator.jsx'
 
 const HAS_NATIVE = typeof window !== 'undefined' && 'BarcodeDetector' in window
 
@@ -13,6 +14,7 @@ export default function BarcodeScanner({ onFound, onSaved, onCancel, householdId
   const [foundFood,   setFoundFood]   = useState(null)
   const [manualInput, setManualInput] = useState('')
   const [manualError, setManualError] = useState('')
+  const [createName,  setCreateName]  = useState('')
 
   const videoRef    = useRef(null)
   const streamRef   = useRef(null)
@@ -217,13 +219,25 @@ export default function BarcodeScanner({ onFound, onSaved, onCancel, householdId
           <div style={st.icon}>🤷</div>
           <p style={st.bigTitle}>Product not found</p>
           <p style={st.sub}>
-            Barcode {barcode} wasn't found. Try scanning the nutrition label instead.
+            Barcode {barcode} wasn't in the database. Enter the nutrition info manually.
           </p>
         </div>
-        <button style={st.primaryBtn} onClick={() => setScreen('scanning')}>Scan Again</button>
-        <button style={st.outlineBtn} onClick={() => { setManualInput(barcode); setScreen('manual') }}>Enter Manually</button>
+        <button style={st.primaryBtn} onClick={() => { setCreateName(''); setScreen('create') }}>Enter Nutrition Manually</button>
+        <button style={st.outlineBtn} onClick={() => setScreen('scanning')}>Scan Again</button>
         <button style={st.outlineBtn} onClick={onCancel}>Go Back</button>
       </div>
+    )
+  }
+
+  // ─── Manual food creator ──────────────────────────────────────────────────────
+  if (screen === 'create') {
+    return (
+      <ManualFoodCreator
+        householdId={householdId}
+        prefillName={createName}
+        onSaved={(food, addToLog) => addToLog ? onFound(food) : (onSaved?.(food), onCancel())}
+        onCancel={() => setScreen('notfound')}
+      />
     )
   }
 

@@ -6,6 +6,7 @@ import { calcMacros, calcBatchMacros, toGrams, WEIGHT_UNITS } from "../food/macr
 import LabelScanner from "../food/LabelScanner.jsx"
 import BarcodeScanner from "../food/BarcodeScanner.jsx"
 import RecipeBuilder from "../food/RecipeBuilder.jsx"
+import ManualFoodCreator from "../food/ManualFoodCreator.jsx"
 import { MACRO_COLORS } from "../config.js"
 import { localDate, readMealPref } from "./DayLog.jsx"
 
@@ -64,7 +65,7 @@ function parseVoiceInput(text) {
 
 export default function MealEntry({ date, onLogged, inline = false }) {
   const [open,       setOpen]       = useState(false)
-  const [screen,     setScreen]     = useState("list") // list | entry | scan | barcode | recipe
+  const [screen,     setScreen]     = useState("list") // list | entry | scan | barcode | recipe | create
   const [selected,   setSelected]   = useState(null)
   const [query,      setQuery]      = useState("")
   const [results,    setResults]    = useState([])
@@ -425,8 +426,8 @@ export default function MealEntry({ date, onLogged, inline = false }) {
                 <button style={s.actionBtn} onClick={() => setScreen("scan")}>
                   📷 Scan Label
                 </button>
-                <button style={s.actionBtn} onClick={() => selectItem({ id:"manual", name:"", per100g:{ calories:0, protein:0, carbs:0, fat:0, fibre:0 }, servingSize:100 }, null)}>
-                  ✏️ Manual
+                <button style={s.actionBtn} onClick={() => setScreen("create")}>
+                  ✏️ Create Food
                 </button>
                 <button style={s.actionBtn} onClick={() => setScreen("recipe")}>
                   🍲 Recipe
@@ -545,6 +546,15 @@ export default function MealEntry({ date, onLogged, inline = false }) {
               householdId={user?.householdId}
               onFound={food => selectItem(food, null)}
               onSaved={() => setScreen("list")}
+              onCancel={() => setScreen("list")}
+            />
+          )}
+
+          {/* Manual food creator */}
+          {screen === "create" && (
+            <ManualFoodCreator
+              householdId={user?.householdId}
+              onSaved={(food, addToLog) => addToLog ? selectItem(food, null) : setScreen("list")}
               onCancel={() => setScreen("list")}
             />
           )}
