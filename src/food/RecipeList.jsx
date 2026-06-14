@@ -19,28 +19,35 @@ export default function RecipeList({ householdId }) {
 
       if (householdId) {
         const remote = await sbFetchHouseholdFoods(householdId)
-        const remoteIds = new Set()
         const toSave = []
+        const toDeleteFromSupabase = []
         for (const f of remote) {
           const isRecipe = f.source === 'recipe' || (Array.isArray(f.ingredients) && f.ingredients.length > 0)
           if (!isRecipe) continue
-          remoteIds.add(f.id)
           const localEntry           = byId.get(f.id)
           const remoteHasIngredients = Array.isArray(f.ingredients) && f.ingredients.length > 0
-          const localHasIngredients  = localEntry && Array.isArray(localEntry.ingredients) && localEntry.ingredients.length > 0
+
+          if (!localEntry) {
+            // In Supabase but not local — user deleted it locally but Supabase delete failed.
+            // Retry the delete rather than re-adding to local.
+            toDeleteFromSupabase.push(f.id)
+            continue
+          }
+
+          const localHasIngredients = Array.isArray(localEntry.ingredients) && localEntry.ingredients.length > 0
           // Keep local if it has ingredients and remote doesn't (Supabase column may lag)
           if (localHasIngredients && !remoteHasIngredients) continue
-          const entry = { ...f, source: 'recipe' }  // force source so DB query always finds them
+          // Keep local if it's newer than remote
+          if (localEntry.updatedAt && f.updatedAt && localEntry.updatedAt >= f.updatedAt) continue
+
+          const entry = { ...f, source: 'recipe' }
           byId.set(f.id, entry)
           toSave.push(entry)
         }
         if (toSave.length) await db.foods.bulkPut(toSave)
-
-        // Remove local recipes deleted by another household member
-        const toDelete = local.filter(f => !remoteIds.has(f.id)).map(f => f.id)
-        if (toDelete.length) {
-          await db.foods.bulkDelete(toDelete)
-          for (const id of toDelete) byId.delete(id)
+        if (toDeleteFromSupabase.length) {
+          const { sbDeleteFood } = await import('../db/supabase.js')
+          for (const id of toDeleteFromSupabase) sbDeleteFood(id).catch(() => {})
         }
       }
 
@@ -68,13 +75,21 @@ export default function RecipeList({ householdId }) {
   async function handleDelete(id) {
     await deleteFood(id, householdId)
     setDeleting(null)
-    load()
+    setRecipes(prev => prev.filter(r => r.id !== id))
   }
 
   function handleSaved(food) {
     setEditing(null)
     setCreating(false)
-    load()
+    setRecipes(prev => {
+      const idx = prev.findIndex(r => r.id === food.id)
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = food
+        return next.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+      }
+      return [food, ...prev]
+    })
   }
 
   if (creating) {

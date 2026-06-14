@@ -230,10 +230,8 @@ function ChatScreen() {
 
 function DriveReauthWatcher() {
   const { user, encryptionKey } = useAuth()
-  const { addBanner, removeBanner } = useBanners()
   const fallbackTimer = useRef(null)
-  const bannerShown   = useRef(false)
-  const bannerId      = useRef(null)
+  const retryTimer    = useRef(null)
 
   useEffect(() => {
     if (!user || !encryptionKey) return
@@ -242,33 +240,24 @@ function DriveReauthWatcher() {
       const { silentReauth } = await import('./db/driveApi.js')
       silentReauth()
       clearTimeout(fallbackTimer.current)
-      fallbackTimer.current = setTimeout(showManualBanner, 30_000)
+      // If popup doesn't respond in 30s, retry silently in 3 minutes
+      fallbackTimer.current = setTimeout(scheduleRetry, 30_000)
     }
 
-    function showManualBanner() {
-      if (bannerShown.current) return
-      bannerShown.current = true
-      bannerId.current = addBanner({
-        type:    'warning',
-        message: 'Drive backup paused',
-        action:  { label: 'Reconnect', onClick: async () => {
-          const { initiateReauth } = await import('./db/driveApi.js')
-          initiateReauth()
-        }},
-        onDismiss: () => { bannerShown.current = false; bannerId.current = null },
-      })
+    function scheduleRetry() {
+      clearTimeout(retryTimer.current)
+      retryTimer.current = setTimeout(attemptSilentReauth, 3 * 60 * 1000)
     }
 
     async function onReauthDone(e) {
       if (e.origin !== window.location.origin || e.data?.type !== 'nourish:reauth-done') return
       clearTimeout(fallbackTimer.current)
       if (!e.data.success) {
-        showManualBanner()
+        // Silent reauth needs interaction — retry quietly in 3 minutes
+        scheduleRetry()
         return
       }
-      // Dismiss the error banner
-      if (bannerId.current) { removeBanner(bannerId.current); bannerId.current = null }
-      bannerShown.current = false
+      clearTimeout(retryTimer.current)
       const { flushDirtyRecords } = await import('./db/db.js')
       flushDirtyRecords(user.id, encryptionKey)
       scheduleProactiveRefresh()
@@ -299,11 +288,12 @@ function DriveReauthWatcher() {
 
     return () => {
       clearTimeout(fallbackTimer.current)
+      clearTimeout(retryTimer.current)
       window.removeEventListener('nourish:drive-token-expired', attemptSilentReauth)
       window.removeEventListener('message', onReauthDone)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [user?.id, encryptionKey, addBanner, removeBanner])
+  }, [user?.id, encryptionKey])
 
   return null
 }
@@ -345,6 +335,8 @@ function HealthClipboardSync() {
         const { sbFetchHealthSync } = await import('./db/supabase.js')
         const data = await sbFetchHealthSync(user.healthSyncToken)
         if (!data?.steps || !data?.date) return
+        // Only import today's data — skip stale entries from previous days
+        if (data.date !== localDate()) return
         const existing = await db.stepsLog.where('[userId+date]').equals([user.id, data.date]).first()
         if (existing && existing.steps === data.steps) return // already up to date
         await saveSteps(data.steps, data.cal || 0, data.date)
@@ -373,10 +365,12 @@ function HealthClipboardSync() {
     const onVisible = () => { if (document.visibilityState === 'visible') syncAll() }
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisible)
+    const poll = setInterval(syncAll, 5 * 60 * 1000)
 
     return () => {
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onVisible)
+      clearInterval(poll)
     }
   }, [user?.id, user?.healthSyncToken])
 

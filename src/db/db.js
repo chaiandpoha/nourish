@@ -169,7 +169,10 @@ async function _restoreMonthlyTable(tableName, folderId, userId) {
     for (const file of matches) {
       const data = await readFile(file.id)
       if (!Array.isArray(data) || !data.length) continue
-      await db[tableName].bulkPut(data.map(r => ({ ...r, dirty: 0 })))
+      // Use bulkAdd (ignoreErrors) so local records are never overwritten by Drive data.
+      // This prevents a race where HealthClipboardSync saves today's steps (id:1) just
+      // before Drive restore tries to bulkPut an older record with the same id.
+      await _safeBulkRestore(tableName, data)
       // Cache fileId so next flush updates rather than creates
       const month   = file.name.slice(tableName.length + 1, -5)
       const syncKey = `${userId}:${tableName}:${month}`
@@ -187,12 +190,37 @@ async function _restoreSingleTable(tableName, folderId, userId) {
     if (!file) return
     const data = await readFile(file.id)
     if (!Array.isArray(data) || !data.length) return
-    await db[tableName].bulkPut(data.map(r => ({ ...r, dirty: 0 })))
+    await _safeBulkRestore(tableName, data)
     const syncKey = `${userId}:${tableName}`
     await db.syncState.put({ key: syncKey, userId, fileId: file.id, lastSyncAt: new Date().toISOString() })
   } catch (e) {
     console.warn(`Restore ${tableName} error:`, e)
   }
+}
+
+// Restore records from Drive without overwriting newer local data.
+// Strategy: add records that don't exist locally; for records that exist,
+// only overwrite if the Drive version is strictly newer (by updatedAt).
+async function _safeBulkRestore(tableName, records) {
+  const cleaned = records.map(r => ({ ...r, dirty: 0 }))
+  const ids     = cleaned.map(r => r.id).filter(Boolean)
+  const existing = ids.length ? await db[tableName].bulkGet(ids) : []
+  const existingMap = new Map()
+  existing.forEach((rec, i) => { if (rec) existingMap.set(ids[i], rec) })
+
+  const toAdd    = []
+  const toUpdate = []
+  for (const rec of cleaned) {
+    const local = existingMap.get(rec.id)
+    if (!local) {
+      toAdd.push(rec)
+    } else if (rec.updatedAt && local.updatedAt && rec.updatedAt > local.updatedAt) {
+      toUpdate.push(rec)
+    }
+    // else: local is newer or same — keep local, skip Drive version
+  }
+  if (toAdd.length)    await db[tableName].bulkAdd(toAdd).catch(() => {})
+  if (toUpdate.length) await db[tableName].bulkPut(toUpdate)
 }
 
 /** Stop sync interval — called on logout */

@@ -181,16 +181,17 @@ export default function Home() {
       const { sbFetchHealthSync } = await import('../db/supabase.js')
       const data = await sbFetchHealthSync(user.healthSyncToken)
       if (!data?.steps || !data?.date) return { ok: false, msg: 'No data in cloud yet — run your shortcut first' }
+      if (data.date !== today) return { ok: false, msg: `Shortcut last ran on ${data.date} — today's data not posted yet` }
       const now = new Date().toISOString()
-      const existing = await db.stepsLog.where('[userId+date]').equals([user.id, data.date]).first()
+      const existing = await db.stepsLog.where('[userId+date]').equals([user.id, today]).first()
       if (existing) {
         await db.stepsLog.update(existing.id, { steps: data.steps, caloriesBurned: data.cal || 0, source: 'health', dirty: 1, updatedAt: now })
         setStepsData({ ...existing, steps: data.steps, caloriesBurned: data.cal || 0 })
       } else {
-        const id = await db.stepsLog.add({ userId: user.id, date: data.date, steps: data.steps, caloriesBurned: data.cal || 0, source: 'health', dirty: 1, updatedAt: now })
-        setStepsData({ id, userId: user.id, date: data.date, steps: data.steps, caloriesBurned: data.cal || 0 })
+        const id = await db.stepsLog.add({ userId: user.id, date: today, steps: data.steps, caloriesBurned: data.cal || 0, source: 'health', dirty: 1, updatedAt: now })
+        setStepsData({ id, userId: user.id, date: today, steps: data.steps, caloriesBurned: data.cal || 0 })
       }
-      return { ok: true, msg: `Synced — ${Number(data.steps).toLocaleString()} steps (${data.date})` }
+      return { ok: true, msg: `Synced — ${Number(data.steps).toLocaleString()} steps` }
     } catch (e) {
       return { ok: false, msg: `Sync error: ${e.message}` }
     }
