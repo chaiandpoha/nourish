@@ -10,6 +10,7 @@ import {
   findFile,
   listFiles,
   ensureFolderStructure,
+  findFolderStructure,
   searchFilesByPrefix,
   getUserEmail as getDriveEmail,
   getAdminEmail,
@@ -129,8 +130,9 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds, userEma
   for (const key of emailsToTry) {
     let fIds = null
     try {
-      fIds = folderIds || await ensureFolderStructure(key)
-      console.log('[restore] trying key:', key, 'userDir:', fIds?.userDir)
+      // Use find-only (never create) so we don't litter Drive with ghost folders
+      fIds = folderIds || await findFolderStructure(key)
+      console.log('[restore] trying key:', key, 'found:', !!fIds?.userDir)
     } catch (e) {
       console.warn('[restore] folder lookup failed for', key, e)
       continue
@@ -333,12 +335,11 @@ async function flushMonthlyTable(table, userId, encryptionKey, folderId) {
     // Merge: existing records + dirty updates (dirty wins on conflict)
     const merged = mergeRecords(existing, records)
 
-    // Encrypt and write
-    const encrypted = JSON.stringify(merged)
-    const syncKey   = `${userId}:${table}:${month}`
-    const stateRow  = await db.syncState.get(syncKey)
+    // Write merged array directly — writeFile handles JSON serialisation
+    const syncKey  = `${userId}:${table}:${month}`
+    const stateRow = await db.syncState.get(syncKey)
 
-    const fileId = await writeFile(filename, encrypted, folderId, stateRow?.fileId)
+    const fileId = await writeFile(filename, merged, folderId, stateRow?.fileId)
 
     // Save fileId to syncState
     await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
@@ -406,9 +407,8 @@ async function flushProgrammes(userId, encryptionKey) {
   const syncKey   = `${userId}:programmes`
   const stateRow  = await db.syncState.get(syncKey)
 
-  const all       = await db.programmes.where('userId').equals(userId).toArray()
-  const encrypted = JSON.stringify(all)
-  const fileId    = await writeFile(filename, encrypted, folderId, stateRow?.fileId)
+  const all    = await db.programmes.where('userId').equals(userId).toArray()
+  const fileId = await writeFile(filename, all, folderId, stateRow?.fileId)
 
   await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
   await clearDirty('programmes', dirty.map(r => r.id))
@@ -423,8 +423,7 @@ async function flushProfile(userId, encryptionKey) {
   const syncKey   = `${userId}:profile`
   const stateRow  = await db.syncState.get(syncKey)
 
-  const encrypted = JSON.stringify(user)
-  const fileId    = await writeFile(filename, encrypted, folderId, stateRow?.fileId)
+  const fileId = await writeFile(filename, user, folderId, stateRow?.fileId)
 
   await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
   await db.users.update(userId, { dirty: 0 })

@@ -258,6 +258,23 @@ export async function ensureFolderStructure(userEmail) {
   return { root, users, userDir, foodLogsDir, workoutLogsDir, progressDir }
 }
 
+/**
+ * Find (but never create) the folder structure for a given email key.
+ * Returns null if the user folder doesn't exist — used during restore
+ * to avoid creating empty ghost folders for wrong email guesses.
+ */
+export async function findFolderStructure(userEmail) {
+  const root  = await findFolder('Nourish')
+  if (!root) return null
+  const users = await findFolder('users', root)
+  if (!users) return null
+  const userDir = await findFolder(userEmail, users)
+  if (!userDir) return null
+  const foodLogsDir    = await findFolder('foodLogs', userDir)
+  const workoutLogsDir = await findFolder('workoutLogs', userDir)
+  return { root, users, userDir, foodLogsDir: foodLogsDir || null, workoutLogsDir: workoutLogsDir || null }
+}
+
 /** Walk the Nourish folder and return every file found, for diagnostics */
 export async function diagnoseDriveFolders(userEmail) {
   const result = { folders: [], files: [] }

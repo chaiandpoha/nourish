@@ -148,8 +148,9 @@ export function AuthProvider({ children }) {
       const { isTokenValid, restoreToken, getUserEmail: getDriveEmail, getAdminEmail } = await import('../db/driveApi.js')
       if (!isTokenValid()) restoreToken()
       if (isTokenValid()) {
-        // Admin email is the Drive folder key — prefer it over the identity email
-        const driveEmail = getAdminEmail() || getDriveEmail() || profile.email
+        // Drive folder is keyed by whichever email created it — try known candidates
+        const envAdmin   = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
+        const driveEmail = getAdminEmail() || envAdmin || getDriveEmail() || profile.email
         await initStorage(profile.id, key, driveEmail, profile.householdId)
       }
     } catch (e) {
