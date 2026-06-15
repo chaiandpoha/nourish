@@ -104,22 +104,7 @@ export default function App() {
   }
 
   if (migrationsError) {
-    const resetLocalData = () => { indexedDB.deleteDatabase('nourish'); window.location.reload() }
-    // Check if Drive backup token is present in localStorage — if so, data will restore after reset
-    const hasDriveBackup = !!localStorage.getItem('drive_admin_token')
-    const resetNote = hasDriveBackup
-      ? 'Safe to reset — your food logs, weight and workout history are backed up to Google Drive and will restore automatically after sign-in.'
-      : 'Resets the local database. Your profile and shared household foods will be restored from the cloud. Personal food logs saved only on this device may be lost.'
-    return (
-      <div style={styles.splash}>
-        <div style={{ fontSize:'64px' }}>⚠️</div>
-        <p style={styles.splashText}>Startup error</p>
-        <p style={styles.splashSub}>{migrationsError}</p>
-        <button style={styles.retryBtn} onClick={() => window.location.reload()}>Retry</button>
-        <button style={styles.resetBtn} onClick={resetLocalData}>Reset local data</button>
-        <p style={{ ...styles.splashSub, fontSize:'11px', marginTop:'4px' }}>{resetNote}</p>
-      </div>
-    )
+    return <StartupErrorScreen error={migrationsError} />
   }
 
   return (
@@ -132,6 +117,88 @@ export default function App() {
       </BannerProvider>
     </AuthProvider>
     </ErrorBoundary>
+  )
+}
+
+function StartupErrorScreen({ error }) {
+  const [backup,   setBackup]   = useState(null)  // null | 'checking' | { months:[] } | 'no-token' | 'error'
+  const hasDriveToken = !!localStorage.getItem('drive_admin_token')
+
+  async function checkBackup() {
+    setBackup('checking')
+    try {
+      const { isTokenValid, findFolder, listFiles } = await import('./db/driveApi.js')
+      if (!isTokenValid()) { setBackup('no-token'); return }
+      const root = await findFolder('Nourish')
+      if (!root) { setBackup({ months: [] }); return }
+      const users = await findFolder('users', root)
+      if (!users) { setBackup({ months: [] }); return }
+      const emailKeys = [...new Set([
+        localStorage.getItem('drive_user_email'),
+        (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase(),
+      ].filter(Boolean))]
+      let foundMonths = [], foundTables = []
+      for (const key of emailKeys) {
+        const userDir = await findFolder(key, users)
+        if (!userDir) continue
+        const topFiles = await listFiles(userDir)
+        foundTables = topFiles.map(f => f.name).filter(n => n.endsWith('.json') && n !== 'profile.json')
+        const foodDir = await findFolder('foodLogs', userDir)
+        if (foodDir) {
+          const files = await listFiles(foodDir)
+          foundMonths = files.filter(f => f.name.startsWith('foodLogs_')).map(f =>
+            f.name.replace('foodLogs_', '').replace('.json', '')
+          )
+        }
+        if (foundMonths.length || foundTables.length) break
+      }
+      setBackup({ months: foundMonths, tables: foundTables })
+    } catch (e) {
+      setBackup('error')
+    }
+  }
+
+  const doReset = () => { indexedDB.deleteDatabase('nourish'); window.location.reload() }
+
+  const s = styles
+  return (
+    <div style={s.splash}>
+      <div style={{ fontSize:'52px' }}>⚠️</div>
+      <p style={s.splashText}>Startup error</p>
+      <p style={s.splashSub}>{error}</p>
+
+      {backup === null && hasDriveToken && (
+        <button style={s.retryBtn} onClick={checkBackup}>Check Drive backup first</button>
+      )}
+      {backup === 'checking' && (
+        <p style={s.splashSub}>Checking Drive…</p>
+      )}
+      {backup && typeof backup === 'object' && (
+        backup.months?.length > 0 ? (
+          <div style={{ background:'#1a2e1a', border:'1px solid #34C759', borderRadius:'12px', padding:'12px 16px', maxWidth:'300px' }}>
+            <p style={{ color:'#34C759', fontSize:'13px', fontWeight:'700', margin:'0 0 4px' }}>✓ Drive backup found — safe to reset</p>
+            <p style={{ color:'#aaa', fontSize:'12px', margin:0 }}>Food logs: {backup.months.join(', ')}</p>
+            {backup.tables?.length > 0 && <p style={{ color:'#aaa', fontSize:'12px', margin:'2px 0 0' }}>Also: {backup.tables.join(', ')}</p>}
+          </div>
+        ) : (
+          <p style={{ ...s.splashSub, color:'#FF9500' }}>⚠ No food logs found in Drive — reset may lose data</p>
+        )
+      )}
+      {backup === 'no-token' && (
+        <p style={{ ...s.splashSub, color:'#FF9500' }}>Drive token expired — can't verify backup. Sign in as admin first if possible.</p>
+      )}
+      {backup === 'error' && (
+        <p style={{ ...s.splashSub, color:'#FF3B30' }}>Could not reach Drive to check backup.</p>
+      )}
+
+      <button style={s.retryBtn} onClick={() => window.location.reload()}>Retry</button>
+      <button style={s.resetBtn} onClick={doReset}>Reset local data</button>
+      {!backup && (
+        <p style={{ ...s.splashSub, fontSize:'11px', marginTop:'2px' }}>
+          {hasDriveToken ? 'Check Drive backup above before resetting.' : 'Profile and household data restore from cloud. Personal logs on this device only may be lost.'}
+        </p>
+      )}
+    </div>
   )
 }
 
