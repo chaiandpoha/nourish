@@ -653,10 +653,95 @@ export function getByMuscle(muscle) {
   return EXERCISES.filter(e => e.muscle === muscle)
 }
 
+// Alternates kept in a separate map so exercise objects stay clean
+const ALTERNATES = {
+  ex001:['ex002','ex003','ex004'], ex002:['ex001','ex005'],       ex003:['ex001','ex004'],
+  ex004:['ex001','ex003'],         ex005:['ex002','ex003'],       ex006:['ex001','ex003'],
+  ex007:['ex006','ex003'],         ex008:['ex009','ex010'],       ex009:['ex008','ex010'],
+  ex010:['ex008','ex009'],         ex011:['ex001','ex003'],       ex012:['ex001','ex003'],
+  ex013:['ex008','ex009'],         ex014:['ex001','ex004'],       ex015:['ex008'],
+  ex016:['ex008'],                 ex017:['ex010'],               ex018:['ex002','ex005'],
+  ex019:['ex004'],                 ex020:['ex004'],
+
+  ex021:['ex022','ex023'],         ex022:['ex021','ex024'],       ex023:['ex021'],
+  ex024:['ex021','ex022'],         ex025:['ex026','ex027'],       ex026:['ex025','ex027'],
+  ex027:['ex025','ex026'],         ex028:['ex027','ex025'],       ex029:['ex027'],
+  ex030:['ex031','ex032'],         ex031:['ex030','ex032'],       ex032:['ex030','ex031'],
+  ex033:['ex031','ex030'],         ex034:['ex031'],               ex035:['ex032','ex030'],
+  ex036:['ex032','ex030'],         ex037:['ex038'],               ex038:['ex037'],
+  ex039:['ex027'],                 ex040:['ex021'],               ex041:['ex021'],
+  ex042:['ex021'],                 ex043:['ex022'],               ex044:['ex043'],
+  ex045:['ex022'],                 ex046:['ex025','ex030'],       ex047:['ex037','ex038'],
+  ex048:['ex031','ex032'],         ex049:['ex032'],               ex050:['ex022'],
+
+  ex051:['ex052','ex053'],         ex052:['ex051','ex053'],       ex053:['ex052','ex051'],
+  ex054:['ex051','ex052'],         ex055:['ex051'],               ex056:['ex057','ex058'],
+  ex057:['ex056'],                 ex058:['ex056','ex057'],       ex059:['ex060'],
+  ex060:['ex059'],                 ex061:['ex056'],               ex062:['ex063'],
+  ex063:['ex062'],                 ex064:['ex051'],               ex065:['ex052'],
+  ex066:['ex051'],                 ex067:['ex051'],
+
+  ex068:['ex069','ex070'],         ex069:['ex068','ex070'],       ex070:['ex068','ex069'],
+  ex071:['ex069'],                 ex072:['ex069','ex068'],       ex073:['ex069'],
+  ex074:['ex068','ex070'],         ex075:['ex068'],               ex076:['ex069','ex071'],
+  ex077:['ex071'],                 ex078:['ex069'],               ex079:['ex068'],
+  ex080:['ex068'],                 ex081:['ex068'],
+
+  ex082:['ex083','ex084'],         ex083:['ex082'],               ex084:['ex082','ex085'],
+  ex085:['ex082','ex084'],         ex086:['ex084','ex082'],       ex087:['ex082'],
+  ex088:['ex082','ex084'],         ex089:['ex085','ex082'],       ex090:['ex084'],
+  ex091:['ex082'],                 ex092:['ex088'],
+
+  ex093:['ex094','ex095'],         ex094:['ex093','ex095'],       ex095:['ex093','ex096'],
+  ex096:['ex093','ex095'],         ex097:['ex093','ex096'],       ex098:['ex096'],
+  ex099:['ex093','ex100'],         ex100:['ex099','ex093'],       ex101:['ex099'],
+  ex102:['ex093','ex096'],         ex103:['ex098'],               ex104:['ex096'],
+  ex105:['ex093'],                 ex106:['ex096'],               ex107:['ex093'],
+  ex108:['ex093','ex094'],         ex109:['ex093'],               ex110:['ex099','ex100'],
+  ex111:['ex100'],                 ex112:['ex105','ex093'],       ex113:['ex093','ex095'],
+  ex114:['ex099'],                 ex115:['ex099'],               ex116:['ex095'],
+
+  ex117:['ex118','ex022'],         ex118:['ex117'],               ex119:['ex117'],
+  ex120:['ex022','ex117'],         ex121:['ex022','ex120'],       ex122:['ex119','ex117'],
+  ex123:['ex022'],                 ex124:['ex117'],
+
+  ex125:['ex126','ex127'],         ex126:['ex125'],               ex127:['ex125','ex126'],
+  ex128:['ex127'],                 ex129:['ex127'],               ex130:['ex126'],
+  ex131:['ex128'],                 ex132:['ex125'],               ex133:['ex128'],
+  ex134:['ex128'],
+
+  ex135:['ex136','ex137'],         ex136:['ex135'],               ex137:['ex135'],
+  ex138:['ex135'],                 ex139:['ex135'],
+
+  ex140:['ex141','ex142'],         ex141:['ex140'],               ex142:['ex143'],
+  ex143:['ex142','ex144'],         ex144:['ex143'],               ex145:['ex143'],
+  ex146:['ex144'],                 ex147:['ex140'],               ex148:['ex140'],
+  ex149:['ex140'],                 ex150:['ex143'],               ex151:['ex143'],
+  ex152:['ex141'],                 ex153:['ex140'],               ex154:['ex140'],
+  ex155:['ex143'],                 ex156:['ex144'],               ex157:['ex140'],
+  ex158:['ex145'],                 ex159:['ex158'],
+
+  ex160:['ex161','ex162'],         ex161:['ex160','ex163'],       ex162:['ex160','ex161'],
+  ex163:['ex160'],                 ex164:['ex160'],               ex165:['ex160','ex161'],
+  ex166:['ex163'],                 ex167:['ex163'],               ex168:['ex167'],
+  ex169:['ex161'],                 ex170:['ex162'],               ex171:['ex160'],
+
+  ex172:['ex021'],                 ex173:['ex172'],               ex174:['ex172'],
+  ex175:['ex172'],                 ex176:['ex175'],               ex177:['ex175'],
+
+  ex178:['ex125','ex021'],         ex179:['ex093','ex051'],       ex180:['ex167'],
+  ex181:['ex140'],                 ex182:['ex062'],               ex183:['ex172'],
+  ex184:['ex021'],
+
+  ex185:['ex186'],                 ex186:['ex185'],               ex187:['ex185'],
+  ex188:['ex182'],
+
+  ex189:['ex190'],                 ex190:['ex189'],               ex191:['ex189'],
+}
+
 export function getAlternates(exerciseId) {
-  const ex = getExerciseById(exerciseId)
-  if (!ex) return []
-  return ex.alternates.map(id => getExerciseById(id)).filter(Boolean)
+  const ids = ALTERNATES[exerciseId] || []
+  return ids.map(id => getExerciseById(id)).filter(Boolean)
 }
 
 export const MUSCLE_GROUPS = [
