@@ -169,15 +169,18 @@ export async function sbSaveProfile(profile) {
     updated_at:      new Date().toISOString(),
   }
   if (profile.healthSyncToken) row.health_sync_token = profile.healthSyncToken
-  const { error } = await supabase.from('profiles').upsert(row)
-  if (error) {
-    // If health_sync_token column doesn't exist yet, retry without it
-    if (error.message?.includes('health_sync_token')) {
-      delete row.health_sync_token
-      const { error: e2 } = await supabase.from('profiles').upsert(row)
-      if (e2) console.warn('sbSaveProfile error:', e2.message)
-    } else {
-      console.warn('sbSaveProfile error:', error.message)
+
+  // Retry with progressively fewer columns if Supabase schema is behind the code
+  const attempts = [row, { ...row, encryption_salt: undefined }, { ...row, encryption_salt: undefined, health_sync_token: undefined }]
+  for (const attempt of attempts) {
+    const cleaned = Object.fromEntries(Object.entries(attempt).filter(([, v]) => v !== undefined))
+    const { error } = await supabase.from('profiles').upsert(cleaned)
+    if (!error) return
+    const msg = error.message || ''
+    // Only retry on "column does not exist" schema errors
+    if (!msg.includes('column') && !msg.includes('does not exist')) {
+      console.warn('sbSaveProfile error:', msg)
+      return
     }
   }
 }

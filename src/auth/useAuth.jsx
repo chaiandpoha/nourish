@@ -136,6 +136,24 @@ export function AuthProvider({ children }) {
     setUser(profile)
     setIsLocked(false)
 
+    // Persist a minimal profile backup to localStorage — survives IndexedDB rebuilds
+    // so loginWithGoogle can restore the profile even without Drive or Supabase
+    try {
+      localStorage.setItem('nourish_profile_backup', JSON.stringify({
+        id:              profile.id,
+        email:           profile.email,
+        name:            profile.name,
+        householdId:     profile.householdId     || null,
+        encryptionSalt:  profile.encryptionSalt,
+        isAdmin:         profile.isAdmin          || false,
+        macroGoals:      profile.macroGoals       || null,
+        supplements:     profile.supplements      || [],
+        aiInstructions:  profile.aiInstructions   || null,
+        settings:        profile.settings         || null,
+        healthSyncToken: profile.healthSyncToken  || null,
+      }))
+    } catch {}
+
     // Household sync runs independently of Drive — Supabase only needs network
     if (profile.householdId) {
       const { fetchHouseholdFoods, pushLocalFoodsToHousehold, pushLocalBatchesToHousehold } = await import('../food/FoodDB.js')
@@ -152,6 +170,10 @@ export function AuthProvider({ children }) {
         const envAdmin   = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
         const driveEmail = getAdminEmail() || envAdmin || getDriveEmail() || profile.email
         await initStorage(profile.id, key, driveEmail, profile.householdId)
+      } else {
+        // No Drive token — try Supabase restore directly (no token needed)
+        const { restoreFromSupabase } = await import('../db/db.js')
+        restoreFromSupabase(profile.id).catch(e => console.warn('Supabase restore error:', e.message))
       }
     } catch (e) {
       console.warn('Storage init error:', e.message)
@@ -222,7 +244,51 @@ export function AuthProvider({ children }) {
       }
     }
 
-    // 4. Create new profile
+    // 3c. Try localStorage backup — written by completeLogin, survives IndexedDB rebuilds
+    if (!profile) {
+      try {
+        const backup = JSON.parse(localStorage.getItem('nourish_profile_backup') || 'null')
+        if (backup?.email === normalEmail && backup?.id && backup?.encryptionSalt) {
+          profile = {
+            ...backup,
+            skipPin:               true,
+            biometricCredentialId: null,
+            updatedAt:             new Date().toISOString(),
+            dirty:                 1,
+          }
+          await db.users.put(profile)
+          console.log('[auth] profile restored from localStorage backup')
+        }
+      } catch (e) {
+        console.warn('localStorage backup restore failed:', e)
+      }
+    }
+
+    // 3d. Email is in a household — definitely an existing user, not a new one.
+    // Create a stub profile so they skip onboarding; their food log data will
+    // restore from Supabase/Drive after completeLogin runs.
+    if (!profile) {
+      try {
+        const { sbFetchUserHousehold } = await import('../db/supabase.js')
+        const hid = await sbFetchUserHousehold(normalEmail)
+        if (hid) {
+          const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
+          profile = await createProfile({
+            name:       name || normalEmail.split('@')[0],
+            email:      normalEmail,
+            skipPin:    true,
+            isAdmin:    normalEmail === adminEmail,
+            householdId: hid,
+          })
+          // isNew stays false — we know this is an existing user
+          console.log('[auth] profile created for known household member', hid)
+        }
+      } catch (e) {
+        console.warn('Household member check failed:', e)
+      }
+    }
+
+    // 4. Truly new user — create fresh profile
     if (!profile) {
       const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
       profile = await createProfile({
