@@ -31,6 +31,14 @@ async function setLastMigrationVersion(version) {
 }
 
 export async function runMigrations() {
+  // Open the DB explicitly so any schema upgrade error surfaces here,
+  // not buried inside getLastMigrationVersion's catch block.
+  try {
+    await db.open()
+  } catch (e) {
+    throw new Error(`Database failed to open: ${e.message}`)
+  }
+
   const lastRun = await getLastMigrationVersion()
   const pending = MIGRATIONS.filter(m => m.version > lastRun)
   if (!pending.length) return

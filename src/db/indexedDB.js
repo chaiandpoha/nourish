@@ -7,6 +7,9 @@ import { DB_NAME, DB_VERSION } from '../config.js'
 
 export const db = new Dexie(DB_NAME)
 
+// Allow other tabs to upgrade without getting blocked
+db.on('versionchange', () => { db.close() })
+
 db.version(DB_VERSION).stores({
 
   // ── Users ────────────────────────────────────────────────────────────────
@@ -192,6 +195,10 @@ db.version(6).stores({
 // Version 7 — no schema change; unblocks any device that got stuck on the
 // v6 migration before the upgrade function was removed.
 db.version(7).stores({})
+
+// Version 8 — no schema change; ensures devices that stalled mid-upgrade
+// between v6 and v7 can reach the current version cleanly.
+db.version(8).stores({})
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
