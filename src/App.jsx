@@ -525,7 +525,7 @@ function CalendarScreen() {
 }
 
 function SettingsScreen() {
-  const { user, lock, refreshUser } = useAuth()
+  const { user, lock, refreshUser, encryptionKey } = useAuth()
   const [tab,          setTab]          = useState('profile')
   const [instructions, setInstructions] = useState(
     user?.aiInstructions || 'Suggest vegetarian Indian meals. Prioritise high protein foods like paneer, dal, curd, sprouts and eggs.'
@@ -577,6 +577,7 @@ function SettingsScreen() {
         <>
           <ProfileEditor user={user} onSaved={refreshUser} />
           <ThemeToggle />
+          <DriveRestoreSection userId={user?.id} encryptionKey={encryptionKey} />
           <ExportData userId={user?.id} />
           {user?.pinHash && (
             <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
@@ -1245,6 +1246,77 @@ const th = {
   group:     { display:'flex', background:'var(--bg-elevated)', borderRadius:'var(--r-md)', padding:'3px', gap:'2px' },
   btn:       { padding:'6px 14px', background:'transparent', border:'none', borderRadius:'9px', fontSize:'13px', fontWeight:'500', color:'var(--text-secondary)', cursor:'pointer' },
   btnActive: { background:'var(--bg-surface)', color:'var(--text-primary)', boxShadow:'0 1px 3px rgba(0,0,0,0.1)' },
+}
+
+// ─── DriveRestoreSection ─────────────────────────────────────────────────────
+
+function DriveRestoreSection({ userId, encryptionKey }) {
+  const [status,  setStatus]  = useState(null) // null | 'restoring' | 'success' | 'empty' | 'expired' | 'error'
+  const [msg,     setMsg]     = useState('')
+
+  async function handleRestore() {
+    setStatus('restoring'); setMsg('')
+    try {
+      const { isTokenValid, initiateOAuthFlow } = await import('./db/driveApi.js')
+      if (!isTokenValid()) {
+        setStatus('expired')
+        return
+      }
+      const { restoreFromDrive } = await import('./db/db.js')
+      const ok = await restoreFromDrive(userId, encryptionKey)
+      if (ok) {
+        setStatus('success')
+        setTimeout(() => window.location.reload(), 2500)
+      } else {
+        setStatus('empty')
+        setMsg('No Drive backup found. Data may not have been synced before the reset.')
+      }
+    } catch (e) {
+      setStatus('error')
+      setMsg(e.message)
+    }
+  }
+
+  return (
+    <div style={{ background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', padding:'14px 16px', display:'flex', flexDirection:'column', gap:'10px' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div>
+          <div style={{ fontSize:'15px', fontWeight:'500', color:'var(--text-primary)' }}>Restore from Google Drive</div>
+          <div style={{ fontSize:'12px', color:'var(--text-tertiary)', marginTop:'2px' }}>Re-download your data if local storage was cleared</div>
+        </div>
+      </div>
+
+      {status === 'expired' && (
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+          <p style={{ fontSize:'13px', color:'var(--red)', margin:0 }}>Drive session expired — sign in again to restore.</p>
+          <button
+            style={{ padding:'10px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'13px', fontWeight:'600', cursor:'pointer' }}
+            onClick={() => import('./db/driveApi.js').then(({ initiateOAuthFlow }) => initiateOAuthFlow())}
+          >
+            Reconnect Google Drive
+          </button>
+        </div>
+      )}
+
+      {status === 'success' && (
+        <p style={{ fontSize:'13px', color:'var(--accent)', margin:0, fontWeight:'600' }}>Restored! Reloading app…</p>
+      )}
+
+      {(status === 'empty' || status === 'error') && (
+        <p style={{ fontSize:'13px', color:'var(--red)', margin:0 }}>{msg}</p>
+      )}
+
+      {status !== 'expired' && status !== 'success' && (
+        <button
+          style={{ padding:'10px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer', opacity: status === 'restoring' ? 0.6 : 1 }}
+          onClick={handleRestore}
+          disabled={status === 'restoring'}
+        >
+          {status === 'restoring' ? 'Restoring…' : 'Restore from Drive'}
+        </button>
+      )}
+    </div>
+  )
 }
 
 // ─── ExportData ───────────────────────────────────────────────────────────────
