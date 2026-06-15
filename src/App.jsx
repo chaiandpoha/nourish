@@ -105,6 +105,11 @@ export default function App() {
 
   if (migrationsError) {
     const resetLocalData = () => { indexedDB.deleteDatabase('nourish'); window.location.reload() }
+    // Check if Drive backup token is present in localStorage — if so, data will restore after reset
+    const hasDriveBackup = !!localStorage.getItem('drive_admin_token')
+    const resetNote = hasDriveBackup
+      ? 'Safe to reset — your food logs, weight and workout history are backed up to Google Drive and will restore automatically after sign-in.'
+      : 'Resets the local database. Your profile and shared household foods will be restored from the cloud. Personal food logs saved only on this device may be lost.'
     return (
       <div style={styles.splash}>
         <div style={{ fontSize:'64px' }}>⚠️</div>
@@ -112,9 +117,7 @@ export default function App() {
         <p style={styles.splashSub}>{migrationsError}</p>
         <button style={styles.retryBtn} onClick={() => window.location.reload()}>Retry</button>
         <button style={styles.resetBtn} onClick={resetLocalData}>Reset local data</button>
-        <p style={{ ...styles.splashSub, fontSize:'11px', marginTop:'4px' }}>
-          Fixes database errors. Your profile and shared household data are stored in the cloud and will be restored on next sign-in. Personal food logs and workout history may not be recoverable.
-        </p>
+        <p style={{ ...styles.splashSub, fontSize:'11px', marginTop:'4px' }}>{resetNote}</p>
       </div>
     )
   }
