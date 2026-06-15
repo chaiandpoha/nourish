@@ -270,6 +270,17 @@ export async function listFiles(parentId) {
   return (await res.json()).files || []
 }
 
+/** Search for files by name prefix anywhere in Drive (no parent constraint) */
+export async function searchFilesByPrefix(prefix) {
+  const q = [`name contains '${prefix}'`, `trashed=false`, `mimeType!='application/vnd.google-apps.folder'`].join(' and ')
+  const res = await fetch(
+    `${DRIVE_API}/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=1000`,
+    { headers: authHeaders() }
+  )
+  if (!res.ok) throw new Error(`Drive search failed: ${res.status}`)
+  return (await res.json()).files || []
+}
+
 export async function findFile(name, parentId) {
   const q = [`name='${name}'`, `'${parentId}' in parents`, `trashed=false`].join(' and ')
   const res = await fetch(

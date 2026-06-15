@@ -10,6 +10,7 @@ import {
   findFile,
   listFiles,
   ensureFolderStructure,
+  searchFilesByPrefix,
   checkQuota,
 } from './driveApi.js'
 import { DRIVE, MACRO_KEYS } from '../config.js'
@@ -110,59 +111,64 @@ export async function runDailyBackup(userId, encryptionKey) {
   }
 }
 
-/** Restore all user data from Drive to IndexedDB */
-// userEmailOrId: prefer passing the user's email (Drive folders are keyed by email)
+/** Restore all user data from Drive to IndexedDB.
+ *  Uses a Drive-wide file search so folder naming mismatches don't block recovery. */
 export async function restoreFromDrive(userId, encryptionKey, folderIds, userEmailOrId) {
   if (!isTokenValid()) return false
 
-  let fIds
-  try {
-    // Folder structure is keyed by email — falling back to userId was wrong
-    fIds = folderIds || await ensureFolderStructure(userEmailOrId || userId)
-  } catch (e) {
-    console.warn('restoreFromDrive: could not get folder IDs:', e)
-    return false
-  }
-
-  console.log('[restore] folder lookup key:', userEmailOrId || userId)
-  console.log('[restore] folderIds:', JSON.stringify(fIds))
-  if (!fIds?.userDir) return false
-
-  // Profile — wrapped independently so a missing file doesn't abort everything
-  try {
-    const profileFile = await findFile('profile.json', fIds.userDir)
-    if (profileFile) {
-      const data = await readFile(profileFile.id)
-      if (data) {
-        const profile = typeof data === 'string' ? JSON.parse(data) : data
-        await db.users.put({ ...profile, dirty: 0 })
-      }
-    }
-  } catch (e) {
-    console.warn('Profile restore error:', e)
-  }
-
+  // --- Strategy 1: folder-tree walk (fast, normal path) ---
   let totalRestored = 0
+  let fIds = null
+  try {
+    fIds = folderIds || await ensureFolderStructure(userEmailOrId || userId)
+    console.log('[restore] folder key:', userEmailOrId || userId, 'ids:', JSON.stringify(fIds))
+  } catch (e) {
+    console.warn('[restore] folder lookup failed:', e)
+  }
 
-  // Monthly tables — food logs
-  totalRestored += await _restoreMonthlyTable('foodLogs', fIds.foodLogsDir, userId)
+  if (fIds?.userDir) {
+    try {
+      const profileFile = await findFile('profile.json', fIds.userDir)
+      if (profileFile) {
+        const data = await readFile(profileFile.id)
+        if (data) await db.users.put({ ...(typeof data === 'string' ? JSON.parse(data) : data), dirty: 0 })
+      }
+    } catch (e) { console.warn('Profile restore error:', e) }
 
-  // Monthly tables — workout data
-  totalRestored += await _restoreMonthlyTable('workoutLogs', fIds.workoutLogsDir, userId)
-  totalRestored += await _restoreMonthlyTable('workoutSets', fIds.workoutLogsDir, userId)
+    totalRestored += await _restoreMonthlyTable('foodLogs',     fIds.foodLogsDir,    userId)
+    totalRestored += await _restoreMonthlyTable('workoutLogs',  fIds.workoutLogsDir, userId)
+    totalRestored += await _restoreMonthlyTable('workoutSets',  fIds.workoutLogsDir, userId)
+    totalRestored += await _restoreMonthlyTable('weightLog',    fIds.userDir,        userId)
+    totalRestored += await _restoreMonthlyTable('supplementLog',fIds.userDir,        userId)
+    totalRestored += await _restoreMonthlyTable('stepsLog',     fIds.userDir,        userId)
+    totalRestored += await _restoreMonthlyTable('measurements', fIds.userDir,        userId)
+    totalRestored += await _restoreSingleTable('programmes',    fIds.userDir,        userId)
+    totalRestored += await _restoreSingleTable('mealTemplates', fIds.userDir,        userId)
+    totalRestored += await _restoreSingleTable('reminders',     fIds.userDir,        userId)
+  }
 
-  // Monthly tables — health data (stored in userDir alongside profile.json)
-  totalRestored += await _restoreMonthlyTable('weightLog',    fIds.userDir, userId)
-  totalRestored += await _restoreMonthlyTable('supplementLog',fIds.userDir, userId)
-  totalRestored += await _restoreMonthlyTable('stepsLog',     fIds.userDir, userId)
-  totalRestored += await _restoreMonthlyTable('measurements', fIds.userDir, userId)
+  if (totalRestored > 0) return totalRestored
 
-  // Single-file tables
-  totalRestored += await _restoreSingleTable('programmes',   fIds.userDir, userId)
-  totalRestored += await _restoreSingleTable('mealTemplates',fIds.userDir, userId)
-  totalRestored += await _restoreSingleTable('reminders',    fIds.userDir, userId)
+  // --- Strategy 2: Drive-wide search (fallback when folder path is wrong) ---
+  // Searches for all Nourish data files regardless of which folder they live in.
+  console.log('[restore] folder walk found nothing — falling back to Drive-wide search')
+  const PREFIXES = ['foodLogs_','workoutLogs_','workoutSets_','weightLog_','supplementLog_','stepsLog_','measurements_']
+  for (const prefix of PREFIXES) {
+    try {
+      const files = await searchFilesByPrefix(prefix)
+      console.log(`[restore] search "${prefix}": ${files.length} files`)
+      for (const file of files) {
+        const data = await readFile(file.id)
+        if (!Array.isArray(data) || !data.length) continue
+        const table = prefix.slice(0, -1) // strip trailing '_'
+        totalRestored += await _safeBulkRestore(table, data)
+      }
+    } catch (e) {
+      console.warn(`[restore] search ${prefix} error:`, e)
+    }
+  }
 
-  return totalRestored  // 0 = Drive folder was empty, >0 = records restored
+  return totalRestored
 }
 
 async function _restoreMonthlyTable(tableName, folderId, userId) {
