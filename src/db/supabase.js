@@ -325,3 +325,40 @@ export async function sbLeaveHousehold(householdId, email) {
   const newMembers = household.members.filter(m => m.email !== email)
   await sbUpdateHousehold({ ...household, members: newMembers })
 }
+
+// ─── Personal user data (food logs, weight, workouts, etc.) ──────────────────
+// Stored in user_data table keyed by (user_id, table_name, month_key).
+// Monthly tables use 'YYYY-MM' as month_key; single-blob tables use 'all'.
+// Requires this table in Supabase:
+//   CREATE TABLE user_data (
+//     user_id    text, table_name text, month_key text,
+//     data       jsonb not null default '[]',
+//     updated_at timestamptz default now(),
+//     PRIMARY KEY (user_id, table_name, month_key)
+//   );
+//   ALTER TABLE user_data ENABLE ROW LEVEL SECURITY;
+//   CREATE POLICY "allow_all" ON user_data FOR ALL USING (true) WITH CHECK (true);
+
+export async function sbPushUserData(userId, tableName, monthKey, data) {
+  if (!supabase || !userId || !Array.isArray(data)) return
+  const { error } = await supabase
+    .from('user_data')
+    .upsert({
+      user_id:    userId,
+      table_name: tableName,
+      month_key:  monthKey,
+      data,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,table_name,month_key' })
+  if (error) throw error
+}
+
+export async function sbFetchAllUserData(userId) {
+  if (!supabase || !userId) return []
+  const { data, error } = await supabase
+    .from('user_data')
+    .select('table_name, month_key, data')
+    .eq('user_id', userId)
+  if (error || !data) return []
+  return data
+}

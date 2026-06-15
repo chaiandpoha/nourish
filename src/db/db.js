@@ -59,11 +59,17 @@ export async function initStorage(userId, encryptionKey, userEmail, householdId)
     await pushLocalBatchesToHousehold(householdId, userEmail).catch(e => console.warn('Household batches push error:', e))
   }
 
-  // Check if this is a new device — restore from Drive if so
+  // Check if this is a new device — restore from Supabase first, then Drive
   try {
     const localCount = await db.foodLogs.where('userId').equals(userId).count()
     if (localCount === 0) {
-      await restoreFromDrive(userId, encryptionKey, _folderIds, userEmail)
+      const sbRestored = await restoreFromSupabase(userId)
+      if (!sbRestored) {
+        await restoreFromDrive(userId, encryptionKey, _folderIds, userEmail)
+      }
+    } else {
+      // Has local data — push everything to Supabase in background to keep it in sync
+      pushAllLocalDataToSupabase(userId).catch(() => {})
     }
   } catch (e) {
     console.warn('Restore check failed:', e)
@@ -347,6 +353,11 @@ async function flushMonthlyTable(table, userId, encryptionKey, folderId) {
     // Clear dirty flags
     const ids = records.map(r => r.id)
     await clearDirty(table, ids)
+
+    // Mirror to Supabase — non-blocking, Drive is still primary
+    import('./supabase.js').then(({ sbPushUserData }) =>
+      sbPushUserData(userId, table, month, merged)
+    ).catch(() => {})
   }
 }
 
@@ -382,6 +393,10 @@ async function flushReminders(userId) {
 
   await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
   await clearDirty('reminders', dirty.map(r => r.id))
+
+  import('./supabase.js').then(({ sbPushUserData }) =>
+    sbPushUserData(userId, 'reminders', 'all', all)
+  ).catch(() => {})
 }
 
 /** Immediately write all reminders to Drive — called after add/delete */
@@ -412,6 +427,10 @@ async function flushProgrammes(userId, encryptionKey) {
 
   await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
   await clearDirty('programmes', dirty.map(r => r.id))
+
+  import('./supabase.js').then(({ sbPushUserData }) =>
+    sbPushUserData(userId, 'programmes', 'all', all)
+  ).catch(() => {})
 }
 
 async function flushProfile(userId, encryptionKey) {
@@ -517,4 +536,59 @@ export async function saveMeasurement(userId, entry) {
     return existing.id
   }
   return db.measurements.add({ userId, ...entry, dirty: 1, updatedAt: new Date().toISOString() })
+}
+
+// ─── Supabase backup / restore ────────────────────────────────────────────────
+
+/** Restore all user data from Supabase. Tried before Drive on new devices. */
+export async function restoreFromSupabase(userId) {
+  try {
+    const { sbFetchAllUserData } = await import('./supabase.js')
+    const rows = await sbFetchAllUserData(userId)
+    if (!rows.length) return 0
+    let total = 0
+    for (const row of rows) {
+      if (Array.isArray(row.data) && row.data.length > 0) {
+        total += await _safeBulkRestore(row.table_name, row.data)
+      }
+    }
+    console.log('[supabase] restored', total, 'records for', userId)
+    return total
+  } catch (e) {
+    console.warn('[supabase] restoreFromSupabase error:', e.message)
+    return 0
+  }
+}
+
+/** Push every local record to Supabase — called on login when local DB has data. */
+export async function pushAllLocalDataToSupabase(userId) {
+  try {
+    const { sbPushUserData } = await import('./supabase.js')
+
+    const MONTHLY = ['foodLogs', 'workoutLogs', 'workoutSets', 'weightLog',
+                     'supplementLog', 'stepsLog', 'measurements', 'bloodWork']
+    for (const table of MONTHLY) {
+      const records = await db[table].where('userId').equals(userId).toArray().catch(() => [])
+      if (!records.length) continue
+      const byMonth = {}
+      for (const r of records) {
+        const month = (r.date || r.updatedAt || '').slice(0, 7)
+        if (!month) continue
+        ;(byMonth[month] = byMonth[month] || []).push(r)
+      }
+      for (const [month, data] of Object.entries(byMonth)) {
+        await sbPushUserData(userId, table, month, data).catch(() => {})
+      }
+    }
+
+    const SINGLE = ['programmes', 'mealTemplates', 'reminders']
+    for (const table of SINGLE) {
+      const records = await db[table].where('userId').equals(userId).toArray().catch(() => [])
+      if (records.length) await sbPushUserData(userId, table, 'all', records).catch(() => {})
+    }
+
+    console.log('[supabase] full push complete for', userId)
+  } catch (e) {
+    console.warn('[supabase] pushAllLocalDataToSupabase error:', e.message)
+  }
 }

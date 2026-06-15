@@ -7,29 +7,20 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icons/*.png'],
       manifest: false, // We manage public/manifest.json manually
-      workbox: {
-        skipWaiting: false,
-        clientsClaim: false,
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
-        // Bump this string to force all clients to update the service worker immediately
-        additionalManifestEntries: [{ url: '/', revision: 'v20260615-1' }],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB — covers food JSON bundles
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-cache',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] }
-            }
-          }
-        ]
+        // Bump this string on each deploy so the SW detects the new version
+        additionalManifestEntries: [{ url: '/', revision: 'v20260615-2' }],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
       devOptions: {
-        enabled: true // Service worker active in dev so we can test offline
+        enabled: true,
+        type: 'module',
       }
     })
   ],
