@@ -181,6 +181,28 @@ db.version(5).stores({
   stepsLog: '++id, userId, date, [userId+date], dirty, updatedAt',
 })
 
+// Version 6 — stable UUID primary keys for workoutLogs and workoutSets.
+// Previous ++id (auto-increment) caused Drive restore collisions and lost data.
+db.version(6).stores({
+  workoutLogs: '&id, userId, date, [userId+date], status, dirty, updatedAt',
+  workoutSets: '&id, userId, workoutLogId, exerciseId, [userId+workoutLogId], dirty, updatedAt',
+}).upgrade(async tx => {
+  const sets = await tx.table('workoutSets').toArray()
+  for (const s of sets) {
+    if (typeof s.id !== 'string') {
+      await tx.table('workoutSets').delete(s.id)
+      await tx.table('workoutSets').add({ ...s, id: crypto.randomUUID() })
+    }
+  }
+  const logs = await tx.table('workoutLogs').toArray()
+  for (const l of logs) {
+    if (typeof l.id !== 'string') {
+      await tx.table('workoutLogs').delete(l.id)
+      await tx.table('workoutLogs').add({ ...l, id: crypto.randomUUID(), status: 'complete' })
+    }
+  }
+})
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Mark a record dirty — needs sync to Drive */

@@ -27,9 +27,11 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   const [rpePicker,  setRpePicker]  = useState(null)  // {exId, setIdx}
   const [unit,       setUnit]       = useState(() => localStorage.getItem('workoutUnit') || 'lbs')
 
-  const startRef = useRef(Date.now())
-  const timerRef = useRef(null)
-  const restRef  = useRef(null)
+  const startRef      = useRef(Date.now())
+  const timerRef      = useRef(null)
+  const restRef       = useRef(null)
+  const workoutLogId  = useRef(generateId())   // stable UUID for this session
+  const draftSaved    = useRef(false)          // true once draft log row exists
 
   const exercises   = [...(day?.exercises || []), ...extraEx]
   const sessionName = day?.name || 'Ad-hoc Workout'
@@ -176,13 +178,55 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   }
 
   function completeSet(exId, setIdx) {
-    setSets(s => ({
-      ...s,
-      [exId]: s[exId].map((set, i) => i === setIdx ? { ...set, done: true } : set)
-    }))
+    setSets(s => {
+      const next = {
+        ...s,
+        [exId]: s[exId].map((set, i) => i === setIdx ? { ...set, done: true } : set)
+      }
+      // Persist immediately so data survives navigation away
+      persistSet(exId, next[exId][setIdx])
+      return next
+    })
     setRestTimer(DEFAULT_REST)
     setRestTotal(DEFAULT_REST)
     setRestActive(true)
+  }
+
+  async function persistSet(exId, set) {
+    if (!user) return
+    const date = localDate()
+    const now  = new Date().toISOString()
+    const ex   = exercises.find(e => e.id === exId)
+    // Ensure draft log row exists
+    if (!draftSaved.current) {
+      draftSaved.current = true
+      await db.workoutLogs.put({
+        id:          workoutLogId.current,
+        userId:      user.id,
+        date,
+        name:        sessionName,
+        programmeId: programme?.id || null,
+        dayName:     day?.name     || null,
+        duration:    0,
+        prs:         [],
+        status:      'draft',
+        dirty:       1,
+        updatedAt:   now,
+      })
+    }
+    await db.workoutSets.put({
+      id:           generateId(),
+      userId:       user.id,
+      workoutLogId: workoutLogId.current,
+      exerciseId:   exId,
+      exerciseName: ex?.name || '',
+      weight:       parseFloat(set.weight) || 0,
+      reps:         parseInt(set.reps)     || 0,
+      rpe:          set.rpe ? parseFloat(set.rpe) : null,
+      date,
+      dirty:        1,
+      updatedAt:    now,
+    })
   }
 
   function uncompleteSet(exId, setIdx) {
@@ -221,11 +265,11 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   async function handleFinish() {
     setFinishing(true)
     try {
-      const workoutLogId = generateId()
-      const date         = localDate()
-      const duration     = Math.floor((Date.now() - startRef.current) / 1000)
-      const prs          = []
+      const date     = localDate()
+      const duration = Math.floor((Date.now() - startRef.current) / 1000)
+      const prs      = []
       let totalSets = 0, totalVolume = 0
+      const now      = new Date().toISOString()
 
       for (const ex of exercises) {
         const exSets = getSets(ex.id).filter(s => s.done)
@@ -240,25 +284,37 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
         }
       }
 
-      await db.workoutLogs.add({
-        id: workoutLogId, userId: user.id, date,
-        name: sessionName, programmeId: programme?.id || null,
-        dayName: day?.name || null, duration, prs,
-        dirty: 1, updatedAt: new Date().toISOString(),
+      // Update (or create) the workout log as complete
+      await db.workoutLogs.put({
+        id:          workoutLogId.current,
+        userId:      user.id,
+        date,
+        name:        sessionName,
+        programmeId: programme?.id || null,
+        dayName:     day?.name     || null,
+        duration,
+        prs,
+        status:      'complete',
+        dirty:       1,
+        updatedAt:   now,
       })
 
-      for (const ex of exercises) {
-        const exSets = getSets(ex.id).filter(s => s.done)
-        for (const set of exSets) {
-          await db.workoutSets.add({
-            userId: user.id, workoutLogId,
-            exerciseId:   ex.id,
-            exerciseName: ex.name,
-            weight:  parseFloat(set.weight) || 0,
-            reps:    parseInt(set.reps)     || 0,
-            rpe:     set.rpe ? parseFloat(set.rpe) : null,
-            date, dirty: 1, updatedAt: new Date().toISOString(),
-          })
+      // Save any sets that weren't auto-saved (user finished without using completeSet)
+      if (!draftSaved.current) {
+        for (const ex of exercises) {
+          for (const set of getSets(ex.id).filter(s => s.done)) {
+            await db.workoutSets.put({
+              id:           generateId(),
+              userId:       user.id,
+              workoutLogId: workoutLogId.current,
+              exerciseId:   ex.id,
+              exerciseName: ex.name,
+              weight:  parseFloat(set.weight) || 0,
+              reps:    parseInt(set.reps)     || 0,
+              rpe:     set.rpe ? parseFloat(set.rpe) : null,
+              date, dirty: 1, updatedAt: now,
+            })
+          }
         }
       }
 
