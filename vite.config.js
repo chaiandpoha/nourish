@@ -12,7 +12,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
         // Bump this string to force all clients to update the service worker immediately
-        additionalManifestEntries: [{ url: '/', revision: 'v20260614-2' }],
+        additionalManifestEntries: [{ url: '/', revision: 'v20260614-3' }],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB — covers food JSON bundles
         runtimeCaching: [
           {

@@ -15,6 +15,14 @@
   <body>
     <div id="root"></div>
     <script>
+      // Reload page when a new service worker activates so the new bundle loads cleanly.
+      // Without this, the old page keeps running with old JS chunks that the new SW no longer caches.
+      if ('serviceWorker' in navigator) {
+        var _swReloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+          if (!_swReloading) { _swReloading = true; window.location.reload(); }
+        });
+      }
       window.onerror = function(msg, src, line, col, err) {
         var r = document.getElementById('root');
         if (r && !r.innerHTML.trim()) {
