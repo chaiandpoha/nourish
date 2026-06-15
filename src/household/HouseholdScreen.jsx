@@ -3,7 +3,7 @@ import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import {
   sbCreateHousehold, sbJoinHousehold, sbFetchHousehold,
-  sbUpdateHousehold, sbLeaveHousehold, sbSaveProfile,
+  sbUpdateHousehold, sbLeaveHousehold, sbSaveProfile, sbFetchUserHousehold,
 } from '../db/supabase.js'
 import { pushLocalFoodsToHousehold, pushLocalBatchesToHousehold } from '../food/FoodDB.js'
 import { HOUSEHOLD } from '../config.js'
@@ -24,6 +24,21 @@ function HouseholdSetup({ user, onDone }) {
   const [code,    setCode]    = useState('')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
+
+  async function handleRecover() {
+    setLoading(true); setError('')
+    try {
+      const hid = await sbFetchUserHousehold(user.email)
+      if (!hid) { setError("No household found for your account. Create one or ask your admin for the code."); return }
+      await db.users.update(user.id, { householdId: hid, dirty: 1, updatedAt: new Date().toISOString() })
+      sbSaveProfile({ ...user, householdId: hid }).catch(() => {})
+      await onDone()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   async function handleCreate() {
     if (!name.trim()) { setError('Enter a household name'); return }
@@ -113,6 +128,13 @@ function HouseholdSetup({ user, onDone }) {
             ? (tab === 'create' ? 'Creating…' : 'Joining…')
             : (tab === 'create' ? 'Create Household' : 'Join Household')
           }
+        </button>
+      </div>
+
+      <div style={s.recoverRow}>
+        <span style={s.recoverLabel}>Already a member but lost access?</span>
+        <button style={{ ...s.recoverBtn, opacity: loading ? 0.6 : 1 }} onClick={handleRecover} disabled={loading}>
+          {loading ? 'Looking up…' : 'Recover my household'}
         </button>
       </div>
     </div>
@@ -370,4 +392,7 @@ const s = {
   removeBtn:     { padding:'5px 10px', background:'rgba(200,80,64,0.08)', border:'none', borderRadius:'var(--r-sm)', color:'var(--red)', fontSize:'12px', fontWeight:'600', cursor:'pointer' },
   leaveNote:     { fontSize:'13px', color:'var(--text-tertiary)', margin:0, fontStyle:'italic' },
   confirmText:   { fontSize:'14px', color:'var(--text-secondary)', margin:0 },
+  recoverRow:    { display:'flex', flexDirection:'column', alignItems:'center', gap:'8px', paddingTop:'8px' },
+  recoverLabel:  { fontSize:'13px', color:'var(--text-tertiary)' },
+  recoverBtn:    { background:'none', border:'none', color:'var(--accent)', fontSize:'14px', fontWeight:'600', cursor:'pointer', padding:'4px' },
 }
