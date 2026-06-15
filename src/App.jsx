@@ -104,10 +104,7 @@ export default function App() {
   }
 
   if (migrationsError) {
-    function resetLocalData() {
-      indexedDB.deleteDatabase('nourish')
-      window.location.reload()
-    }
+    const resetLocalData = () => { indexedDB.deleteDatabase('nourish'); window.location.reload() }
     return (
       <div style={styles.splash}>
         <div style={{ fontSize:'64px' }}>⚠️</div>
@@ -116,7 +113,7 @@ export default function App() {
         <button style={styles.retryBtn} onClick={() => window.location.reload()}>Retry</button>
         <button style={styles.resetBtn} onClick={resetLocalData}>Reset local data</button>
         <p style={{ ...styles.splashSub, fontSize:'11px', marginTop:'4px' }}>
-          Clears offline cache — your synced data stays safe in the cloud.
+          Fixes database errors. Your profile and shared household data are stored in the cloud and will be restored on next sign-in. Personal food logs and workout history may not be recoverable.
         </p>
       </div>
     )
