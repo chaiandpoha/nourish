@@ -145,12 +145,11 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      const { isTokenValid, restoreToken, getUserEmail: getDriveEmail } = await import('../db/driveApi.js')
+      const { isTokenValid, restoreToken, getUserEmail: getDriveEmail, getAdminEmail } = await import('../db/driveApi.js')
       if (!isTokenValid()) restoreToken()
       if (isTokenValid()) {
-        // Prefer the Drive OAuth account email for folder lookup — it may differ
-        // from the profile identity email (e.g. akshaymailers@ vs akshayeshah31@)
-        const driveEmail = getDriveEmail() || profile.email
+        // Admin email is the Drive folder key — prefer it over the identity email
+        const driveEmail = getAdminEmail() || getDriveEmail() || profile.email
         await initStorage(profile.id, key, driveEmail, profile.householdId)
       }
     } catch (e) {

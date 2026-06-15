@@ -12,6 +12,7 @@ import {
   ensureFolderStructure,
   searchFilesByPrefix,
   getUserEmail as getDriveEmail,
+  getAdminEmail,
   checkQuota,
 } from './driveApi.js'
 import { DRIVE, MACRO_KEYS } from '../config.js'
@@ -118,10 +119,12 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds, userEma
   if (!isTokenValid()) return false
 
   // --- Strategy 1: folder-tree walk ---
-  // Try profile email first, then the Drive OAuth account email (they may differ).
+  // Try all known email variants — identity, Drive session, stored admin, env admin, userId.
   let totalRestored = 0
   const driveEmail  = getDriveEmail()
-  const emailsToTry = [...new Set([userEmailOrId, driveEmail, userId].filter(Boolean))]
+  const adminEmail  = getAdminEmail() || (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase() || null
+  const emailsToTry = [...new Set([userEmailOrId, driveEmail, adminEmail, userId].filter(Boolean))]
+  console.log('[restore] will try keys:', emailsToTry)
 
   for (const key of emailsToTry) {
     let fIds = null

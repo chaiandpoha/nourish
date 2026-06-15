@@ -29,6 +29,9 @@ export function setAccessToken(token, expiresInSeconds) {
 // ─── Admin token (central Drive — persisted in localStorage) ─────────────────
 let _adminToken  = null
 let _adminExpiry = 0
+let _adminEmail  = null
+
+export function getAdminEmail() { return _adminEmail }
 
 function _loadAdminToken() {
   const token  = localStorage.getItem('drive_admin_token')
@@ -36,16 +39,19 @@ function _loadAdminToken() {
   if (token && expiry > Date.now() + 30_000) {
     _adminToken  = token
     _adminExpiry = expiry
+    _adminEmail  = localStorage.getItem('drive_admin_email') || null
     return true
   }
   return false
 }
 
-function _saveAdminToken(token, expiry) {
+function _saveAdminToken(token, expiry, email) {
   _adminToken  = token
   _adminExpiry = expiry
+  if (email) _adminEmail = email
   localStorage.setItem('drive_admin_token',  token)
   localStorage.setItem('drive_admin_expiry', String(expiry))
+  if (email) localStorage.setItem('drive_admin_email', email)
 }
 
 /** Returns true if the admin Drive token is available and not expired */
@@ -73,8 +79,10 @@ export function clearAccessToken() {
 export function clearAdminToken() {
   _adminToken  = null
   _adminExpiry = 0
+  _adminEmail  = null
   localStorage.removeItem('drive_admin_token')
   localStorage.removeItem('drive_admin_expiry')
+  localStorage.removeItem('drive_admin_email')
 }
 
 /** Restore tokens from storage on app startup */
@@ -117,7 +125,7 @@ export async function fetchUserInfo() {
     // Persist admin's token as the central Drive token
     const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
     if (_userEmail?.toLowerCase() === adminEmail && _accessToken) {
-      _saveAdminToken(_accessToken, _tokenExpiry)
+      _saveAdminToken(_accessToken, _tokenExpiry, _userEmail)
     }
 
     return info
