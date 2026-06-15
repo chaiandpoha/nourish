@@ -11,6 +11,7 @@ import {
   listFiles,
   ensureFolderStructure,
   searchFilesByPrefix,
+  getUserEmail as getDriveEmail,
   checkQuota,
 } from './driveApi.js'
 import { DRIVE, MACRO_KEYS } from '../config.js'
@@ -116,22 +117,28 @@ export async function runDailyBackup(userId, encryptionKey) {
 export async function restoreFromDrive(userId, encryptionKey, folderIds, userEmailOrId) {
   if (!isTokenValid()) return false
 
-  // --- Strategy 1: folder-tree walk (fast, normal path) ---
+  // --- Strategy 1: folder-tree walk ---
+  // Try profile email first, then the Drive OAuth account email (they may differ).
   let totalRestored = 0
-  let fIds = null
-  try {
-    fIds = folderIds || await ensureFolderStructure(userEmailOrId || userId)
-    console.log('[restore] folder key:', userEmailOrId || userId, 'ids:', JSON.stringify(fIds))
-  } catch (e) {
-    console.warn('[restore] folder lookup failed:', e)
-  }
+  const driveEmail  = getDriveEmail()
+  const emailsToTry = [...new Set([userEmailOrId, driveEmail, userId].filter(Boolean))]
 
-  if (fIds?.userDir) {
+  for (const key of emailsToTry) {
+    let fIds = null
+    try {
+      fIds = folderIds || await ensureFolderStructure(key)
+      console.log('[restore] trying key:', key, 'userDir:', fIds?.userDir)
+    } catch (e) {
+      console.warn('[restore] folder lookup failed for', key, e)
+      continue
+    }
+    if (!fIds?.userDir) continue
+
     try {
       const profileFile = await findFile('profile.json', fIds.userDir)
       if (profileFile) {
-        const data = await readFile(profileFile.id)
-        if (data) await db.users.put({ ...(typeof data === 'string' ? JSON.parse(data) : data), dirty: 0 })
+        const raw = await readFile(profileFile.id)
+        if (raw) await db.users.put({ ...(typeof raw === 'string' ? JSON.parse(raw) : raw), dirty: 0 })
       }
     } catch (e) { console.warn('Profile restore error:', e) }
 
@@ -145,6 +152,8 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds, userEma
     totalRestored += await _restoreSingleTable('programmes',    fIds.userDir,        userId)
     totalRestored += await _restoreSingleTable('mealTemplates', fIds.userDir,        userId)
     totalRestored += await _restoreSingleTable('reminders',     fIds.userDir,        userId)
+
+    if (totalRestored > 0) break // found data — stop trying other emails
   }
 
   if (totalRestored > 0) return totalRestored
