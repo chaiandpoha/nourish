@@ -11,6 +11,8 @@ export default defineConfig({
       manifest: false, // We manage public/manifest.json manually
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+        // Bump this string to force all clients to update the service worker immediately
+        additionalManifestEntries: [{ url: '/', revision: 'v20260614-2' }],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB — covers food JSON bundles
         runtimeCaching: [
           {
