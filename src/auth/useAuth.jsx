@@ -204,6 +204,21 @@ export function AuthProvider({ children }) {
       }
     }
 
+    // 3b. Profile found but householdId missing — look it up from households table
+    if (profile && !profile.householdId) {
+      try {
+        const { sbFetchUserHousehold } = await import('../db/supabase.js')
+        const hid = await sbFetchUserHousehold(normalEmail)
+        if (hid) {
+          profile = { ...profile, householdId: hid }
+          await db.users.put(profile)
+          import('../db/supabase.js').then(({ sbSaveProfile }) => sbSaveProfile(profile)).catch(() => {})
+        }
+      } catch (e) {
+        console.warn('Household lookup failed:', e)
+      }
+    }
+
     // 4. Create new profile
     if (!profile) {
       const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()

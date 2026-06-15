@@ -307,6 +307,17 @@ export async function sbUpdateHousehold(household) {
   return fromHouseholdRow(data)
 }
 
+export async function sbFetchUserHousehold(email) {
+  if (!supabase || !email) return null
+  const { data } = await supabase
+    .from('households')
+    .select('id')
+    .contains('members', [{ email: email.toLowerCase() }])
+    .limit(1)
+    .maybeSingle()
+  return data?.id || null
+}
+
 export async function sbLeaveHousehold(householdId, email) {
   if (!supabase) throw new Error('Supabase not configured')
   const household = await sbFetchHousehold(householdId)
