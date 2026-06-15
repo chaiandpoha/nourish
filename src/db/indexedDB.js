@@ -182,26 +182,16 @@ db.version(5).stores({
 })
 
 // Version 6 — stable UUID primary keys for workoutLogs and workoutSets.
-// Previous ++id (auto-increment) caused Drive restore collisions and lost data.
+// Changing ++id → &id forces IndexedDB to drop and recreate both stores,
+// so old integer-keyed records are gone; no upgrade function needed.
 db.version(6).stores({
   workoutLogs: '&id, userId, date, [userId+date], status, dirty, updatedAt',
   workoutSets: '&id, userId, workoutLogId, exerciseId, [userId+workoutLogId], dirty, updatedAt',
-}).upgrade(async tx => {
-  const sets = await tx.table('workoutSets').toArray()
-  for (const s of sets) {
-    if (typeof s.id !== 'string') {
-      await tx.table('workoutSets').delete(s.id)
-      await tx.table('workoutSets').add({ ...s, id: crypto.randomUUID() })
-    }
-  }
-  const logs = await tx.table('workoutLogs').toArray()
-  for (const l of logs) {
-    if (typeof l.id !== 'string') {
-      await tx.table('workoutLogs').delete(l.id)
-      await tx.table('workoutLogs').add({ ...l, id: crypto.randomUUID(), status: 'complete' })
-    }
-  }
 })
+
+// Version 7 — no schema change; unblocks any device that got stuck on the
+// v6 migration before the upgrade function was removed.
+db.version(7).stores({})
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

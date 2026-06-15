@@ -33,8 +33,9 @@ export default function BatchList({ onLogged }) {
       const toSave = remote.filter((r, i) => {
         const local = localRecords[i]
         if (!local) return true
-        // Never let sync close a batch — only explicit user action can do that
-        if (!local.closed && r.closed) return false
+        // Never let sync close or reopen a batch — only explicit user action can do that
+        if (!local.closed && r.closed)  return false
+        if (local.closed  && !r.closed) return false
         // Never overwrite a local batch that has ingredients with a remote that doesn't
         const localHasIng  = Array.isArray(local.ingredients) && local.ingredients.length > 0
         const remoteHasIng = Array.isArray(r.ingredients)     && r.ingredients.length > 0
@@ -74,13 +75,13 @@ export default function BatchList({ onLogged }) {
   async function handleClose(batchId) {
     const now = new Date().toISOString()
     await sbCloseBatch(batchId).catch(e => console.warn('Supabase:', e))
-    await db.batches.update(batchId, { closed: 1, closedAt: now, updatedAt: now })
+    await db.batches.update(batchId, { closed: 1, closedAt: now, dirty: 1, updatedAt: now })
     loadBatches()
   }
 
   async function handleReopen(batchId) {
     await sbReopenBatch(batchId).catch(e => console.warn('Supabase:', e))
-    await db.batches.update(batchId, { closed: 0, updatedAt: new Date().toISOString() })
+    await db.batches.update(batchId, { closed: 0, dirty: 1, updatedAt: new Date().toISOString() })
     loadBatches()
   }
 

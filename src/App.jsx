@@ -21,6 +21,7 @@ import ProgramManager from './workout/ProgramManager.jsx'
 import WorkoutLog from './workout/WorkoutLog.jsx'
 import WorkoutCharts from './workout/WorkoutCharts.jsx'
 import MuscleVolume from './workout/MuscleVolume.jsx'
+import WorkoutHistory from './workout/WorkoutHistory.jsx'
 import ProgressPhotos from './progress/ProgressPhotos.jsx'
 import Measurements from './progress/Measurements.jsx'
 import InstallPrompt from './shared/InstallPrompt.jsx'
@@ -450,9 +451,10 @@ function FoodScreen() {
 }
 
 const WORKOUT_TABS = [
-  { id: 'programmes', label: 'Plans'   },
-  { id: 'charts',     label: 'Charts'  },
-  { id: 'volume',     label: 'Volume'  },
+  { id: 'programmes', label: 'Plans'    },
+  { id: 'history',    label: 'History'  },
+  { id: 'charts',     label: 'Charts'   },
+  { id: 'volume',     label: 'Volume'   },
 ]
 
 function WorkoutScreen() {
@@ -499,6 +501,7 @@ function WorkoutScreen() {
         ))}
       </div>
       {screen === 'programmes' && <ProgramManager onStartWorkout={handleStartWorkout} />}
+      {screen === 'history'    && <WorkoutHistory />}
       {screen === 'charts'     && <WorkoutCharts />}
       {screen === 'volume'     && <MuscleVolume />}
     </div>
