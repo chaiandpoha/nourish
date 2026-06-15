@@ -158,7 +158,8 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds, userEma
       const files = await searchFilesByPrefix(prefix)
       console.log(`[restore] search "${prefix}": ${files.length} files`)
       for (const file of files) {
-        const data = await readFile(file.id)
+        const raw  = await readFile(file.id)
+        const data = typeof raw === 'string' ? JSON.parse(raw) : raw
         if (!Array.isArray(data) || !data.length) continue
         const table = prefix.slice(0, -1) // strip trailing '_'
         totalRestored += await _safeBulkRestore(table, data)
@@ -181,7 +182,9 @@ async function _restoreMonthlyTable(tableName, folderId, userId) {
       f.name.startsWith(`${tableName}_`) && f.name.endsWith('.json')
     )
     for (const file of matches) {
-      const data = await readFile(file.id)
+      const raw  = await readFile(file.id)
+      // writeFile double-stringifies, so readFile returns a string — parse it
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw
       if (!Array.isArray(data) || !data.length) continue
       count += await _safeBulkRestore(tableName, data)
       const month   = file.name.slice(tableName.length + 1, -5)
@@ -199,7 +202,8 @@ async function _restoreSingleTable(tableName, folderId, userId) {
   try {
     const file = await findFile(`${tableName}.json`, folderId)
     if (!file) return 0
-    const data = await readFile(file.id)
+    const raw  = await readFile(file.id)
+    const data = typeof raw === 'string' ? JSON.parse(raw) : raw
     if (!Array.isArray(data) || !data.length) return 0
     const count = await _safeBulkRestore(tableName, data)
     const syncKey = `${userId}:${tableName}`
