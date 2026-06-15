@@ -145,10 +145,13 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      const { isTokenValid, restoreToken } = await import('../db/driveApi.js')
+      const { isTokenValid, restoreToken, getUserEmail: getDriveEmail } = await import('../db/driveApi.js')
       if (!isTokenValid()) restoreToken()
       if (isTokenValid()) {
-        await initStorage(profile.id, key, profile.email, profile.householdId)
+        // Prefer the Drive OAuth account email for folder lookup — it may differ
+        // from the profile identity email (e.g. akshaymailers@ vs akshayeshah31@)
+        const driveEmail = getDriveEmail() || profile.email
+        await initStorage(profile.id, key, driveEmail, profile.householdId)
       }
     } catch (e) {
       console.warn('Storage init error:', e.message)
