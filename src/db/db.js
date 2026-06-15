@@ -124,6 +124,8 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds, userEma
     return false
   }
 
+  console.log('[restore] folder lookup key:', userEmailOrId || userId)
+  console.log('[restore] folderIds:', JSON.stringify(fIds))
   if (!fIds?.userDir) return false
 
   // Profile — wrapped independently so a missing file doesn't abort everything
@@ -168,6 +170,7 @@ async function _restoreMonthlyTable(tableName, folderId, userId) {
   let count = 0
   try {
     const files   = await listFiles(folderId)
+    console.log(`[restore] ${tableName} folder ${folderId}: ${files.length} files —`, files.map(f => f.name).join(', ') || '(empty)')
     const matches = files.filter(f =>
       f.name.startsWith(`${tableName}_`) && f.name.endsWith('.json')
     )

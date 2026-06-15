@@ -1271,7 +1271,7 @@ function DriveRestoreSection({ userId, encryptionKey, userEmail }) {
         setTimeout(() => window.location.reload(), 2500)
       } else {
         setStatus('empty')
-        setMsg('Drive backup found but was empty — your data may not have synced before the reset.')
+        setMsg('Drive folders found but no data inside. Open Safari console (Settings → Safari → Advanced → Web Inspector) and look for [restore] logs to see exactly which folders were checked.')
       }
     } catch (e) {
       setStatus('error')
