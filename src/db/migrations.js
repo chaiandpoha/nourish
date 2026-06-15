@@ -34,16 +34,11 @@ export async function runMigrations() {
   try {
     await db.open()
   } catch (e) {
-    const msg = (e.message || '').toLowerCase()
-    const isUpgradeError =
-      e.name === 'VersionError' || e.name === 'UpgradeError' ||
-      e.name === 'AbortError'   || e.name === 'InvalidStateError' ||
-      msg.includes('version')   || msg.includes('upgrade')
-
-    // Auto-rebuild once per session to recover from stuck upgrades.
-    // The flag prevents an infinite reload loop if the rebuild itself fails.
-    if (isUpgradeError && !sessionStorage.getItem('nourish_db_rebuild_attempted')) {
-      console.warn('[migrations] DB upgrade failed — auto-rebuilding:', e.message)
+    // Any db.open() failure (schema conflicts, primary-key changes, corrupt upgrades)
+    // is unrecoverable without deleting the DB. Auto-rebuild once per session;
+    // the flag prevents an infinite reload loop if the fresh open also fails.
+    if (!sessionStorage.getItem('nourish_db_rebuild_attempted')) {
+      console.warn('[migrations] DB open failed — auto-rebuilding:', e.message)
       sessionStorage.setItem('nourish_db_rebuild_attempted', '1')
       sessionStorage.setItem('nourish_db_rebuilt', '1')
       try { db.close() } catch {}
