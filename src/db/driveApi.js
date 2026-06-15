@@ -250,6 +250,38 @@ export async function ensureFolderStructure(userEmail) {
   return { root, users, userDir, foodLogsDir, workoutLogsDir, progressDir }
 }
 
+/** Walk the Nourish folder and return every file found, for diagnostics */
+export async function diagnoseDriveFolders(userEmail) {
+  const result = { folders: [], files: [] }
+  try {
+    const root = await findFolder('Nourish')
+    if (!root) { result.error = 'No Nourish folder found in Drive'; return result }
+    result.folders.push('Nourish')
+
+    const users = await findFolder('users', root)
+    if (!users) { result.error = 'No users/ folder inside Nourish'; return result }
+    result.folders.push('Nourish/users')
+
+    // List all user subfolders (might not be email — could be UUID)
+    const userFolders = await listFolders(users)
+    result.userFolders = userFolders.map(f => f.name)
+
+    // Check each user folder for files
+    for (const uf of userFolders) {
+      const subfolders = await listFolders(uf.id)
+      const topFiles   = await listFiles(uf.id)
+      result.files.push(...topFiles.map(f => `${uf.name}/${f.name}`))
+      for (const sf of subfolders) {
+        const sfFiles = await listFiles(sf.id)
+        result.files.push(...sfFiles.map(f => `${uf.name}/${sf.name}/${f.name}`))
+      }
+    }
+  } catch (e) {
+    result.error = e.message
+  }
+  return result
+}
+
 export async function listFolders(parentId) {
   const q = [`'${parentId}' in parents`, `mimeType='application/vnd.google-apps.folder'`, `trashed=false`].join(' and ')
   const res = await fetch(

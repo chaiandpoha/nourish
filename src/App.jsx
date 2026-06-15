@@ -1251,8 +1251,22 @@ const th = {
 // ─── DriveRestoreSection ─────────────────────────────────────────────────────
 
 function DriveRestoreSection({ userId, encryptionKey, userEmail }) {
-  const [status,  setStatus]  = useState(null) // null | 'restoring' | 'success' | 'empty' | 'expired' | 'error'
+  const [status,  setStatus]  = useState(null) // null | 'restoring' | 'success' | 'empty' | 'expired' | 'error' | 'diagnosing'
   const [msg,     setMsg]     = useState('')
+  const [diag,    setDiag]    = useState(null)
+
+  async function handleDiagnose() {
+    setStatus('diagnosing'); setDiag(null)
+    try {
+      const { isTokenValid, diagnoseDriveFolders } = await import('./db/driveApi.js')
+      if (!isTokenValid()) { setStatus('expired'); return }
+      const result = await diagnoseDriveFolders(userEmail)
+      setDiag(result)
+      setStatus('empty')
+    } catch (e) {
+      setStatus('error'); setMsg(e.message)
+    }
+  }
 
   async function handleRestore() {
     setStatus('restoring'); setMsg('')
@@ -1271,7 +1285,7 @@ function DriveRestoreSection({ userId, encryptionKey, userEmail }) {
         setTimeout(() => window.location.reload(), 2500)
       } else {
         setStatus('empty')
-        setMsg('Drive folders found but no data inside. Open Safari console (Settings → Safari → Advanced → Web Inspector) and look for [restore] logs to see exactly which folders were checked.')
+        setMsg('Drive folders found but no data files detected.')
       }
     } catch (e) {
       setStatus('error')
@@ -1304,18 +1318,38 @@ function DriveRestoreSection({ userId, encryptionKey, userEmail }) {
         <p style={{ fontSize:'13px', color:'var(--accent)', margin:0, fontWeight:'600' }}>{msg}</p>
       )}
 
-      {(status === 'empty' || status === 'error') && (
+      {(status === 'empty' || status === 'error') && msg && (
         <p style={{ fontSize:'13px', color:'var(--red)', margin:0 }}>{msg}</p>
       )}
 
+      {diag && (
+        <div style={{ background:'var(--bg-elevated)', borderRadius:'var(--r-md)', padding:'10px', fontSize:'12px', fontFamily:'var(--font-mono)', color:'var(--text-secondary)', display:'flex', flexDirection:'column', gap:'4px', maxHeight:'200px', overflowY:'auto' }}>
+          {diag.error && <span style={{ color:'var(--red)' }}>{diag.error}</span>}
+          <span>User folders: {diag.userFolders?.join(', ') || '(none)'}</span>
+          {diag.files?.length > 0
+            ? diag.files.map((f, i) => <span key={i}>{f}</span>)
+            : <span style={{ color:'var(--red)' }}>No files found in any subfolder</span>
+          }
+        </div>
+      )}
+
       {status !== 'expired' && status !== 'success' && (
-        <button
-          style={{ padding:'10px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer', opacity: status === 'restoring' ? 0.6 : 1 }}
-          onClick={handleRestore}
-          disabled={status === 'restoring'}
-        >
-          {status === 'restoring' ? 'Restoring…' : 'Restore from Drive'}
-        </button>
+        <div style={{ display:'flex', gap:'8px' }}>
+          <button
+            style={{ flex:1, padding:'10px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer', opacity: (status === 'restoring' || status === 'diagnosing') ? 0.6 : 1 }}
+            onClick={handleRestore}
+            disabled={status === 'restoring' || status === 'diagnosing'}
+          >
+            {status === 'restoring' ? 'Restoring…' : 'Restore from Drive'}
+          </button>
+          <button
+            style={{ padding:'10px 14px', background:'var(--bg-elevated)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'13px', cursor:'pointer', opacity: (status === 'restoring' || status === 'diagnosing') ? 0.6 : 1 }}
+            onClick={handleDiagnose}
+            disabled={status === 'restoring' || status === 'diagnosing'}
+          >
+            {status === 'diagnosing' ? '…' : 'Diagnose'}
+          </button>
+        </div>
       )}
     </div>
   )
