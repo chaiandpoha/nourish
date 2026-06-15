@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, Component } from 'react'
 import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/useAuth.jsx'
 import { BannerProvider, useBanners } from './shared/Banner.jsx'
@@ -32,6 +32,24 @@ import HouseholdScreen from './household/HouseholdScreen.jsx'
 import RecipeList from './food/RecipeList.jsx'
 import LabelList from './food/LabelList.jsx'
 import { getThemePref, setThemePref } from './shared/theme.js'
+
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(e) { return { error: e } }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100dvh', background:'#0f0f0f', color:'#fff', gap:'12px', padding:'24px', textAlign:'center' }}>
+          <div style={{ fontSize:'48px' }}>⚠️</div>
+          <p style={{ fontSize:'16px', margin:0 }}>Something went wrong</p>
+          <p style={{ fontSize:'12px', color:'#888', margin:0, wordBreak:'break-all' }}>{this.state.error.message}</p>
+          <button onClick={() => window.location.reload()} style={{ marginTop:'8px', padding:'10px 20px', background:'#333', border:'none', borderRadius:'8px', color:'#fff', cursor:'pointer' }}>Reload</button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 export default function App() {
   const [migrationsRun,   setMigrationsRun]   = useState(false)
@@ -105,6 +123,7 @@ export default function App() {
   }
 
   return (
+    <ErrorBoundary>
     <AuthProvider>
       <BannerProvider>
         <HashRouter>
@@ -112,6 +131,7 @@ export default function App() {
         </HashRouter>
       </BannerProvider>
     </AuthProvider>
+    </ErrorBoundary>
   )
 }
 
