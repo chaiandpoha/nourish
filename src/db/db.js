@@ -59,7 +59,7 @@ export async function initStorage(userId, encryptionKey, userEmail, householdId)
   try {
     const localCount = await db.foodLogs.where('userId').equals(userId).count()
     if (localCount === 0) {
-      await restoreFromDrive(userId, encryptionKey, _folderIds)
+      await restoreFromDrive(userId, encryptionKey, _folderIds, userEmail)
     }
   } catch (e) {
     console.warn('Restore check failed:', e)
@@ -111,12 +111,14 @@ export async function runDailyBackup(userId, encryptionKey) {
 }
 
 /** Restore all user data from Drive to IndexedDB */
-export async function restoreFromDrive(userId, encryptionKey, folderIds) {
+// userEmailOrId: prefer passing the user's email (Drive folders are keyed by email)
+export async function restoreFromDrive(userId, encryptionKey, folderIds, userEmailOrId) {
   if (!isTokenValid()) return false
 
   let fIds
   try {
-    fIds = folderIds || await ensureFolderStructure(userId)
+    // Folder structure is keyed by email — falling back to userId was wrong
+    fIds = folderIds || await ensureFolderStructure(userEmailOrId || userId)
   } catch (e) {
     console.warn('restoreFromDrive: could not get folder IDs:', e)
     return false
@@ -138,29 +140,32 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds) {
     console.warn('Profile restore error:', e)
   }
 
+  let totalRestored = 0
+
   // Monthly tables — food logs
-  await _restoreMonthlyTable('foodLogs', fIds.foodLogsDir, userId)
+  totalRestored += await _restoreMonthlyTable('foodLogs', fIds.foodLogsDir, userId)
 
   // Monthly tables — workout data
-  await _restoreMonthlyTable('workoutLogs', fIds.workoutLogsDir, userId)
-  await _restoreMonthlyTable('workoutSets', fIds.workoutLogsDir, userId)
+  totalRestored += await _restoreMonthlyTable('workoutLogs', fIds.workoutLogsDir, userId)
+  totalRestored += await _restoreMonthlyTable('workoutSets', fIds.workoutLogsDir, userId)
 
   // Monthly tables — health data (stored in userDir alongside profile.json)
-  await _restoreMonthlyTable('weightLog',    fIds.userDir, userId)
-  await _restoreMonthlyTable('supplementLog',fIds.userDir, userId)
-  await _restoreMonthlyTable('stepsLog',     fIds.userDir, userId)
-  await _restoreMonthlyTable('measurements', fIds.userDir, userId)
+  totalRestored += await _restoreMonthlyTable('weightLog',    fIds.userDir, userId)
+  totalRestored += await _restoreMonthlyTable('supplementLog',fIds.userDir, userId)
+  totalRestored += await _restoreMonthlyTable('stepsLog',     fIds.userDir, userId)
+  totalRestored += await _restoreMonthlyTable('measurements', fIds.userDir, userId)
 
   // Single-file tables
-  await _restoreSingleTable('programmes',   fIds.userDir, userId)
-  await _restoreSingleTable('mealTemplates',fIds.userDir, userId)
-  await _restoreSingleTable('reminders',    fIds.userDir, userId)
+  totalRestored += await _restoreSingleTable('programmes',   fIds.userDir, userId)
+  totalRestored += await _restoreSingleTable('mealTemplates',fIds.userDir, userId)
+  totalRestored += await _restoreSingleTable('reminders',    fIds.userDir, userId)
 
-  return true
+  return totalRestored  // 0 = Drive folder was empty, >0 = records restored
 }
 
 async function _restoreMonthlyTable(tableName, folderId, userId) {
-  if (!folderId) return
+  if (!folderId) return 0
+  let count = 0
   try {
     const files   = await listFiles(folderId)
     const matches = files.filter(f =>
@@ -169,11 +174,7 @@ async function _restoreMonthlyTable(tableName, folderId, userId) {
     for (const file of matches) {
       const data = await readFile(file.id)
       if (!Array.isArray(data) || !data.length) continue
-      // Use bulkAdd (ignoreErrors) so local records are never overwritten by Drive data.
-      // This prevents a race where HealthClipboardSync saves today's steps (id:1) just
-      // before Drive restore tries to bulkPut an older record with the same id.
-      await _safeBulkRestore(tableName, data)
-      // Cache fileId so next flush updates rather than creates
+      count += await _safeBulkRestore(tableName, data)
       const month   = file.name.slice(tableName.length + 1, -5)
       const syncKey = `${userId}:${tableName}:${month}`
       await db.syncState.put({ key: syncKey, userId, fileId: file.id, lastSyncAt: new Date().toISOString() })
@@ -181,20 +182,23 @@ async function _restoreMonthlyTable(tableName, folderId, userId) {
   } catch (e) {
     console.warn(`Restore ${tableName} error:`, e)
   }
+  return count
 }
 
 async function _restoreSingleTable(tableName, folderId, userId) {
-  if (!folderId) return
+  if (!folderId) return 0
   try {
     const file = await findFile(`${tableName}.json`, folderId)
-    if (!file) return
+    if (!file) return 0
     const data = await readFile(file.id)
-    if (!Array.isArray(data) || !data.length) return
-    await _safeBulkRestore(tableName, data)
+    if (!Array.isArray(data) || !data.length) return 0
+    const count = await _safeBulkRestore(tableName, data)
     const syncKey = `${userId}:${tableName}`
     await db.syncState.put({ key: syncKey, userId, fileId: file.id, lastSyncAt: new Date().toISOString() })
+    return count
   } catch (e) {
     console.warn(`Restore ${tableName} error:`, e)
+    return 0
   }
 }
 
@@ -217,10 +221,10 @@ async function _safeBulkRestore(tableName, records) {
     } else if (rec.updatedAt && local.updatedAt && rec.updatedAt > local.updatedAt) {
       toUpdate.push(rec)
     }
-    // else: local is newer or same — keep local, skip Drive version
   }
   if (toAdd.length)    await db[tableName].bulkAdd(toAdd).catch(() => {})
   if (toUpdate.length) await db[tableName].bulkPut(toUpdate)
+  return toAdd.length + toUpdate.length
 }
 
 /** Stop sync interval — called on logout */

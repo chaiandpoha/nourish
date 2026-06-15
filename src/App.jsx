@@ -577,7 +577,7 @@ function SettingsScreen() {
         <>
           <ProfileEditor user={user} onSaved={refreshUser} />
           <ThemeToggle />
-          <DriveRestoreSection userId={user?.id} encryptionKey={encryptionKey} />
+          <DriveRestoreSection userId={user?.id} encryptionKey={encryptionKey} userEmail={user?.email} />
           <ExportData userId={user?.id} />
           {user?.pinHash && (
             <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
@@ -1250,26 +1250,28 @@ const th = {
 
 // ─── DriveRestoreSection ─────────────────────────────────────────────────────
 
-function DriveRestoreSection({ userId, encryptionKey }) {
+function DriveRestoreSection({ userId, encryptionKey, userEmail }) {
   const [status,  setStatus]  = useState(null) // null | 'restoring' | 'success' | 'empty' | 'expired' | 'error'
   const [msg,     setMsg]     = useState('')
 
   async function handleRestore() {
     setStatus('restoring'); setMsg('')
     try {
-      const { isTokenValid, initiateOAuthFlow } = await import('./db/driveApi.js')
+      const { isTokenValid } = await import('./db/driveApi.js')
       if (!isTokenValid()) {
         setStatus('expired')
         return
       }
       const { restoreFromDrive } = await import('./db/db.js')
-      const ok = await restoreFromDrive(userId, encryptionKey)
-      if (ok) {
+      // Pass email so Drive looks in the correct folder (keyed by email, not UUID)
+      const count = await restoreFromDrive(userId, encryptionKey, null, userEmail)
+      if (count > 0) {
         setStatus('success')
+        setMsg(`Restored ${count} records. Reloading…`)
         setTimeout(() => window.location.reload(), 2500)
       } else {
         setStatus('empty')
-        setMsg('No Drive backup found. Data may not have been synced before the reset.')
+        setMsg('Drive backup found but was empty — your data may not have synced before the reset.')
       }
     } catch (e) {
       setStatus('error')
@@ -1299,7 +1301,7 @@ function DriveRestoreSection({ userId, encryptionKey }) {
       )}
 
       {status === 'success' && (
-        <p style={{ fontSize:'13px', color:'var(--accent)', margin:0, fontWeight:'600' }}>Restored! Reloading app…</p>
+        <p style={{ fontSize:'13px', color:'var(--accent)', margin:0, fontWeight:'600' }}>{msg}</p>
       )}
 
       {(status === 'empty' || status === 'error') && (
