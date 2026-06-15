@@ -54,6 +54,7 @@ class ErrorBoundary extends Component {
 export default function App() {
   const [migrationsRun,   setMigrationsRun]   = useState(false)
   const [migrationsError, setMigrationsError] = useState(null)
+  const [dbWasRebuilt,    setDbWasRebuilt]    = useState(false)
 
   useEffect(() => {
     const hash = window.location.hash
@@ -87,7 +88,13 @@ export default function App() {
       return
     }
     runMigrations()
-      .then(() => setMigrationsRun(true))
+      .then(() => {
+        if (sessionStorage.getItem('nourish_db_rebuilt') === '1') {
+          sessionStorage.removeItem('nourish_db_rebuilt')
+          setDbWasRebuilt(true)
+        }
+        setMigrationsRun(true)
+      })
       .catch(e => {
         console.error('Migration failed:', e)
         setMigrationsError(e.message)
@@ -112,6 +119,11 @@ export default function App() {
     <AuthProvider>
       <BannerProvider>
         <HashRouter>
+          {dbWasRebuilt && (
+            <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:9999, background:'#FF9500', color:'#000', padding:'10px 16px', fontSize:'13px', textAlign:'center' }}>
+              Database rebuilt after an upgrade error — sign in with Google to restore your data from Drive.
+            </div>
+          )}
           <AppRoutes />
         </HashRouter>
       </BannerProvider>
@@ -127,32 +139,35 @@ function StartupErrorScreen({ error }) {
   async function checkBackup() {
     setBackup('checking')
     try {
-      const { isTokenValid, findFolder, listFiles } = await import('./db/driveApi.js')
+      const { isTokenValid, findFolder, listFiles, listFolders } = await import('./db/driveApi.js')
       if (!isTokenValid()) { setBackup('no-token'); return }
       const root = await findFolder('Nourish')
-      if (!root) { setBackup({ months: [] }); return }
+      if (!root) { setBackup({ months: [], tables: [] }); return }
       const users = await findFolder('users', root)
-      if (!users) { setBackup({ months: [] }); return }
-      const emailKeys = [...new Set([
-        localStorage.getItem('drive_user_email'),
-        (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase(),
-      ].filter(Boolean))]
-      let foundMonths = [], foundTables = []
-      for (const key of emailKeys) {
-        const userDir = await findFolder(key, users)
-        if (!userDir) continue
-        const topFiles = await listFiles(userDir)
-        foundTables = topFiles.map(f => f.name).filter(n => n.endsWith('.json') && n !== 'profile.json')
-        const foodDir = await findFolder('foodLogs', userDir)
+      if (!users) { setBackup({ months: [], tables: [] }); return }
+
+      // Scan ALL user folders — don't guess the email key, it might differ from identity
+      const allUserFolders = await listFolders(users)
+      let foundMonths = [], foundTables = [], foundIn = null
+      for (const uf of allUserFolders) {
+        const topFiles = await listFiles(uf.id)
+        const tables   = topFiles.map(f => f.name).filter(n => n.endsWith('.json') && n !== 'profile.json')
+        const foodDir  = await findFolder('foodLogs', uf.id)
+        let months = []
         if (foodDir) {
           const files = await listFiles(foodDir)
-          foundMonths = files.filter(f => f.name.startsWith('foodLogs_')).map(f =>
+          months = files.filter(f => f.name.startsWith('foodLogs_')).map(f =>
             f.name.replace('foodLogs_', '').replace('.json', '')
           )
         }
-        if (foundMonths.length || foundTables.length) break
+        if (months.length || tables.length) {
+          foundMonths = months
+          foundTables = tables
+          foundIn     = uf.name
+          break
+        }
       }
-      setBackup({ months: foundMonths, tables: foundTables })
+      setBackup({ months: foundMonths, tables: foundTables, foundIn })
     } catch (e) {
       setBackup('error')
     }
@@ -177,6 +192,7 @@ function StartupErrorScreen({ error }) {
         backup.months?.length > 0 ? (
           <div style={{ background:'#1a2e1a', border:'1px solid #34C759', borderRadius:'12px', padding:'12px 16px', maxWidth:'300px' }}>
             <p style={{ color:'#34C759', fontSize:'13px', fontWeight:'700', margin:'0 0 4px' }}>✓ Drive backup found — safe to reset</p>
+            {backup.foundIn && <p style={{ color:'#aaa', fontSize:'11px', margin:'0 0 4px' }}>Folder: {backup.foundIn}</p>}
             <p style={{ color:'#aaa', fontSize:'12px', margin:0 }}>Food logs: {backup.months.join(', ')}</p>
             {backup.tables?.length > 0 && <p style={{ color:'#aaa', fontSize:'12px', margin:'2px 0 0' }}>Also: {backup.tables.join(', ')}</p>}
           </div>

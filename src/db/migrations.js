@@ -31,11 +31,32 @@ async function setLastMigrationVersion(version) {
 }
 
 export async function runMigrations() {
-  // Open the DB explicitly so any schema upgrade error surfaces here,
-  // not buried inside getLastMigrationVersion's catch block.
   try {
     await db.open()
   } catch (e) {
+    const msg = (e.message || '').toLowerCase()
+    const isUpgradeError =
+      e.name === 'VersionError' || e.name === 'UpgradeError' ||
+      e.name === 'AbortError'   || e.name === 'InvalidStateError' ||
+      msg.includes('version')   || msg.includes('upgrade')
+
+    // Auto-rebuild once per session to recover from stuck upgrades.
+    // The flag prevents an infinite reload loop if the rebuild itself fails.
+    if (isUpgradeError && !sessionStorage.getItem('nourish_db_rebuild_attempted')) {
+      console.warn('[migrations] DB upgrade failed — auto-rebuilding:', e.message)
+      sessionStorage.setItem('nourish_db_rebuild_attempted', '1')
+      sessionStorage.setItem('nourish_db_rebuilt', '1')
+      try { db.close() } catch {}
+      await new Promise(res => {
+        const req = indexedDB.deleteDatabase(db.name)
+        req.onsuccess = res
+        req.onerror   = res
+        req.onblocked = res
+      })
+      window.location.reload()
+      return
+    }
+
     throw new Error(`Database failed to open: ${e.message}`)
   }
 
