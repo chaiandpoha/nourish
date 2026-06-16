@@ -7,10 +7,10 @@ let _userEmail   = null
 let _userName    = null
 
 export function getUserEmail() {
-  return _userEmail || sessionStorage.getItem('auth_user_email') || null
+  return _userEmail || localStorage.getItem('nourish_user_email') || null
 }
 export function getUserName() {
-  return _userName || sessionStorage.getItem('auth_user_name') || null
+  return _userName || localStorage.getItem('nourish_user_name') || null
 }
 
 export function initiateOAuthFlow() {
@@ -47,7 +47,7 @@ export async function fetchUserInfo() {
   const info = await res.json()
   _userEmail = (info.email || '').toLowerCase()
   _userName  = info.name  || ''
-  sessionStorage.setItem('auth_user_email', _userEmail)
-  sessionStorage.setItem('auth_user_name',  _userName)
+  localStorage.setItem('nourish_user_email', _userEmail)
+  localStorage.setItem('nourish_user_name',  _userName)
   return info
 }

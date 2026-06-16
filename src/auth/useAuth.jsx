@@ -171,6 +171,9 @@ export function AuthProvider({ children }) {
     setIsLocked(true)
     teardownStorage()
     if (autoLockTimer.current) clearTimeout(autoLockTimer.current)
+    // Clear persisted identity so the user must sign in again explicitly
+    localStorage.removeItem('nourish_user_email')
+    localStorage.removeItem('nourish_user_name')
     sessionStorage.setItem('nourish_logged_out', 'true')
     window.location.reload()
   }
