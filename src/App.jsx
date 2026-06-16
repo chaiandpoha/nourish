@@ -467,7 +467,7 @@ function CalendarScreen() {
 }
 
 function SettingsScreen() {
-  const { user, lock, refreshUser, encryptionKey } = useAuth()
+  const { user, lock, refreshUser } = useAuth()
   const [tab,          setTab]          = useState('profile')
   const [instructions, setInstructions] = useState(
     user?.aiInstructions || 'Suggest vegetarian Indian meals. Prioritise high protein foods like paneer, dal, curd, sprouts and eggs.'

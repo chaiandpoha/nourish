@@ -158,7 +158,7 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      await initStorage(profile.id, profile.householdId)
+      await initStorage(profile.id)
     } catch (e) {
       console.warn('Storage init error:', e.message)
     }

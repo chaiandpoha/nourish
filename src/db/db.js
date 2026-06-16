@@ -13,15 +13,7 @@ let _isSyncing    = false
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
-export async function initStorage(userId, householdId) {
-  // Sync household foods and batches with Supabase
-  if (householdId) {
-    const { fetchHouseholdFoods, pushLocalFoodsToHousehold, pushLocalBatchesToHousehold } = await import('../food/FoodDB.js')
-    fetchHouseholdFoods(householdId).catch(e => console.warn('Household foods fetch:', e))
-    pushLocalFoodsToHousehold(householdId).catch(e => console.warn('Household foods push:', e))
-    pushLocalBatchesToHousehold(householdId, '').catch(e => console.warn('Household batches push:', e))
-  }
-
+export async function initStorage(userId) {
   // New device — restore from Supabase; otherwise push local data to keep it in sync
   try {
     const localCount = await db.foodLogs.where('userId').equals(userId).count()
