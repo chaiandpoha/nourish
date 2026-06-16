@@ -2,7 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { db } from '../db/indexedDB.js'
 import { useAuth } from '../auth/useAuth.jsx'
 
-const TABLES = ['foodLogs', 'workoutLogs', 'weightLog', 'measurements', 'supplementLog']
+const TABLES = [
+  'foodLogs', 'workoutLogs', 'workoutSets', 'weightLog',
+  'measurements', 'supplementLog', 'stepsLog', 'reminders', 'moodLog',
+]
 
 export default function SyncStatus() {
   const { user } = useAuth()

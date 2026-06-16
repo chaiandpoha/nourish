@@ -109,7 +109,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
 
       const lastSession = Object.values(bySession)
         .sort((a, b) => (b[0]?.date || '').localeCompare(a[0]?.date || ''))[0]
-        ?.sort((a, b) => (a.id || 0) - (b.id || 0))
+        ?.sort((a, b) => (a.updatedAt || '').localeCompare(b.updatedAt || ''))
       if (!lastSession?.length) continue
 
       const best = lastSession.reduce((b, s) =>
@@ -206,12 +206,13 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   }
 
   function completeSet(exId, setIdx) {
+    const setId = generateId()
     setSets(s => {
       const next = {
         ...s,
-        [exId]: s[exId].map((set, i) => i === setIdx ? { ...set, done: true } : set)
+        [exId]: s[exId].map((set, i) => i === setIdx ? { ...set, done: true, dbId: setId } : set)
       }
-      persistSet(exId, next[exId][setIdx])
+      persistSet(exId, next[exId][setIdx], setId)
       return next
     })
     setRestTimer(DEFAULT_REST)
@@ -219,7 +220,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
     setRestActive(true)
   }
 
-  async function persistSet(exId, set) {
+  async function persistSet(exId, set, setId) {
     if (!user) return
     const date = localDate()
     const now  = new Date().toISOString()
@@ -241,7 +242,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
       })
     }
     await db.workoutSets.put({
-      id:           generateId(),
+      id:           setId || generateId(),
       userId:       user.id,
       workoutLogId: workoutLogId.current,
       exerciseId:   exId,
@@ -256,10 +257,14 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   }
 
   function uncompleteSet(exId, setIdx) {
-    setSets(s => ({
-      ...s,
-      [exId]: s[exId].map((set, i) => i === setIdx ? { ...set, done: false } : set)
-    }))
+    setSets(s => {
+      const set = s[exId]?.[setIdx]
+      if (set?.dbId) db.workoutSets.delete(set.dbId).catch(() => {})
+      return {
+        ...s,
+        [exId]: s[exId].map((cur, i) => i === setIdx ? { ...cur, done: false, dbId: undefined } : cur)
+      }
+    })
   }
 
   function toggleUnit() {

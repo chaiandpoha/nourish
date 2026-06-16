@@ -138,7 +138,9 @@ export function AuthProvider({ children }) {
         id:              profile.id,
         email:           profile.email,
         name:            profile.name,
-        householdId:     profile.householdId     || null,
+        pinHash:         profile.pinHash          || null,
+        skipPin:         profile.skipPin          || false,
+        householdId:     profile.householdId      || null,
         encryptionSalt:  profile.encryptionSalt,
         isAdmin:         profile.isAdmin          || false,
         macroGoals:      profile.macroGoals       || null,
@@ -233,7 +235,6 @@ export function AuthProvider({ children }) {
         if (backup?.email === normalEmail && backup?.id && backup?.encryptionSalt) {
           profile = {
             ...backup,
-            skipPin:               true,
             biometricCredentialId: null,
             updatedAt:             new Date().toISOString(),
             dirty:                 1,

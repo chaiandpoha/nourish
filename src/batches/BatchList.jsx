@@ -61,14 +61,21 @@ export default function BatchList({ onLogged }) {
         return new Date(b.createdAt) - new Date(a.createdAt)
       })
       const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-      const all    = await db.batches.toArray()
+      const allRaw = await db.batches.toArray()
+      // Only show batches for current household (or personal batches when no household)
+      const hid = user.householdId
+      const all = hid
+        ? allRaw.filter(b => b.householdId === hid || (!b.shared && !b.householdId))
+        : allRaw
       const open   = all.filter(b => !b.closed)
       const closed = all.filter(b => b.closed && (!b.closedAt || b.closedAt >= cutoff))
       setBatches(sort(open))
       setClosedBatches(sort(closed))
     } catch {
-      const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-      const all    = await db.batches.toArray()
+      const cutoff  = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const allRaw  = await db.batches.toArray()
+      const hid     = user?.householdId
+      const all     = hid ? allRaw.filter(b => b.householdId === hid || (!b.shared && !b.householdId)) : allRaw
       setBatches(all.filter(b => !b.closed))
       setClosedBatches(all.filter(b => b.closed && (b.closedAt || b.updatedAt || '') >= cutoff))
     }
@@ -92,7 +99,7 @@ export default function BatchList({ onLogged }) {
 
   async function handleReopen(batchId) {
     await sbReopenBatch(batchId).catch(e => console.warn('Supabase:', e))
-    await db.batches.update(batchId, { closed: 0, dirty: 1, updatedAt: new Date().toISOString() })
+    await db.batches.update(batchId, { closed: 0, closedAt: null, dirty: 1, updatedAt: new Date().toISOString() })
     loadBatches()
   }
 

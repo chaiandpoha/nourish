@@ -5,9 +5,10 @@ import { searchExercises } from './ExerciseDB.js'
 import { generateId } from '../auth/crypto.js'
 
 export default function ProgramManager({ onStartWorkout }) {
-  const [programmes, setProgrammes] = useState([])
-  const [screen,     setScreen]     = useState('list') // list | create | view
-  const [selected,   setSelected]   = useState(null)
+  const [programmes,     setProgrammes]     = useState([])
+  const [screen,         setScreen]         = useState('list') // list | create | view
+  const [selected,       setSelected]       = useState(null)
+  const [confirmDelete,  setConfirmDelete]  = useState(null)
   const { user } = useAuth()
 
   useEffect(() => { loadProgrammes() }, [user])
@@ -29,7 +30,8 @@ export default function ProgramManager({ onStartWorkout }) {
   }
 
   async function handleDelete(progId) {
-    if (!confirm('Delete this programme?')) return
+    if (confirmDelete !== progId) { setConfirmDelete(progId); return }
+    setConfirmDelete(null)
     await db.programmes.delete(progId)
     loadProgrammes()
   }
@@ -145,9 +147,14 @@ export default function ProgramManager({ onStartWorkout }) {
                     Set Active
                   </button>
                 )}
-                <button style={s.deleteBtn} onClick={() => handleDelete(prog.id)}>
-                  Delete
-                </button>
+                {confirmDelete === prog.id ? (
+                  <>
+                    <button style={{ ...s.deleteBtn, color: '#fff', background: 'var(--red)', border: 'none' }} onClick={() => handleDelete(prog.id)}>Confirm</button>
+                    <button style={s.setActiveBtn} onClick={() => setConfirmDelete(null)}>Cancel</button>
+                  </>
+                ) : (
+                  <button style={s.deleteBtn} onClick={() => handleDelete(prog.id)}>Delete</button>
+                )}
               </div>
             </div>
           ))

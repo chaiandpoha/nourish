@@ -10,6 +10,7 @@ const SYNC_INTERVAL_MS = 30_000
 // ─── Sync state ───────────────────────────────────────────────────────────────
 let _syncInterval = null
 let _isSyncing    = false
+let _visHandler   = null
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,7 @@ export async function initStorage(userId) {
 
 export function teardownStorage() {
   if (_syncInterval) { clearInterval(_syncInterval); _syncInterval = null }
+  if (_visHandler)   { document.removeEventListener('visibilitychange', _visHandler); _visHandler = null }
 }
 
 // ─── Supabase sync ────────────────────────────────────────────────────────────
@@ -43,9 +45,9 @@ export function startSupabaseSync(userId) {
   if (_syncInterval) clearInterval(_syncInterval)
   _syncInterval = setInterval(() => flushDirtyToSupabase(userId), SYNC_INTERVAL_MS)
 
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') flushDirtyToSupabase(userId).catch(() => {})
-  }, { once: false })
+  if (_visHandler) document.removeEventListener('visibilitychange', _visHandler)
+  _visHandler = () => { if (document.visibilityState === 'hidden') flushDirtyToSupabase(userId).catch(() => {}) }
+  document.addEventListener('visibilitychange', _visHandler)
 }
 
 export async function flushDirtyToSupabase(userId) {

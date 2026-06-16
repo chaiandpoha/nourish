@@ -276,9 +276,13 @@ export async function fetchHouseholdFoods(householdId) {
     const { sbFetchHouseholdFoods } = await import('../db/supabase.js')
     const foods = await sbFetchHouseholdFoods(householdId)
     if (!foods.length) return
+    // Never restore foods this user explicitly deleted
+    let deletedIds = new Set()
+    try { deletedIds = new Set(JSON.parse(localStorage.getItem('nourish_deleted_foods') || '[]')) } catch {}
     // Never clobber local records that have richer data than remote
     const localRecords = await db.foods.bulkGet(foods.map(f => f.id))
     const toSave = foods.filter((remote, i) => {
+      if (deletedIds.has(remote.id)) return false
       const local = localRecords[i]
       if (!local) return true
       const localHasIngredients  = Array.isArray(local.ingredients)  && local.ingredients.length  > 0
@@ -326,10 +330,11 @@ export async function pushLocalBatchesToHousehold(householdId, email) {
   if (!householdId) return
   try {
     const batches = await db.batches.toArray()
-    if (!batches.length) return
+    // Only push batches already marked as shared — never auto-promote personal batches
+    const shared = batches.filter(b => b.shared === 1 || b.shared === true)
+    if (!shared.length) return
     const { sbPushAllBatches } = await import('../db/supabase.js')
-    await sbPushAllBatches(batches, email, householdId)
-    await db.batches.toCollection().modify({ shared: 1, householdId })
+    await sbPushAllBatches(shared, email, householdId)
   } catch (e) {
     console.warn('pushLocalBatchesToHousehold error:', e)
   }

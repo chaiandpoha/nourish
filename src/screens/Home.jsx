@@ -77,7 +77,8 @@ export default function Home() {
   const [weightInput,   setWeightInput]   = useState('')
   const [weightUnit,    setWeightUnit]    = useState(() => localStorage.getItem('weightUnit') || 'lbs')
 
-  const today = localDate()
+  const [today, setToday] = useState(() => localDate())
+  const suppToggleLock = useRef(false)
 
   useEffect(() => {
     seedFoodDatabase()
@@ -92,8 +93,12 @@ export default function Home() {
 
   async function loadDashboard() {
     setLoading(true)
+    const freshToday = localDate()
+    setToday(freshToday)
+    setGreeting(getGreeting())
+    setDateLabel(getDateLabel())
     try {
-      const macros = await getDayMacros(user.id, today)
+      const macros = await getDayMacros(user.id, freshToday)
       setTotals(macros)
 
       const weights = await db.weightLog.where('userId').equals(user.id).toArray()
@@ -120,13 +125,13 @@ export default function Home() {
 
       const suppLog = await db.supplementLog
         .where('[userId+date]')
-        .equals([user.id, today])
+        .equals([user.id, freshToday])
         .first()
       setSuppDone(suppLog?.done || {})
 
       const steps = await db.stepsLog
         .where('[userId+date]')
-        .equals([user.id, today])
+        .equals([user.id, freshToday])
         .first()
       setStepsData(steps || null)
     } finally {
@@ -135,16 +140,22 @@ export default function Home() {
   }
 
   async function toggleSupplement(name) {
+    if (suppToggleLock.current) return
+    suppToggleLock.current = true
     const done = { ...suppDone, [name]: !suppDone[name] }
     setSuppDone(done)
-    const existing = await db.supplementLog
-      .where('[userId+date]')
-      .equals([user.id, today])
-      .first()
-    if (existing) {
-      await db.supplementLog.update(existing.id, { done, dirty:1, updatedAt: new Date().toISOString() })
-    } else {
-      await db.supplementLog.add({ userId:user.id, date:today, done, dirty:1, updatedAt: new Date().toISOString() })
+    try {
+      const existing = await db.supplementLog
+        .where('[userId+date]')
+        .equals([user.id, today])
+        .first()
+      if (existing) {
+        await db.supplementLog.update(existing.id, { done, dirty:1, updatedAt: new Date().toISOString() })
+      } else {
+        await db.supplementLog.add({ userId:user.id, date:today, done, dirty:1, updatedAt: new Date().toISOString() })
+      }
+    } finally {
+      suppToggleLock.current = false
     }
   }
 
@@ -504,6 +515,7 @@ function WorkoutStat({ userId, date }) {
     db.workoutLogs
       .where('[userId+date]')
       .equals([userId, date])
+      .filter(w => w.status === 'complete')
       .first()
       .then(setWorkout)
   }, [userId, date])
