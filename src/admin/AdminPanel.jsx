@@ -4,6 +4,7 @@ import { db } from '../db/indexedDB.js'
 import { sha256 } from '../auth/crypto.js'
 import { sbFetchBatches, sbCloseBatch, sbDeleteBatch } from '../db/supabase.js'
 import { localDate } from '../log/DayLog.jsx'
+import DebugPanel from './DebugPanel.jsx'
 
 export default function AdminPanel() {
   const [tab,      setTab]      = useState('members')
@@ -128,6 +129,7 @@ export default function AdminPanel() {
     { id:'usage',   label:'Usage'    },
     { id:'foods',   label:'Foods'    },
     { id:'batches', label:'Batches'  },
+    { id:'debug',   label:'Debug'    },
     { id:'danger',  label:'⚠ Danger' },
   ]
 
@@ -250,6 +252,9 @@ export default function AdminPanel() {
           ))}
         </div>
       )}
+
+      {/* Debug */}
+      {tab === 'debug' && <DebugPanel />}
 
       {/* Danger zone */}
       {tab === 'danger' && (
