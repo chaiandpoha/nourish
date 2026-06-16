@@ -75,7 +75,6 @@ export function AuthProvider({ children }) {
         if (attempts >= AUTH.maxPinAttempts) {
           const lockSeconds = AUTH.lockoutBaseSeconds * Math.pow(2, attempts - AUTH.maxPinAttempts)
           setLockoutUntil(Date.now() + lockSeconds * 1000)
-          setPinAttempts(0)
           throw new Error(`Too many attempts. Locked for ${lockSeconds}s`)
         }
         throw new Error(`Incorrect PIN. ${AUTH.maxPinAttempts - attempts} attempts remaining`)
@@ -166,8 +165,15 @@ export function AuthProvider({ children }) {
     }
   }
 
-  function logout() {
-    if (user) flushDirtyToSupabase(user.id).catch(() => {})
+  async function logout() {
+    if (user) {
+      try {
+        await Promise.race([
+          flushDirtyToSupabase(user.id),
+          new Promise(r => setTimeout(r, 3000)),
+        ])
+      } catch {}
+    }
     setUser(null)
     setEncryptionKey(null)
     setIsLocked(true)

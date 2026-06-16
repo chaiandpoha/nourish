@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
-import { addFoodLogEntry } from '../db/db.js'
+import { addFoodLogEntry, queueResync, flushDirtyToSupabase } from '../db/db.js'
 import { generateId } from '../auth/crypto.js'
 import { sumMacros } from '../food/macroCalc.js'
 import { localDate } from './DayLog.jsx'
@@ -37,6 +37,10 @@ export default function MealTemplates({ date, meal, onLogged, onClose }) {
   async function handleDelete(id) {
     await db.mealTemplates.delete(id)
     setTemplates(t => t.filter(x => x.id !== id))
+    if (user?.id) {
+      queueResync('mealTemplates', user.id, 'all')
+      flushDirtyToSupabase(user.id).catch(() => {})
+    }
   }
 
   if (screen === 'create') {

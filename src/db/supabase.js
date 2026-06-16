@@ -343,7 +343,7 @@ export async function sbLeaveHousehold(householdId, email) {
   if (!supabase) throw new Error('Supabase not configured')
   const household = await sbFetchHousehold(householdId)
   if (household.adminEmail === email) throw new Error('Transfer admin role before leaving')
-  const newMembers = household.members.filter(m => m.email !== email)
+  const newMembers = household.members.filter(m => m.email.toLowerCase() !== email.toLowerCase())
   await sbUpdateHousehold({ ...household, members: newMembers })
 }
 

@@ -9,7 +9,7 @@ import BottomNav from './shared/BottomNav.jsx'
 import { runMigrations } from './db/migrations.js'
 import { db } from './db/indexedDB.js'
 import { parseHealthClipboard } from './utils/healthSync.js'
-import { saveRemindersToCloud, saveUser } from './db/db.js'
+import { saveRemindersToCloud, saveUser, queueResync } from './db/db.js'
 import { generateId } from './auth/crypto.js'
 import HomeScreen from './screens/Home.jsx'
 import BatchList from './batches/BatchList.jsx'
@@ -926,6 +926,7 @@ function ReminderSettings({ userId }) {
   async function handleDelete(id) {
     await db.reminders.delete(id)
     await loadReminders()
+    queueResync('reminders', userId, 'all')
     saveRemindersToCloud(userId)
   }
 

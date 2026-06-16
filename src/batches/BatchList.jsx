@@ -55,8 +55,8 @@ export default function BatchList({ onLogged }) {
       }
       if (toSave.length) await db.batches.bulkPut(toSave)
 
-      // Remove household batches that were deleted remotely
-      if (remote.length > 0 && user.householdId) {
+      // Remove household batches that were deleted remotely (runs even when remote is empty)
+      if (user.householdId) {
         const remoteIds = new Set(remote.map(b => b.id))
         const localHousehold = await db.batches.toArray()
         const toRemove = localHousehold

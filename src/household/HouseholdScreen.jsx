@@ -156,6 +156,8 @@ function HouseholdSetup({ user, onDone }) {
 
 // ─── Manager: view members, share code, transfer, leave ──────────────────────
 
+const eqEmail = (a, b) => (a || '').toLowerCase() === (b || '').toLowerCase()
+
 function HouseholdManager({ user, onDone }) {
   const [household,    setHousehold]    = useState(null)
   const [loading,      setLoading]      = useState(true)
@@ -173,7 +175,7 @@ function HouseholdManager({ user, onDone }) {
     try {
       const h = await sbFetchHousehold(user.householdId)
       // If removed from members, clear householdId automatically
-      if (!h.members.some(m => m.email === user.email)) {
+      if (!h.members.some(m => eqEmail(m.email, user.email))) {
         await db.users.update(user.id, { householdId: null, dirty: 1, updatedAt: new Date().toISOString() })
         await onDone()
         return
@@ -186,8 +188,8 @@ function HouseholdManager({ user, onDone }) {
     }
   }
 
-  const isAdmin        = household?.adminEmail === user.email
-  const otherMembers   = household?.members.filter(m => m.email !== user.email) ?? []
+  const isAdmin        = eqEmail(household?.adminEmail, user.email)
+  const otherMembers   = household?.members.filter(m => !eqEmail(m.email, user.email)) ?? []
   const isSoleMember   = household?.members.length === 1
 
   async function copyCode() {
@@ -201,7 +203,7 @@ function HouseholdManager({ user, onDone }) {
     try {
       const updated = await sbUpdateHousehold({
         ...household,
-        members: household.members.filter(m => m.email !== email),
+        members: household.members.filter(m => !eqEmail(m.email, email)),
       })
       // Clear the removed member's householdId so they lose access immediately
       sbClearMemberHousehold(email).catch(() => {})
@@ -280,7 +282,7 @@ function HouseholdManager({ user, onDone }) {
       <div style={s.memberCard}>
         {household.members.map((m, i) => {
           const isLast  = i === household.members.length - 1
-          const isOwner = m.email === household.adminEmail
+          const isOwner = eqEmail(m.email, household.adminEmail)
           return (
             <div
               key={m.email}

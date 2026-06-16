@@ -122,6 +122,29 @@ export async function flushDirtyToSupabase(userId) {
       if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
     }
 
+    // Process pending resyncs — full-blob pushes triggered by record deletions
+    try {
+      const pending = JSON.parse(localStorage.getItem('nourish_pending_resyncs') || '[]')
+      if (pending.length) {
+        const remaining = []
+        for (const key of pending) {
+          const [table, uid, monthKey] = key.split(':')
+          if (uid !== userId) { remaining.push(key); continue }
+          if (!db[table]) continue
+          let data
+          if (monthKey === 'all') {
+            data = await db[table].where('userId').equals(userId).toArray().catch(() => [])
+          } else {
+            const all = await db[table].where('userId').equals(userId).toArray().catch(() => [])
+            data = all.filter(r => (r.date || r.updatedAt || '').startsWith(monthKey))
+          }
+          const ok = await sbPushUserData(userId, table, monthKey, data).then(() => true).catch(() => false)
+          if (!ok) remaining.push(key)
+        }
+        localStorage.setItem('nourish_pending_resyncs', JSON.stringify(remaining))
+      }
+    } catch {}
+
     // Profile — push if dirty (reuse profile already fetched above)
     if (profile?.dirty) {
       await sbSaveProfile(profile).catch(() => {})
@@ -138,6 +161,20 @@ export async function flushDirtyToSupabase(userId) {
 /** Convenience export — called by ReminderSettings after add/delete */
 export async function saveRemindersToCloud(userId) {
   await flushDirtyToSupabase(userId).catch(() => {})
+}
+
+/**
+ * Queue a full-table resync for a given table+month — used when a record is
+ * deleted so the deletion propagates to cloud on the next flush even when no
+ * other record in that slot is dirty.
+ */
+export function queueResync(table, userId, monthKey = 'all') {
+  try {
+    const key = `${table}:${userId}:${monthKey}`
+    const arr = JSON.parse(localStorage.getItem('nourish_pending_resyncs') || '[]')
+    if (!arr.includes(key)) arr.push(key)
+    localStorage.setItem('nourish_pending_resyncs', JSON.stringify(arr))
+  } catch {}
 }
 
 // ─── Supabase restore / full push ────────────────────────────────────────────
@@ -242,16 +279,23 @@ export async function getFoodLogForDate(userId, date) {
 }
 
 export async function addFoodLogEntry(userId, entry) {
-  return db.foodLogs.add({
+  const id = await db.foodLogs.add({
     ...entry,
     userId,
     dirty:     1,
     updatedAt: new Date().toISOString(),
   })
+  flushDirtyToSupabase(userId).catch(() => {})
+  return id
 }
 
 export async function deleteFoodLogEntry(id) {
+  const record = await db.foodLogs.get(id).catch(() => null)
   await db.foodLogs.delete(id)
+  if (record?.userId && record?.date) {
+    queueResync('foodLogs', record.userId, record.date.slice(0, 7))
+    flushDirtyToSupabase(record.userId).catch(() => {})
+  }
 }
 
 export async function updateFoodLogEntry(id, changes) {

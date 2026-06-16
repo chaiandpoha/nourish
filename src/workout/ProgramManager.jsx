@@ -3,6 +3,7 @@ import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { searchExercises } from './ExerciseDB.js'
 import { generateId } from '../auth/crypto.js'
+import { queueResync, flushDirtyToSupabase } from '../db/db.js'
 
 export default function ProgramManager({ onStartWorkout }) {
   const [programmes,     setProgrammes]     = useState([])
@@ -33,6 +34,10 @@ export default function ProgramManager({ onStartWorkout }) {
     if (confirmDelete !== progId) { setConfirmDelete(progId); return }
     setConfirmDelete(null)
     await db.programmes.delete(progId)
+    if (user?.id) {
+      queueResync('programmes', user.id, 'all')
+      flushDirtyToSupabase(user.id).catch(() => {})
+    }
     loadProgrammes()
   }
 
