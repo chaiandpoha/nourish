@@ -62,7 +62,7 @@ export default function ProgressPhotos({ userId }) {
         await db.progressPhotos.update(existing.id, { dataUrl, uploadedAt: new Date().toISOString(), dirty: 1 })
       } else {
         await db.progressPhotos.add({
-          userId, weekStart, dataUrl, driveFileId: null,
+          userId, weekStart, dataUrl,
           dirty: 1, uploadedAt: new Date().toISOString(),
         })
       }

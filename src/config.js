@@ -35,16 +35,6 @@ export const HOUSEHOLD = {
   maxMembers: parseInt(import.meta.env.VITE_MAX_HOUSEHOLD_MEMBERS || '4', 10),
 }
 
-// ─── Google Drive ────────────────────────────────────────────────────────────
-export const DRIVE = {
-  rootFolderName:       'Nourish',
-  sharedFolderName:     'shared',
-  usersFolderName:      'users',
-  syncIntervalSeconds:  30,
-  wifiOnlyPhotos:       true,
-  quotaWarningMB:       100,  // warn user if Drive free space below this
-}
-
 // ─── Macros ──────────────────────────────────────────────────────────────────
 export const MACRO_KEYS = ['calories', 'protein', 'carbs', 'fat', 'fibre']
 

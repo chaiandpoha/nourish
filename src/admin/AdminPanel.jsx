@@ -89,6 +89,25 @@ export default function AdminPanel() {
     loadAll()
   }
 
+  async function handleMergeInto(fromUserId) {
+    if (fromUserId === user.id) return
+    const tables = [
+      'foodLogs','workoutLogs','workoutSets','programmes',
+      'weightLog','bloodWork','supplementLog','moodLog',
+      'progressPhotos','mealTemplates','reminders','measurements','waterLog','stepsLog',
+    ]
+    const now = new Date().toISOString()
+    for (const t of tables) {
+      if (!db[t]) continue
+      const records = await db[t].where('userId').equals(fromUserId).toArray()
+      if (!records.length) continue
+      const updated = records.map(r => ({ ...r, userId: user.id, dirty: 1, updatedAt: now }))
+      await db[t].bulkPut(updated)
+    }
+    await db.users.delete(fromUserId)
+    loadAll()
+  }
+
   async function handleUpdateGoals(userId, goals) {
     await db.users.update(userId, {
       macroGoals: goals,
@@ -177,6 +196,7 @@ export default function AdminPanel() {
               usage={usage[profile.id]}
               onResetPin={handleResetPin}
               onDelete={handleDeleteProfile}
+              onMerge={handleMergeInto}
               onUpdateGoals={handleUpdateGoals}
               onToggleAdmin={handleToggleAdmin}
             />
@@ -313,12 +333,13 @@ export default function AdminPanel() {
 
 // ─── ProfileCard ──────────────────────────────────────────────────────────────
 
-function ProfileCard({ profile, isCurrentUser, usage, onResetPin, onDelete, onUpdateGoals, onToggleAdmin }) {
-  const [expanded,  setExpanded]  = useState(false)
-  const [newPin,    setNewPin]    = useState('')
-  const [editGoals, setEditGoals] = useState(false)
-  const [goals,     setGoals]     = useState(profile.macroGoals || {})
+function ProfileCard({ profile, isCurrentUser, usage, onResetPin, onDelete, onMerge, onUpdateGoals, onToggleAdmin }) {
+  const [expanded,   setExpanded]   = useState(false)
+  const [newPin,     setNewPin]     = useState('')
+  const [editGoals,  setEditGoals]  = useState(false)
+  const [goals,      setGoals]      = useState(profile.macroGoals || {})
   const [showDelete, setShowDelete] = useState(false)
+  const [showMerge,  setShowMerge]  = useState(false)
 
   return (
     <div style={s.card}>
@@ -426,6 +447,30 @@ function ProfileCard({ profile, isCurrentUser, usage, onResetPin, onDelete, onUp
               </button>
             </div>
           </div>
+
+          {/* Merge into current user */}
+          {!isCurrentUser && (
+            <div style={s.subsection}>
+              {!showMerge ? (
+                <button
+                  style={{ ...s.dangerBtn, color:'var(--accent)', background:'var(--accent-dim)' }}
+                  onClick={() => setShowMerge(true)}
+                >
+                  Merge data into your profile
+                </button>
+              ) : (
+                <div style={s.confirmRow}>
+                  <span style={s.confirmText}>Move all food logs, weights & workouts from {profile.name} into your profile, then delete this profile?</span>
+                  <button style={{ ...s.confirmYes, background:'var(--accent)' }} onClick={() => onMerge(profile.id)}>
+                    Yes, Merge
+                  </button>
+                  <button style={s.confirmNo} onClick={() => setShowMerge(false)}>
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Delete */}
           {!isCurrentUser && (

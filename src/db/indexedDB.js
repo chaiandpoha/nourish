@@ -17,7 +17,7 @@ db.version(DB_VERSION).stores({
   users: [
     '&id',           // userId — UUID, primary key, unique
     'name',
-    'driveFileId',   // Drive file ID for this user's profile JSON
+    'driveFileId',   // legacy — kept for migration history only
     'createdAt',
   ].join(', '),
 
@@ -124,7 +124,7 @@ db.version(DB_VERSION).stores({
   ].join(', '),
 
   // ── Progress photos metadata ─────────────────────────────────────────────
-  // Actual image stored on Drive — only metadata here
+  // Image stored as dataUrl in IndexedDB; driveFileId is a legacy unused field
   progressPhotos: [
     '++id',
     'userId',
@@ -144,7 +144,7 @@ db.version(DB_VERSION).stores({
   ].join(', '),
 
   // ── Sync state ───────────────────────────────────────────────────────────
-  // Tracks Drive file IDs and last sync timestamps per user
+  // Legacy table — kept in schema to avoid migration errors; no longer written
   syncState: [
     '&key',          // e.g. 'userId:foodLogs:2025-06' — unique composite key
     'userId',
@@ -202,7 +202,7 @@ db.version(8).stores({})
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Mark a record dirty — needs sync to Drive */
+/** Mark a record dirty — will be picked up by next Supabase flush */
 export async function markDirty(table, id) {
   await db[table].update(id, { dirty: 1, updatedAt: new Date().toISOString() })
 }
@@ -220,7 +220,7 @@ export async function getDirtyRecords(table, userId) {
     )
 }
 
-/** Clear dirty flag after successful Drive sync */
+/** Clear dirty flag after successful Supabase sync */
 export async function clearDirty(table, ids) {
   await db[table].bulkUpdate(ids.map(id => ({
     key: id,
