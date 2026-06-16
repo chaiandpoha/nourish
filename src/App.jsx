@@ -11,7 +11,6 @@ import { db } from './db/indexedDB.js'
 import { parseHealthClipboard } from './utils/healthSync.js'
 import { saveRemindersToCloud, saveUser } from './db/db.js'
 import { generateId } from './auth/crypto.js'
-import { DRIVE } from './config.js'
 import HomeScreen from './screens/Home.jsx'
 import BatchList from './batches/BatchList.jsx'
 import WeightLog from './progress/WeightLog.jsx'
@@ -61,7 +60,7 @@ export default function App() {
     const isReauthWindow = window.name === 'nourish_silent_reauth' || window.name === 'nourish_reauth'
 
     if (hash.includes('access_token')) {
-      import('./db/driveApi.js').then(async ({ parseOAuthCallback, fetchUserInfo }) => {
+      import('./db/authApi.js').then(async ({ parseOAuthCallback, fetchUserInfo }) => {
         let success = false
         try {
           parseOAuthCallback()
@@ -121,7 +120,7 @@ export default function App() {
         <HashRouter>
           {dbWasRebuilt && (
             <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:9999, background:'#FF9500', color:'#000', padding:'10px 16px', fontSize:'13px', textAlign:'center' }}>
-              Database rebuilt after an upgrade error — sign in with Google to restore your data from Drive.
+              Database rebuilt after an upgrade error — sign in to restore your data from the cloud.
             </div>
           )}
           <AppRoutes />
@@ -133,87 +132,18 @@ export default function App() {
 }
 
 function StartupErrorScreen({ error }) {
-  const [backup,   setBackup]   = useState(null)  // null | 'checking' | { months:[] } | 'no-token' | 'error'
-  const hasDriveToken = !!localStorage.getItem('drive_admin_token')
-
-  async function checkBackup() {
-    setBackup('checking')
-    try {
-      const { isTokenValid, findFolder, listFiles, listFolders } = await import('./db/driveApi.js')
-      if (!isTokenValid()) { setBackup('no-token'); return }
-      const root = await findFolder('Nourish')
-      if (!root) { setBackup({ months: [], tables: [] }); return }
-      const users = await findFolder('users', root)
-      if (!users) { setBackup({ months: [], tables: [] }); return }
-
-      // Scan ALL user folders — don't guess the email key, it might differ from identity
-      const allUserFolders = await listFolders(users)
-      let foundMonths = [], foundTables = [], foundIn = null
-      for (const uf of allUserFolders) {
-        const topFiles = await listFiles(uf.id)
-        const tables   = topFiles.map(f => f.name).filter(n => n.endsWith('.json') && n !== 'profile.json')
-        const foodDir  = await findFolder('foodLogs', uf.id)
-        let months = []
-        if (foodDir) {
-          const files = await listFiles(foodDir)
-          months = files.filter(f => f.name.startsWith('foodLogs_')).map(f =>
-            f.name.replace('foodLogs_', '').replace('.json', '')
-          )
-        }
-        if (months.length || tables.length) {
-          foundMonths = months
-          foundTables = tables
-          foundIn     = uf.name
-          break
-        }
-      }
-      setBackup({ months: foundMonths, tables: foundTables, foundIn })
-    } catch (e) {
-      setBackup('error')
-    }
-  }
-
   const doReset = () => { indexedDB.deleteDatabase('nourish'); window.location.reload() }
-
   const s = styles
   return (
     <div style={s.splash}>
       <div style={{ fontSize:'52px' }}>⚠️</div>
       <p style={s.splashText}>Startup error</p>
       <p style={s.splashSub}>{error}</p>
-
-      {backup === null && hasDriveToken && (
-        <button style={s.retryBtn} onClick={checkBackup}>Check Drive backup first</button>
-      )}
-      {backup === 'checking' && (
-        <p style={s.splashSub}>Checking Drive…</p>
-      )}
-      {backup && typeof backup === 'object' && (
-        backup.months?.length > 0 ? (
-          <div style={{ background:'#1a2e1a', border:'1px solid #34C759', borderRadius:'12px', padding:'12px 16px', maxWidth:'300px' }}>
-            <p style={{ color:'#34C759', fontSize:'13px', fontWeight:'700', margin:'0 0 4px' }}>✓ Drive backup found — safe to reset</p>
-            {backup.foundIn && <p style={{ color:'#aaa', fontSize:'11px', margin:'0 0 4px' }}>Folder: {backup.foundIn}</p>}
-            <p style={{ color:'#aaa', fontSize:'12px', margin:0 }}>Food logs: {backup.months.join(', ')}</p>
-            {backup.tables?.length > 0 && <p style={{ color:'#aaa', fontSize:'12px', margin:'2px 0 0' }}>Also: {backup.tables.join(', ')}</p>}
-          </div>
-        ) : (
-          <p style={{ ...s.splashSub, color:'#FF9500' }}>⚠ No food logs found in Drive — reset may lose data</p>
-        )
-      )}
-      {backup === 'no-token' && (
-        <p style={{ ...s.splashSub, color:'#FF9500' }}>Drive token expired — can't verify backup. Sign in as admin first if possible.</p>
-      )}
-      {backup === 'error' && (
-        <p style={{ ...s.splashSub, color:'#FF3B30' }}>Could not reach Drive to check backup.</p>
-      )}
-
       <button style={s.retryBtn} onClick={() => window.location.reload()}>Retry</button>
       <button style={s.resetBtn} onClick={doReset}>Reset local data</button>
-      {!backup && (
-        <p style={{ ...s.splashSub, fontSize:'11px', marginTop:'2px' }}>
-          {hasDriveToken ? 'Check Drive backup above before resetting.' : 'Profile and household data restore from cloud. Personal logs on this device only may be lost.'}
-        </p>
-      )}
+      <p style={{ ...s.splashSub, fontSize:'11px', marginTop:'2px' }}>
+        Profile and household data restore from the cloud after reset. Personal logs may be lost.
+      </p>
     </div>
   )
 }
@@ -232,8 +162,6 @@ function AppRoutes() {
   return (
     <>
       <ReminderChecker />
-      <QuotaChecker />
-      <DriveReauthWatcher />
       <HealthClipboardSync />
       <Routes>
         <Route path="/admin-login"   element={<AdminLogin />} />
@@ -265,11 +193,10 @@ function AuthCallbackScreen() {
   const { loginWithGoogle, isLoading } = useAuth()
   const navigate = useNavigate()
 
-  // Wait for isLoading=false so restoreToken() has run and getUserEmail() is populated
   useEffect(() => {
     if (isLoading) return
     ;(async () => {
-      const { getUserEmail, getUserName } = await import('./db/driveApi.js')
+      const { getUserEmail, getUserName } = await import('./db/authApi.js')
       const email = getUserEmail()
       if (!email) {
         // OAuth was interrupted (Google security prompts, user navigated away, etc.)
@@ -338,76 +265,6 @@ function ProtectedApp() {
 function ChatScreen() {
   const navigate = useNavigate()
   return <MealChat onClose={() => navigate('/')} />
-}
-
-function DriveReauthWatcher() {
-  const { user, encryptionKey } = useAuth()
-  const fallbackTimer = useRef(null)
-  const retryTimer    = useRef(null)
-
-  useEffect(() => {
-    if (!user || !encryptionKey) return
-
-    async function attemptSilentReauth() {
-      const { silentReauth } = await import('./db/driveApi.js')
-      silentReauth()
-      clearTimeout(fallbackTimer.current)
-      // If popup doesn't respond in 30s, retry silently in 3 minutes
-      fallbackTimer.current = setTimeout(scheduleRetry, 30_000)
-    }
-
-    function scheduleRetry() {
-      clearTimeout(retryTimer.current)
-      retryTimer.current = setTimeout(attemptSilentReauth, 3 * 60 * 1000)
-    }
-
-    async function onReauthDone(e) {
-      if (e.origin !== window.location.origin || e.data?.type !== 'nourish:reauth-done') return
-      clearTimeout(fallbackTimer.current)
-      if (!e.data.success) {
-        // Silent reauth needs interaction — retry quietly in 3 minutes
-        scheduleRetry()
-        return
-      }
-      clearTimeout(retryTimer.current)
-      const { flushDirtyRecords } = await import('./db/db.js')
-      flushDirtyRecords(user.id, encryptionKey)
-      scheduleProactiveRefresh()
-    }
-
-    async function scheduleProactiveRefresh() {
-      const { isTokenValid, getAdminTokenExpiry } = await import('./db/driveApi.js')
-      // isTokenValid() reloads _adminToken/_adminExpiry from localStorage —
-      // necessary because the popup writes the new token to localStorage but
-      // the parent window's in-memory state stays stale until reloaded.
-      isTokenValid()
-      const expiry = getAdminTokenExpiry()
-      if (!expiry) return
-      const delay = expiry - Date.now() - 5 * 60 * 1000
-      if (delay > 0) setTimeout(attemptSilentReauth, delay)
-    }
-
-    async function onVisible() {
-      if (document.visibilityState !== 'visible') return
-      const { isTokenValid } = await import('./db/driveApi.js')
-      if (!isTokenValid()) attemptSilentReauth()
-    }
-
-    window.addEventListener('nourish:drive-token-expired', attemptSilentReauth)
-    window.addEventListener('message', onReauthDone)
-    document.addEventListener('visibilitychange', onVisible)
-    scheduleProactiveRefresh()
-
-    return () => {
-      clearTimeout(fallbackTimer.current)
-      clearTimeout(retryTimer.current)
-      window.removeEventListener('nourish:drive-token-expired', attemptSilentReauth)
-      window.removeEventListener('message', onReauthDone)
-      document.removeEventListener('visibilitychange', onVisible)
-    }
-  }, [user?.id, encryptionKey])
-
-  return null
 }
 
 function ReminderChecker() {
@@ -522,24 +379,6 @@ async function checkReminders(userId, addBanner) {
   } catch (e) {
     console.warn('Reminder check error:', e)
   }
-}
-
-function QuotaChecker() {
-  const { user, encryptionKey } = useAuth()
-  const { addBanner } = useBanners()
-  useEffect(() => {
-    if (!user || !encryptionKey) return
-    import('./db/driveApi.js').then(({ checkQuota, isTokenValid }) => {
-      if (!isTokenValid()) return
-      checkQuota().then(quota => {
-        const availableMB = quota.available / 1024 / 1024
-        if (availableMB < DRIVE.quotaWarningMB) {
-          addBanner({ type: 'quota', message: `Google Drive storage low — ${availableMB.toFixed(0)}MB remaining`, onDismiss: () => {} })
-        }
-      }).catch(() => {})
-    })
-  }, [user?.id])
-  return null
 }
 
 function FoodScreen() {
@@ -680,7 +519,6 @@ function SettingsScreen() {
         <>
           <ProfileEditor user={user} onSaved={refreshUser} />
           <ThemeToggle />
-          <DriveRestoreSection userId={user?.id} encryptionKey={encryptionKey} userEmail={user?.email} />
           <ExportData userId={user?.id} />
           {user?.pinHash && (
             <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
@@ -1349,113 +1187,6 @@ const th = {
   group:     { display:'flex', background:'var(--bg-elevated)', borderRadius:'var(--r-md)', padding:'3px', gap:'2px' },
   btn:       { padding:'6px 14px', background:'transparent', border:'none', borderRadius:'9px', fontSize:'13px', fontWeight:'500', color:'var(--text-secondary)', cursor:'pointer' },
   btnActive: { background:'var(--bg-surface)', color:'var(--text-primary)', boxShadow:'0 1px 3px rgba(0,0,0,0.1)' },
-}
-
-// ─── DriveRestoreSection ─────────────────────────────────────────────────────
-
-function DriveRestoreSection({ userId, encryptionKey, userEmail }) {
-  const [status,  setStatus]  = useState(null) // null | 'restoring' | 'success' | 'empty' | 'expired' | 'error' | 'diagnosing'
-  const [msg,     setMsg]     = useState('')
-  const [diag,    setDiag]    = useState(null)
-
-  async function handleDiagnose() {
-    setStatus('diagnosing'); setDiag(null)
-    try {
-      const { isTokenValid, diagnoseDriveFolders } = await import('./db/driveApi.js')
-      if (!isTokenValid()) { setStatus('expired'); return }
-      const result = await diagnoseDriveFolders(userEmail)
-      setDiag(result)
-      setStatus('empty')
-    } catch (e) {
-      setStatus('error'); setMsg(e.message)
-    }
-  }
-
-  async function handleRestore() {
-    setStatus('restoring'); setMsg('')
-    try {
-      const { isTokenValid } = await import('./db/driveApi.js')
-      if (!isTokenValid()) {
-        setStatus('expired')
-        return
-      }
-      const { restoreFromDrive } = await import('./db/db.js')
-      // Pass email so Drive looks in the correct folder (keyed by email, not UUID)
-      const count = await restoreFromDrive(userId, encryptionKey, null, userEmail)
-      if (count > 0) {
-        setStatus('success')
-        setMsg(`Restored ${count} records. Reloading…`)
-        setTimeout(() => window.location.reload(), 2500)
-      } else {
-        setStatus('empty')
-        setMsg('Drive folders found but no data files detected.')
-      }
-    } catch (e) {
-      setStatus('error')
-      setMsg(e.message)
-    }
-  }
-
-  return (
-    <div style={{ background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', padding:'14px 16px', display:'flex', flexDirection:'column', gap:'10px' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div>
-          <div style={{ fontSize:'15px', fontWeight:'500', color:'var(--text-primary)' }}>Restore from Google Drive</div>
-          <div style={{ fontSize:'12px', color:'var(--text-tertiary)', marginTop:'2px' }}>Re-download your data if local storage was cleared</div>
-        </div>
-      </div>
-
-      {status === 'expired' && (
-        <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-          <p style={{ fontSize:'13px', color:'var(--red)', margin:0 }}>Drive session expired — sign in again to restore.</p>
-          <button
-            style={{ padding:'10px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'13px', fontWeight:'600', cursor:'pointer' }}
-            onClick={() => import('./db/driveApi.js').then(({ initiateOAuthFlow }) => initiateOAuthFlow())}
-          >
-            Reconnect Google Drive
-          </button>
-        </div>
-      )}
-
-      {status === 'success' && (
-        <p style={{ fontSize:'13px', color:'var(--accent)', margin:0, fontWeight:'600' }}>{msg}</p>
-      )}
-
-      {(status === 'empty' || status === 'error') && msg && (
-        <p style={{ fontSize:'13px', color:'var(--red)', margin:0 }}>{msg}</p>
-      )}
-
-      {diag && (
-        <div style={{ background:'var(--bg-elevated)', borderRadius:'var(--r-md)', padding:'10px', fontSize:'12px', fontFamily:'var(--font-mono)', color:'var(--text-secondary)', display:'flex', flexDirection:'column', gap:'4px', maxHeight:'200px', overflowY:'auto' }}>
-          {diag.error && <span style={{ color:'var(--red)' }}>{diag.error}</span>}
-          <span>User folders: {diag.userFolders?.join(', ') || '(none)'}</span>
-          {diag.files?.length > 0
-            ? diag.files.map((f, i) => <span key={i}>{f}</span>)
-            : <span style={{ color:'var(--red)' }}>No files found in any subfolder</span>
-          }
-        </div>
-      )}
-
-      {status !== 'expired' && status !== 'success' && (
-        <div style={{ display:'flex', gap:'8px' }}>
-          <button
-            style={{ flex:1, padding:'10px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer', opacity: (status === 'restoring' || status === 'diagnosing') ? 0.6 : 1 }}
-            onClick={handleRestore}
-            disabled={status === 'restoring' || status === 'diagnosing'}
-          >
-            {status === 'restoring' ? 'Restoring…' : 'Restore from Drive'}
-          </button>
-          <button
-            style={{ padding:'10px 14px', background:'var(--bg-elevated)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'13px', cursor:'pointer', opacity: (status === 'restoring' || status === 'diagnosing') ? 0.6 : 1 }}
-            onClick={handleDiagnose}
-            disabled={status === 'restoring' || status === 'diagnosing'}
-          >
-            {status === 'diagnosing' ? '…' : 'Diagnose'}
-          </button>
-        </div>
-      )}
-    </div>
-  )
 }
 
 // ─── ExportData ───────────────────────────────────────────────────────────────

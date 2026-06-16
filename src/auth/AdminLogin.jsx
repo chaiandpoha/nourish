@@ -17,17 +17,16 @@ export default function AdminLogin() {
     setLoading(true)
     setError('')
     try {
-      const { isTokenValid, initiateOAuthFlow } = await import('../db/driveApi.js')
+      const { initiateOAuthFlow } = await import('../db/authApi.js')
       const users = await db.users.toArray()
 
-      if (users.length === 0 || !isTokenValid()) {
-        // No profile or Drive token expired — OAuth refreshes the token and
-        // restores the profile via AuthCallbackScreen → loginWithGoogle
+      if (users.length === 0) {
+        // No local profile — sign in with Google to create one
         initiateOAuthFlow()
         return // page redirects to Google, setLoading stays true intentionally
       }
 
-      // Profile exists and Drive token is valid — log in directly
+      // Profile exists — log in directly
       const target =
         users.find(u => u.isAdmin) ||
         (ADMIN_EMAIL && users.find(u => (u.email || '').toLowerCase() === ADMIN_EMAIL)) ||

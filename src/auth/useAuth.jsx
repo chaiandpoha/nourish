@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { sha256, deriveKey, generateId } from './crypto.js'
 import { db } from '../db/indexedDB.js'
-import { initStorage, teardownStorage, flushDirtyRecords } from '../db/db.js'
+import { initStorage, teardownStorage, flushDirtyToSupabase } from '../db/db.js'
 import { AUTH } from '../config.js'
 
 const AuthContext = createContext(null)
@@ -24,11 +24,7 @@ export function AuthProvider({ children }) {
   const activityEvents = ['touchstart', 'mousedown', 'keydown']
 
   useEffect(() => {
-    ;(async () => {
-      const { restoreToken } = await import('../db/driveApi.js')
-      restoreToken()
-      setIsLoading(false)
-    })()
+    setIsLoading(false)
   }, [])
 
   const resetAutoLockTimer = useCallback(() => {
@@ -137,7 +133,6 @@ export function AuthProvider({ children }) {
     setIsLocked(false)
 
     // Persist a minimal profile backup to localStorage — survives IndexedDB rebuilds
-    // so loginWithGoogle can restore the profile even without Drive or Supabase
     try {
       localStorage.setItem('nourish_profile_backup', JSON.stringify({
         id:              profile.id,
@@ -154,7 +149,7 @@ export function AuthProvider({ children }) {
       }))
     } catch {}
 
-    // Household sync runs independently of Drive — Supabase only needs network
+    // Household sync — Supabase only, needs network
     if (profile.householdId) {
       const { fetchHouseholdFoods, pushLocalFoodsToHousehold, pushLocalBatchesToHousehold } = await import('../food/FoodDB.js')
       fetchHouseholdFoods(profile.householdId).catch(e => console.warn('Household fetch:', e))
@@ -163,29 +158,14 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      const { isTokenValid, restoreToken, getUserEmail: getDriveEmail, getAdminEmail } = await import('../db/driveApi.js')
-      if (!isTokenValid()) restoreToken()
-      if (isTokenValid()) {
-        // Drive folder is keyed by whichever email created it — try known candidates
-        const envAdmin   = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
-        const driveEmail = getAdminEmail() || envAdmin || getDriveEmail() || profile.email
-        await initStorage(profile.id, key, driveEmail, profile.householdId)
-      } else {
-        // No Drive token — Supabase is the only sync backend (non-admin users, expired token)
-        const { restoreFromSupabase, startSupabaseSync, pushAllLocalDataToSupabase } = await import('../db/db.js')
-        restoreFromSupabase(profile.id).catch(e => console.warn('Supabase restore error:', e.message))
-        pushAllLocalDataToSupabase(profile.id).catch(() => {})
-        startSupabaseSync(profile.id)
-      }
+      await initStorage(profile.id, profile.householdId)
     } catch (e) {
       console.warn('Storage init error:', e.message)
     }
   }
 
   function logout() {
-    if (user && encryptionKey) {
-      flushDirtyRecords(user.id, encryptionKey).catch(() => {})
-    }
+    if (user) flushDirtyToSupabase(user.id).catch(() => {})
     setUser(null)
     setEncryptionKey(null)
     setIsLocked(true)
@@ -196,15 +176,12 @@ export function AuthProvider({ children }) {
   }
 
   function lock() {
-    if (user && encryptionKey) {
-      flushDirtyRecords(user.id, encryptionKey).catch(() => {})
-    }
+    if (user) flushDirtyToSupabase(user.id).catch(() => {})
     setUser(null)
     setEncryptionKey(null)
     setIsLocked(true)
     teardownStorage()
     if (autoLockTimer.current) clearTimeout(autoLockTimer.current)
-    // Force route to profile selector
     window.location.hash = '#/'
   }
 
@@ -216,12 +193,7 @@ export function AuthProvider({ children }) {
     let profile = await db.users.where('email').equals(normalEmail).first()
     let isNew   = false
 
-    // 2. Try Drive restore if not local
-    if (!profile) {
-      profile = await _tryRestoreByEmail(normalEmail)
-    }
-
-    // 3. Try Supabase profile restore (works on new devices without admin Drive token)
+    // 2. Try Supabase profile restore (works on new devices)
     if (!profile) {
       const { sbFetchProfile } = await import('../db/supabase.js')
       const sp = await sbFetchProfile(normalEmail).catch(() => null)
@@ -231,7 +203,7 @@ export function AuthProvider({ children }) {
       }
     }
 
-    // 3b. Profile found but householdId missing — look it up from households table
+    // 3. Profile found but householdId missing — look it up
     if (profile && !profile.householdId) {
       try {
         const { sbFetchUserHousehold } = await import('../db/supabase.js')
@@ -246,7 +218,7 @@ export function AuthProvider({ children }) {
       }
     }
 
-    // 3c. Try localStorage backup — written by completeLogin, survives IndexedDB rebuilds
+    // 4. Try localStorage backup — survives IndexedDB rebuilds
     if (!profile) {
       try {
         const backup = JSON.parse(localStorage.getItem('nourish_profile_backup') || 'null')
@@ -266,9 +238,7 @@ export function AuthProvider({ children }) {
       }
     }
 
-    // 3d. Email is in a household — definitely an existing user, not a new one.
-    // Create a stub profile so they skip onboarding; their food log data will
-    // restore from Supabase/Drive after completeLogin runs.
+    // 5. Email is in a household — definitely existing user, create stub to skip onboarding
     if (!profile) {
       try {
         const { sbFetchUserHousehold } = await import('../db/supabase.js')
@@ -282,7 +252,6 @@ export function AuthProvider({ children }) {
             isAdmin:    normalEmail === adminEmail,
             householdId: hid,
           })
-          // isNew stays false — we know this is an existing user
           console.log('[auth] profile created for known household member', hid)
         }
       } catch (e) {
@@ -290,7 +259,7 @@ export function AuthProvider({ children }) {
       }
     }
 
-    // 4. Truly new user — create fresh profile
+    // 6. Truly new user — create fresh profile
     if (!profile) {
       const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
       profile = await createProfile({
@@ -314,52 +283,7 @@ export function AuthProvider({ children }) {
     return { ...profile, _isNew: isNew }
   }
 
-  async function _tryRestoreByEmail(email) {
-    try {
-      const { isTokenValid, findFolder, findFile, readFile, listFolders } = await import('../db/driveApi.js')
-      if (!isTokenValid()) return null
-      const nourishId = await findFolder('Nourish', 'root')
-      if (!nourishId) return null
-      const usersId = await findFolder('users', nourishId)
-      if (!usersId) return null
-
-      // Try direct folder name match first (fast path)
-      let userDirId = await findFolder(email, usersId)
-
-      // If not found by name, scan all user folders and match by profile.json email.
-      // This handles cases where the folder was created under a different email alias.
-      if (!userDirId) {
-        const allFolders = await listFolders(usersId)
-        for (const folder of allFolders) {
-          try {
-            const pf  = await findFile('profile.json', folder.id)
-            if (!pf) continue
-            const raw = await readFile(pf.id)
-            if (!raw) continue
-            const p   = typeof raw === 'string' ? JSON.parse(raw) : raw
-            if (p?.email?.toLowerCase() === email.toLowerCase()) {
-              userDirId = folder.id
-              break
-            }
-          } catch {}
-        }
-      }
-
-      if (!userDirId) return null
-      const profileFile = await findFile('profile.json', userDirId)
-      if (!profileFile) return null
-      const raw = await readFile(profileFile.id)
-      if (!raw) return null
-      const p = typeof raw === 'string' ? JSON.parse(raw) : raw
-      await db.users.put({ ...p, dirty: 0 })
-      return p
-    } catch (e) {
-      console.warn('Drive profile search failed:', e)
-    }
-    return null
-  }
-
-  async function createProfile({ name, email, pin, passphrase, avatarInitials, height, startWeight, macroGoals, supplements, skipPin, isAdmin }) {
+  async function createProfile({ name, email, pin, passphrase, avatarInitials, height, startWeight, macroGoals, supplements, skipPin, isAdmin, householdId }) {
     const id             = generateId()
     const pinHash        = (skipPin || !pin) ? null : await sha256(pin)
     const encryptionSalt = generateId()
@@ -377,6 +301,7 @@ export function AuthProvider({ children }) {
       biometricCredentialId: null,
       height,
       startWeight,
+      householdId:     householdId || null,
       macroGoals: macroGoals || { calories: 2000, protein: 150, carbs: 200, fat: 65, fibre: 30 },
       supplements: supplements || [],
       aiInstructions: 'Suggest vegetarian Indian meals. Prioritise high protein foods like paneer, dal, curd, sprouts and eggs. Keep suggestions practical and easy to make.',
@@ -392,8 +317,6 @@ export function AuthProvider({ children }) {
     }
 
     await db.users.put(profile)
-
-    // Push to Supabase so it's restorable on new devices
     import('../db/supabase.js').then(({ sbSaveProfile }) => sbSaveProfile(profile)).catch(() => {})
 
     return profile

@@ -1,23 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '../db/indexedDB.js'
 import { useAuth } from '../auth/useAuth.jsx'
-import { isTokenValid, initiateOAuthFlow } from '../db/driveApi.js'
 
 const TABLES = ['foodLogs', 'workoutLogs', 'weightLog', 'measurements', 'supplementLog']
 
 export default function SyncStatus() {
   const { user } = useAuth()
-  const [status,      setStatus]      = useState('synced') // 'synced' | 'pending' | 'disconnected'
-  const [lastSync,    setLastSync]    = useState(null)
-  const [open,        setOpen]        = useState(false)
+  const [status,   setStatus]   = useState('synced') // 'synced' | 'pending'
+  const [lastSync, setLastSync] = useState(null)
+  const [open,     setOpen]     = useState(false)
 
   const checkStatus = useCallback(async () => {
     if (!user) return
     try {
-      if (!isTokenValid()) {
-        setStatus('disconnected')
-        return
-      }
       let dirty = 0
       for (const t of TABLES) {
         if (!db[t]) continue
@@ -26,13 +21,9 @@ export default function SyncStatus() {
       }
       setStatus(dirty > 0 ? 'pending' : 'synced')
 
-      const states = await db.syncState.where('userId').equals(user.id).toArray()
-      if (states.length) {
-        const latest = states.sort((a, b) =>
-          (b.lastSyncAt || '').localeCompare(a.lastSyncAt || '')
-        )[0]
-        setLastSync(latest.lastSyncAt)
-      }
+      // Show last time something was synced (from any table)
+      const profileDirty = await db.users.get(user.id).then(u => u?.dirty).catch(() => 0)
+      if (dirty === 0 && !profileDirty) setLastSync(new Date().toISOString())
     } catch {}
   }, [user?.id])
 
@@ -42,19 +33,18 @@ export default function SyncStatus() {
     return () => clearInterval(interval)
   }, [checkStatus])
 
-  const color = status === 'synced' ? '#34C759' : status === 'disconnected' ? '#FF3B30' : '#FF9500'
+  const color = status === 'synced' ? '#34C759' : '#FF9500'
 
   function fmtTime(iso) {
-    if (!iso) return 'Never'
-    const d = new Date(iso)
-    const now = new Date()
-    const diffMs = now - d
+    if (!iso) return 'Just now'
+    const d      = new Date(iso)
+    const diffMs = Date.now() - d
     const diffMin = Math.round(diffMs / 60000)
     if (diffMin < 1)  return 'Just now'
     if (diffMin < 60) return `${diffMin}m ago`
     const diffH = Math.round(diffMin / 60)
     if (diffH < 24)   return `${diffH}h ago`
-    return d.toLocaleDateString('en-IN', { day:'numeric', month:'short' })
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
   }
 
   return (
@@ -77,18 +67,10 @@ export default function SyncStatus() {
             <div style={styles.popoverRow}>
               <div style={{ ...styles.dot, background: color }} />
               <span style={styles.popoverStatus}>
-                {status === 'synced'       ? 'Synced to Drive'     :
-                 status === 'disconnected' ? 'Drive not connected' :
-                                            'Sync pending'}
+                {status === 'synced' ? 'Synced to cloud' : 'Sync pending'}
               </span>
             </div>
-            {status === 'disconnected' ? (
-              <button style={styles.connectBtn} onClick={() => { setOpen(false); initiateOAuthFlow() }}>
-                Connect Google Drive
-              </button>
-            ) : (
-              <div style={styles.popoverSub}>Last sync: {fmtTime(lastSync)}</div>
-            )}
+            <div style={styles.popoverSub}>Last sync: {fmtTime(lastSync)}</div>
           </div>
         </>
       )}
@@ -114,11 +96,11 @@ const styles = {
     lineHeight: 1,
   },
   icon: {
-    position:  'absolute',
-    fontSize:  '9px',
-    fontWeight:'900',
-    bottom:    '2px',
-    right:     '1px',
+    position:   'absolute',
+    fontSize:   '9px',
+    fontWeight: '900',
+    bottom:     '2px',
+    right:      '1px',
     lineHeight: 1,
     textShadow: '0 0 3px var(--bg-base)',
   },
@@ -128,19 +110,19 @@ const styles = {
     zIndex:   60,
   },
   popover: {
-    position:     'absolute',
-    right:        0,
-    top:          '36px',
-    background:   'var(--bg-surface)',
-    border:       '0.5px solid var(--border-subtle)',
-    borderRadius: 'var(--r-lg)',
-    padding:      '12px 14px',
-    zIndex:       61,
-    minWidth:     '180px',
-    boxShadow:    '0 4px 16px rgba(0,0,0,0.1)',
-    display:      'flex',
-    flexDirection:'column',
-    gap:          '4px',
+    position:      'absolute',
+    right:         0,
+    top:           '36px',
+    background:    'var(--bg-surface)',
+    border:        '0.5px solid var(--border-subtle)',
+    borderRadius:  'var(--r-lg)',
+    padding:       '12px 14px',
+    zIndex:        61,
+    minWidth:      '180px',
+    boxShadow:     '0 4px 16px rgba(0,0,0,0.1)',
+    display:       'flex',
+    flexDirection: 'column',
+    gap:           '4px',
   },
   popoverRow: {
     display:    'flex',
@@ -162,17 +144,5 @@ const styles = {
     fontSize:    '12px',
     color:       'var(--text-tertiary)',
     paddingLeft: '16px',
-  },
-  connectBtn: {
-    marginTop:    '8px',
-    padding:      '8px 12px',
-    background:   'var(--accent-dim)',
-    border:       '1px solid var(--accent)',
-    borderRadius: 'var(--r-md)',
-    color:        'var(--accent)',
-    fontSize:     '13px',
-    fontWeight:   '600',
-    cursor:       'pointer',
-    width:        '100%',
   },
 }

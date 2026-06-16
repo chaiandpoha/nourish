@@ -455,19 +455,11 @@ function ProfileCard({ profile, isCurrentUser, usage, onResetPin, onDelete, onUp
 
 function FactoryReset() {
   const [confirm,      setConfirm]      = useState(false)
-  const [wipeDrive,    setWipeDrive]    = useState(true)
   const [wiping,       setWiping]       = useState(false)
 
   async function handleWipe() {
     setWiping(true)
     try {
-      // Disconnect Drive token so old data isn't restored on next login
-      if (wipeDrive) {
-        const { clearAccessToken, clearAdminToken } = await import('../db/driveApi.js').catch(() => ({}))
-        clearAccessToken?.()
-        clearAdminToken?.()
-      }
-
       const tables = [
         'users','foods','batches',
         'foodLogs','weightLog','supplementLog','moodLog','bloodWork',
@@ -492,22 +484,8 @@ function FactoryReset() {
         <div style={{ padding:'16px', display:'flex', flexDirection:'column', gap:'12px' }}>
           <div style={{ fontSize:'15px', fontWeight:'600', color:'var(--red)' }}>Factory Reset</div>
           <p style={{ fontSize:'13px', color:'var(--text-secondary)', margin:0 }}>
-            Wipes ALL data from this device. Enable the option below to also disconnect Drive so old data isn't automatically restored on next login.
+            Wipes ALL data from this device. Your profile and household data will restore from the cloud on next sign-in.
           </p>
-
-          {/* Disconnect Drive toggle */}
-          <button
-            style={{ display:'flex', alignItems:'center', gap:'10px', background: wipeDrive ? 'rgba(200,80,64,0.08)' : 'var(--bg-elevated)', border:`1px solid ${wipeDrive ? 'var(--red)' : 'var(--border-default)'}`, borderRadius:'var(--r-md)', padding:'10px 12px', cursor:'pointer', textAlign:'left' }}
-            onClick={() => setWipeDrive(v => !v)}
-          >
-            <div style={{ width:'20px', height:'20px', borderRadius:'4px', background: wipeDrive ? 'var(--red)' : 'transparent', border: wipeDrive ? 'none' : '2px solid var(--border-strong)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-              {wipeDrive && <span style={{ color:'#fff', fontSize:'12px', fontWeight:'700' }}>✓</span>}
-            </div>
-            <div>
-              <div style={{ fontSize:'13px', fontWeight:'600', color:'var(--text-primary)' }}>Disconnect Google Drive</div>
-              <div style={{ fontSize:'11px', color:'var(--text-tertiary)' }}>Prevents old data from being restored automatically</div>
-            </div>
-          </button>
 
           {!confirm ? (
             <button style={s.dangerBtn} onClick={() => setConfirm(true)}>

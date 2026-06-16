@@ -1,530 +1,204 @@
-// Storage adapter — single interface over IndexedDB + Google Drive
-// All features import from here — never import driveApi or indexedDB directly
+// Storage adapter — IndexedDB + Supabase cloud sync
+// All features import from here — never import indexedDB or supabase directly
 
-import { db, markDirty, getDirtyRecords, clearDirty } from './indexedDB.js'
+import { db, getDirtyRecords, clearDirty } from './indexedDB.js'
 import { localDate } from '../log/DayLog.jsx'
-import {
-  isTokenValid,
-  readFile,
-  writeFile,
-  findFile,
-  listFiles,
-  listFolders,
-  ensureFolderStructure,
-  findFolderStructure,
-  searchFilesByPrefix,
-  getUserEmail as getDriveEmail,
-  getAdminEmail,
-  checkQuota,
-} from './driveApi.js'
-import { DRIVE, MACRO_KEYS } from '../config.js'
-import { shouldBackup, markBackupDone } from './syncManager.js'
+import { MACRO_KEYS } from '../config.js'
+
+const SYNC_INTERVAL_MS = 30_000
 
 // ─── Sync state ───────────────────────────────────────────────────────────────
-let _syncInterval          = null
-let _sbSyncInterval        = null   // Supabase-only sync for non-admin users
-let _isSyncing             = false
-let _isSbSyncing           = false
-let _folderIds             = {}   // cached folder IDs per user
-let _tokenExpiredNotified  = false
+let _syncInterval = null
+let _isSyncing    = false
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
-/**
- * Called after successful login.
- * Builds Drive folder structure, loads shared data, starts sync interval.
- */
-export async function initStorage(userId, encryptionKey, userEmail, householdId) {
-  try {
-    // Build / verify folder structure in admin's Drive (keyed by email)
-    _folderIds = await ensureFolderStructure(userEmail || userId)
-  } catch (e) {
-    console.error('Failed to create Drive folders:', e)
-    return { quotaWarning: false, error: e.message }
-  }
-
-  // Check Drive quota — warn if low
-  try {
-    const quota = await checkQuota()
-    const availableMB = quota.available / 1024 / 1024
-    if (availableMB < DRIVE.quotaWarningMB) {
-      console.warn(`Drive storage low: ${availableMB.toFixed(0)}MB remaining`)
-    }
-  } catch (e) {
-    console.warn('Could not check Drive quota:', e)
-  }
-
+export async function initStorage(userId, householdId) {
   // Sync household foods and batches with Supabase
   if (householdId) {
     const { fetchHouseholdFoods, pushLocalFoodsToHousehold, pushLocalBatchesToHousehold } = await import('../food/FoodDB.js')
-    await fetchHouseholdFoods(householdId).catch(e => console.warn('Household foods fetch error:', e))
-    await pushLocalFoodsToHousehold(householdId).catch(e => console.warn('Household foods push error:', e))
-    await pushLocalBatchesToHousehold(householdId, userEmail).catch(e => console.warn('Household batches push error:', e))
+    fetchHouseholdFoods(householdId).catch(e => console.warn('Household foods fetch:', e))
+    pushLocalFoodsToHousehold(householdId).catch(e => console.warn('Household foods push:', e))
+    pushLocalBatchesToHousehold(householdId, '').catch(e => console.warn('Household batches push:', e))
   }
 
-  // Check if this is a new device — restore from Supabase first, then Drive
+  // New device — restore from Supabase; otherwise push local data to keep it in sync
   try {
     const localCount = await db.foodLogs.where('userId').equals(userId).count()
     if (localCount === 0) {
-      const sbRestored = await restoreFromSupabase(userId)
-      if (!sbRestored) {
-        await restoreFromDrive(userId, encryptionKey, _folderIds, userEmail)
-      }
+      restoreFromSupabase(userId).catch(e => console.warn('Supabase restore:', e))
     } else {
-      // Has local data — push everything to Supabase in background to keep it in sync
       pushAllLocalDataToSupabase(userId).catch(() => {})
     }
   } catch (e) {
     console.warn('Restore check failed:', e)
   }
 
-  // Immediately flush any dirty records (including new profile)
-  try {
-    await flushDirtyRecords(userId, encryptionKey)
-  } catch (e) {
-    console.warn('Initial flush failed:', e)
-  }
+  // Flush any dirty records immediately (e.g. newly-created profile)
+  flushDirtyToSupabase(userId).catch(() => {})
 
-  // Start background sync — flush dirty records every 30s
-  startSyncInterval(userId, encryptionKey)
-
-  // Daily backup check
-  setTimeout(() => runDailyBackup(userId, encryptionKey), 5000)
-
-  // Flush on visibility change (app backgrounded)
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-      flushDirtyRecords(userId, encryptionKey)
-      runDailyBackup(userId, encryptionKey)
-    }
-  })
-
-  return { quotaWarning: false }
+  // Background sync every 30s
+  startSupabaseSync(userId)
 }
 
-/** Full daily backup to Drive */
-export async function runDailyBackup(userId, encryptionKey) {
-  if (!isTokenValid()) return
-  if (!await shouldBackup()) return
-
-  try {
-    await flushDirtyRecords(userId, encryptionKey)
-    // Mark all records as dirty to force full backup
-    const tables = ['foodLogs','workoutLogs','workoutSets','weightLog','supplementLog','stepsLog','measurements','programmes','reminders','mealTemplates']
-    for (const table of tables) {
-      const records = await db[table].where('userId').equals(userId).toArray()
-      if (records.length === 0) continue
-      await db[table].bulkUpdate(records.map(r => ({ key: r.id || r.date, changes: { dirty: 1 } })))
-    }
-    await flushDirtyRecords(userId, encryptionKey)
-    markBackupDone()
-  } catch (e) {
-    console.error('Daily backup failed:', e)
-  }
-}
-
-/** Restore all user data from Drive to IndexedDB.
- *  Uses a Drive-wide file search so folder naming mismatches don't block recovery. */
-export async function restoreFromDrive(userId, encryptionKey, folderIds, userEmailOrId) {
-  if (!isTokenValid()) return false
-
-  // --- Strategy 1: folder-tree walk ---
-  // Try all known email variants — identity, Drive session, stored admin, env admin, userId.
-  let totalRestored = 0
-  const driveEmail  = getDriveEmail()
-  const adminEmail  = getAdminEmail() || (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase() || null
-  const emailsToTry = [...new Set([userEmailOrId, driveEmail, adminEmail, userId].filter(Boolean))]
-  console.log('[restore] will try keys:', emailsToTry)
-
-  for (const key of emailsToTry) {
-    let fIds = null
-    try {
-      // Use find-only (never create) so we don't litter Drive with ghost folders
-      fIds = folderIds || await findFolderStructure(key)
-      console.log('[restore] trying key:', key, 'found:', !!fIds?.userDir)
-    } catch (e) {
-      console.warn('[restore] folder lookup failed for', key, e)
-      continue
-    }
-    if (!fIds?.userDir) continue
-
-    try {
-      const profileFile = await findFile('profile.json', fIds.userDir)
-      if (profileFile) {
-        const raw = await readFile(profileFile.id)
-        if (raw) await db.users.put({ ...(typeof raw === 'string' ? JSON.parse(raw) : raw), dirty: 0 })
-      }
-    } catch (e) { console.warn('Profile restore error:', e) }
-
-    totalRestored += await _restoreMonthlyTable('foodLogs',     fIds.foodLogsDir,    userId)
-    totalRestored += await _restoreMonthlyTable('workoutLogs',  fIds.workoutLogsDir, userId)
-    totalRestored += await _restoreMonthlyTable('workoutSets',  fIds.workoutLogsDir, userId)
-    totalRestored += await _restoreMonthlyTable('weightLog',    fIds.userDir,        userId)
-    totalRestored += await _restoreMonthlyTable('supplementLog',fIds.userDir,        userId)
-    totalRestored += await _restoreMonthlyTable('stepsLog',     fIds.userDir,        userId)
-    totalRestored += await _restoreMonthlyTable('measurements', fIds.userDir,        userId)
-    totalRestored += await _restoreSingleTable('programmes',    fIds.userDir,        userId)
-    totalRestored += await _restoreSingleTable('mealTemplates', fIds.userDir,        userId)
-    totalRestored += await _restoreSingleTable('reminders',     fIds.userDir,        userId)
-
-    // Restore personal scanned/saved/recipe foods — no userId field, stored flat
-    try {
-      const foodsFile = await findFile('foods.json', fIds.userDir)
-      if (foodsFile) {
-        const raw   = await readFile(foodsFile.id)
-        const foods = typeof raw === 'string' ? JSON.parse(raw) : raw
-        if (Array.isArray(foods) && foods.length) {
-          await db.foods.bulkPut(foods).catch(() => {})
-          totalRestored += foods.length
-        }
-      }
-    } catch (e) {
-      console.warn('[restore] foods error:', e)
-    }
-
-    if (totalRestored > 0) break // found data — stop trying other emails
-  }
-
-  if (totalRestored > 0) return totalRestored
-
-  // --- Strategy 1.5: Scan ALL user subfolders ---
-  // Handles the case where the folder was created under a different email alias
-  // (e.g. data stored under akshaymailers@gmail.com but current email is akshayeshah31@gmail.com)
-  try {
-    console.log('[restore] trying all-folders scan')
-    const nourishId = await findFolder('Nourish')
-    if (nourishId) {
-      const usersId = await findFolder('users', nourishId)
-      if (usersId) {
-        const allFolders = await listFolders(usersId)
-        for (const folder of allFolders) {
-          if (emailsToTry.includes(folder.name)) continue // already tried
-          console.log('[restore] scanning folder:', folder.name)
-          const fIds = {
-            userDir:        folder.id,
-            foodLogsDir:    await findFolder('foodLogs',    folder.id).catch(() => null),
-            workoutLogsDir: await findFolder('workoutLogs', folder.id).catch(() => null),
-          }
-          let n = 0
-          n += await _restoreMonthlyTable('foodLogs',     fIds.foodLogsDir,    userId)
-          n += await _restoreMonthlyTable('workoutLogs',  fIds.workoutLogsDir, userId)
-          n += await _restoreMonthlyTable('workoutSets',  fIds.workoutLogsDir, userId)
-          n += await _restoreMonthlyTable('weightLog',    fIds.userDir,        userId)
-          n += await _restoreMonthlyTable('supplementLog',fIds.userDir,        userId)
-          n += await _restoreMonthlyTable('stepsLog',     fIds.userDir,        userId)
-          n += await _restoreMonthlyTable('measurements', fIds.userDir,        userId)
-          n += await _restoreSingleTable('programmes',    fIds.userDir,        userId)
-          n += await _restoreSingleTable('mealTemplates', fIds.userDir,        userId)
-          n += await _restoreSingleTable('reminders',     fIds.userDir,        userId)
-          if (n > 0) { totalRestored += n; break }
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('[restore] all-folders scan error:', e)
-  }
-
-  if (totalRestored > 0) return totalRestored
-
-  // --- Strategy 2: Drive-wide search (fallback when folder path is wrong) ---
-  // Searches for all Nourish data files regardless of which folder they live in.
-  console.log('[restore] folder walk found nothing — falling back to Drive-wide search')
-  const PREFIXES = ['foodLogs_','workoutLogs_','workoutSets_','weightLog_','supplementLog_','stepsLog_','measurements_']
-  for (const prefix of PREFIXES) {
-    try {
-      const files = await searchFilesByPrefix(prefix)
-      console.log(`[restore] search "${prefix}": ${files.length} files`)
-      for (const file of files) {
-        const raw  = await readFile(file.id)
-        const data = typeof raw === 'string' ? JSON.parse(raw) : raw
-        if (!Array.isArray(data) || !data.length) continue
-        const table = prefix.slice(0, -1) // strip trailing '_'
-        totalRestored += await _safeBulkRestore(table, data)
-      }
-    } catch (e) {
-      console.warn(`[restore] search ${prefix} error:`, e)
-    }
-  }
-
-  return totalRestored
-}
-
-async function _restoreMonthlyTable(tableName, folderId, userId) {
-  if (!folderId) return 0
-  let count = 0
-  try {
-    const files   = await listFiles(folderId)
-    console.log(`[restore] ${tableName} folder ${folderId}: ${files.length} files —`, files.map(f => f.name).join(', ') || '(empty)')
-    const matches = files.filter(f =>
-      f.name.startsWith(`${tableName}_`) && f.name.endsWith('.json')
-    )
-    for (const file of matches) {
-      const raw  = await readFile(file.id)
-      // writeFile double-stringifies, so readFile returns a string — parse it
-      const data = typeof raw === 'string' ? JSON.parse(raw) : raw
-      if (!Array.isArray(data) || !data.length) continue
-      count += await _safeBulkRestore(tableName, data)
-      const month   = file.name.slice(tableName.length + 1, -5)
-      const syncKey = `${userId}:${tableName}:${month}`
-      await db.syncState.put({ key: syncKey, userId, fileId: file.id, lastSyncAt: new Date().toISOString() })
-    }
-  } catch (e) {
-    console.warn(`Restore ${tableName} error:`, e)
-  }
-  return count
-}
-
-async function _restoreSingleTable(tableName, folderId, userId) {
-  if (!folderId) return 0
-  try {
-    const file = await findFile(`${tableName}.json`, folderId)
-    if (!file) return 0
-    const raw  = await readFile(file.id)
-    const data = typeof raw === 'string' ? JSON.parse(raw) : raw
-    if (!Array.isArray(data) || !data.length) return 0
-    const count = await _safeBulkRestore(tableName, data)
-    const syncKey = `${userId}:${tableName}`
-    await db.syncState.put({ key: syncKey, userId, fileId: file.id, lastSyncAt: new Date().toISOString() })
-    return count
-  } catch (e) {
-    console.warn(`Restore ${tableName} error:`, e)
-    return 0
-  }
-}
-
-// Restore records from Drive without overwriting newer local data.
-// Strategy: add records that don't exist locally; for records that exist,
-// only overwrite if the Drive version is strictly newer (by updatedAt).
-async function _safeBulkRestore(tableName, records) {
-  const cleaned = records.map(r => ({ ...r, dirty: 0 }))
-  const ids     = cleaned.map(r => r.id).filter(Boolean)
-  const existing = ids.length ? await db[tableName].bulkGet(ids) : []
-  const existingMap = new Map()
-  existing.forEach((rec, i) => { if (rec) existingMap.set(ids[i], rec) })
-
-  const toAdd    = []
-  const toUpdate = []
-  for (const rec of cleaned) {
-    const local = existingMap.get(rec.id)
-    if (!local) {
-      toAdd.push(rec)
-    } else if (rec.updatedAt && local.updatedAt && rec.updatedAt > local.updatedAt) {
-      toUpdate.push(rec)
-    }
-  }
-  if (toAdd.length)    await db[tableName].bulkAdd(toAdd).catch(() => {})
-  if (toUpdate.length) await db[tableName].bulkPut(toUpdate)
-  return toAdd.length + toUpdate.length
-}
-
-/** Stop sync interval — called on logout */
 export function teardownStorage() {
-  if (_syncInterval)   { clearInterval(_syncInterval);   _syncInterval   = null }
-  if (_sbSyncInterval) { clearInterval(_sbSyncInterval); _sbSyncInterval = null }
-  _folderIds = {}
+  if (_syncInterval) { clearInterval(_syncInterval); _syncInterval = null }
 }
 
-// ─── Sync interval ────────────────────────────────────────────────────────────
+// ─── Supabase sync ────────────────────────────────────────────────────────────
 
-function startSyncInterval(userId, encryptionKey) {
+export function startSupabaseSync(userId) {
   if (_syncInterval) clearInterval(_syncInterval)
-  _syncInterval = setInterval(
-    () => flushDirtyRecords(userId, encryptionKey),
-    DRIVE.syncIntervalSeconds * 1000
-  )
+  _syncInterval = setInterval(() => flushDirtyToSupabase(userId), SYNC_INTERVAL_MS)
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushDirtyToSupabase(userId).catch(() => {})
+  }, { once: false })
 }
 
-// ─── Flush dirty records to Drive ─────────────────────────────────────────────
-
-/**
- * Finds all dirty records across personal tables,
- * groups them into monthly files, encrypts, writes to Drive.
- * Never throws — logs errors silently and retries next interval.
- */
-export async function flushDirtyRecords(userId, encryptionKey) {
+export async function flushDirtyToSupabase(userId) {
   if (_isSyncing) return
-  if (!isTokenValid()) {
-    if (!_tokenExpiredNotified) {
-      _tokenExpiredNotified = true
-      window.dispatchEvent(new CustomEvent('nourish:drive-token-expired'))
-    }
-    // No Drive token — push dirty records to Supabase so data isn't lost
-    flushDirtyToSupabase(userId).catch(() => {})
-    return
-  }
-  _tokenExpiredNotified = false // token is valid — reset so next expiry fires again
   _isSyncing = true
-
   try {
-    await flushMonthlyTable('foodLogs',     userId, encryptionKey, _folderIds.foodLogsDir)
-    await flushMonthlyTable('workoutLogs',  userId, encryptionKey, _folderIds.workoutLogsDir)
-    await flushMonthlyTable('workoutSets',  userId, encryptionKey, _folderIds.workoutLogsDir)
-    await flushMonthlyTable('weightLog',    userId, encryptionKey, _folderIds.userDir)
-    await flushMonthlyTable('supplementLog',userId, encryptionKey, _folderIds.userDir)
-    await flushMonthlyTable('stepsLog',     userId, encryptionKey, _folderIds.userDir)
-    await flushMonthlyTable('measurements', userId, encryptionKey, _folderIds.userDir)
-    await flushReminders(userId)
-    await flushProgrammes(userId, encryptionKey)
-    await flushFoods(userId)
-    await flushProfile(userId, encryptionKey)
+    const { sbPushUserData, sbSaveProfile } = await import('./supabase.js')
+
+    const MONTHLY = [
+      'foodLogs', 'workoutLogs', 'workoutSets', 'weightLog',
+      'supplementLog', 'stepsLog', 'measurements', 'bloodWork', 'moodLog',
+    ]
+    for (const table of MONTHLY) {
+      if (!db[table]) continue
+      const dirty = await getDirtyRecords(table, userId).catch(() => [])
+      if (!dirty.length) continue
+
+      const dirtyMonths = new Set(
+        dirty.map(r => (r.date || r.updatedAt || '').slice(0, 7)).filter(Boolean)
+      )
+      const all = await db[table].where('userId').equals(userId).toArray().catch(() => [])
+      for (const month of dirtyMonths) {
+        const monthData = all.filter(r => (r.date || r.updatedAt || '').startsWith(month))
+        if (monthData.length) await sbPushUserData(userId, table, month, monthData).catch(() => {})
+      }
+      await clearDirty(table, dirty.map(r => r.id))
+    }
+
+    const SINGLE = ['programmes', 'mealTemplates', 'reminders']
+    for (const table of SINGLE) {
+      if (!db[table]) continue
+      const dirty = await db[table].where('userId').equals(userId).and(r => r.dirty === 1).toArray().catch(() => [])
+      if (!dirty.length) continue
+      const all = await db[table].where('userId').equals(userId).toArray().catch(() => [])
+      await sbPushUserData(userId, table, 'all', all).catch(() => {})
+      await clearDirty(table, dirty.map(r => r.id))
+    }
+
+    // Personal foods — no dirty flag, always push when called
+    const foods = await db.foods
+      .where('source').anyOf(['saved', 'scanned', 'recipe'])
+      .toArray().catch(() => [])
+    if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
+
+    // Profile — push if dirty
+    const profile = await db.users.get(userId).catch(() => null)
+    if (profile?.dirty) {
+      await sbSaveProfile(profile).catch(() => {})
+      await db.users.update(userId, { dirty: 0 }).catch(() => {})
+    }
   } catch (e) {
-    console.error('Sync flush error:', e)
+    console.warn('[supabase] flush error:', e.message)
   } finally {
     _isSyncing = false
   }
 }
 
-async function flushMonthlyTable(table, userId, encryptionKey, folderId) {
-  if (!folderId) return
-
-  // Get all dirty records for this user
-  const dirty = await getDirtyRecords(table, userId)
-  if (!dirty.length) return
-
-  // Group by month (YYYY-MM)
-  const byMonth = {}
-  for (const record of dirty) {
-    const month = (record.date || record.updatedAt || '').slice(0, 7)
-    if (!month) continue
-    if (!byMonth[month]) byMonth[month] = []
-    byMonth[month].push(record)
-  }
-
-  for (const [month, records] of Object.entries(byMonth)) {
-    const filename = `${table}_${month}.json`
-
-    // Load existing file from Drive (may have records from other devices)
-    const existing = await loadMonthFile(table, userId, month, encryptionKey, folderId)
-
-    // Merge: existing records + dirty updates (dirty wins on conflict)
-    const merged = mergeRecords(existing, records)
-
-    // Write merged array directly — writeFile handles JSON serialisation
-    const syncKey  = `${userId}:${table}:${month}`
-    const stateRow = await db.syncState.get(syncKey)
-
-    const fileId = await writeFile(filename, merged, folderId, stateRow?.fileId)
-
-    // Save fileId to syncState
-    await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
-
-    // Clear dirty flags
-    const ids = records.map(r => r.id)
-    await clearDirty(table, ids)
-
-    // Mirror to Supabase — non-blocking, Drive is still primary
-    import('./supabase.js').then(({ sbPushUserData }) =>
-      sbPushUserData(userId, table, month, merged)
-    ).catch(() => {})
-  }
-}
-
-async function loadMonthFile(table, userId, month, encryptionKey, folderId) {
-  try {
-    const syncKey = `${userId}:${table}:${month}`
-    const state   = await db.syncState.get(syncKey)
-    if (!state?.fileId) return []
-
-    const encrypted = await readFile(state.fileId)
-    const json      = typeof encrypted === "string" ? encrypted : JSON.stringify(encrypted)
-    return JSON.parse(json)
-  } catch {
-    return []
-  }
-}
-
-function mergeRecords(existing, incoming) {
-  const map = new Map()
-  for (const r of existing) map.set(r.id, r)
-  for (const r of incoming)  map.set(r.id, r)  // incoming wins
-  return Array.from(map.values())
-}
-
-async function flushReminders(userId) {
-  const dirty = await db.reminders.where('userId').equals(userId).and(r => r.dirty === 1).toArray()
-  if (!dirty.length) return
-
-  const all      = await db.reminders.where('userId').equals(userId).toArray()
-  const syncKey  = `${userId}:reminders`
-  const stateRow = await db.syncState.get(syncKey)
-  const fileId   = await writeFile('reminders.json', all, _folderIds.userDir, stateRow?.fileId)
-
-  await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
-  await clearDirty('reminders', dirty.map(r => r.id))
-
-  import('./supabase.js').then(({ sbPushUserData }) =>
-    sbPushUserData(userId, 'reminders', 'all', all)
-  ).catch(() => {})
-}
-
-/** Immediately write all reminders to Drive — called after add/delete */
+/** Convenience export — called by ReminderSettings after add/delete */
 export async function saveRemindersToCloud(userId) {
-  if (!isTokenValid() || !_folderIds.userDir) return
+  await flushDirtyToSupabase(userId).catch(() => {})
+}
+
+// ─── Supabase restore / full push ────────────────────────────────────────────
+
+export async function restoreFromSupabase(userId) {
   try {
-    const all      = await db.reminders.where('userId').equals(userId).toArray()
-    const syncKey  = `${userId}:reminders`
-    const stateRow = await db.syncState.get(syncKey)
-    const fileId   = await writeFile('reminders.json', all, _folderIds.userDir, stateRow?.fileId)
-    await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
+    const { sbFetchAllUserData } = await import('./supabase.js')
+    const rows = await sbFetchAllUserData(userId)
+    if (!rows.length) return 0
+    let total = 0
+    for (const row of rows) {
+      if (!Array.isArray(row.data) || !row.data.length) continue
+      if (row.table_name === 'foods') {
+        await db.foods.bulkPut(row.data).catch(() => {})
+        total += row.data.length
+      } else {
+        total += await _safeBulkRestore(row.table_name, row.data)
+      }
+    }
+    console.log('[supabase] restored', total, 'records for', userId)
+    return total
   } catch (e) {
-    console.warn('Reminder sync error:', e)
+    console.warn('[supabase] restore error:', e.message)
+    return 0
   }
 }
 
-async function flushProgrammes(userId, encryptionKey) {
-  const dirty = await db.programmes.where('userId').equals(userId).and(r => r.dirty === 1).toArray()
-  if (!dirty.length) return
+async function _safeBulkRestore(tableName, records) {
+  if (!db[tableName]) return 0
+  const cleaned = records.map(r => ({ ...r, dirty: 0 }))
+  const ids      = cleaned.map(r => r.id).filter(Boolean)
+  const existing = ids.length ? await db[tableName].bulkGet(ids).catch(() => []) : []
+  const existingMap = new Map()
+  existing.forEach((rec, i) => { if (rec) existingMap.set(ids[i], rec) })
 
-  const filename  = 'programmes.json'
-  const folderId  = _folderIds.userDir
-  const syncKey   = `${userId}:programmes`
-  const stateRow  = await db.syncState.get(syncKey)
-
-  const all    = await db.programmes.where('userId').equals(userId).toArray()
-  const fileId = await writeFile(filename, all, folderId, stateRow?.fileId)
-
-  await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
-  await clearDirty('programmes', dirty.map(r => r.id))
-
-  import('./supabase.js').then(({ sbPushUserData }) =>
-    sbPushUserData(userId, 'programmes', 'all', all)
-  ).catch(() => {})
+  const toAdd = [], toUpdate = []
+  for (const rec of cleaned) {
+    const local = existingMap.get(rec.id)
+    if (!local) toAdd.push(rec)
+    else if (rec.updatedAt && local.updatedAt && rec.updatedAt > local.updatedAt) toUpdate.push(rec)
+  }
+  if (toAdd.length)    await db[tableName].bulkAdd(toAdd).catch(() => {})
+  if (toUpdate.length) await db[tableName].bulkPut(toUpdate).catch(() => {})
+  return toAdd.length + toUpdate.length
 }
 
-async function flushFoods(userId) {
-  if (!_folderIds.userDir) return
+export async function pushAllLocalDataToSupabase(userId) {
   try {
-    const personal = await db.foods
+    const { sbPushUserData } = await import('./supabase.js')
+
+    const MONTHLY = [
+      'foodLogs', 'workoutLogs', 'workoutSets', 'weightLog',
+      'supplementLog', 'stepsLog', 'measurements', 'bloodWork', 'moodLog',
+    ]
+    for (const table of MONTHLY) {
+      if (!db[table]) continue
+      const records = await db[table].where('userId').equals(userId).toArray().catch(() => [])
+      if (!records.length) continue
+      const byMonth = {}
+      for (const r of records) {
+        const month = (r.date || r.updatedAt || '').slice(0, 7)
+        if (!month) continue
+        ;(byMonth[month] = byMonth[month] || []).push(r)
+      }
+      for (const [month, data] of Object.entries(byMonth)) {
+        await sbPushUserData(userId, table, month, data).catch(() => {})
+      }
+    }
+
+    const SINGLE = ['programmes', 'mealTemplates', 'reminders']
+    for (const table of SINGLE) {
+      if (!db[table]) continue
+      const records = await db[table].where('userId').equals(userId).toArray().catch(() => [])
+      if (records.length) await sbPushUserData(userId, table, 'all', records).catch(() => {})
+    }
+
+    const foods = await db.foods
       .where('source').anyOf(['saved', 'scanned', 'recipe'])
-      .toArray()
-    if (!personal.length) return
+      .toArray().catch(() => [])
+    if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
 
-    const syncKey  = `${userId}:foods`
-    const stateRow = await db.syncState.get(syncKey)
-    const fileId   = await writeFile('foods.json', personal, _folderIds.userDir, stateRow?.fileId)
-    await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
-
-    import('./supabase.js').then(({ sbPushUserData }) =>
-      sbPushUserData(userId, 'foods', 'all', personal)
-    ).catch(() => {})
+    console.log('[supabase] full push complete for', userId)
   } catch (e) {
-    console.warn('[foods] flush error:', e)
+    console.warn('[supabase] pushAllLocalData error:', e.message)
   }
-}
-
-async function flushProfile(userId, encryptionKey) {
-  const user = await db.users.get(userId)
-  if (!user?.dirty) return
-
-  const filename  = 'profile.json'
-  const folderId  = _folderIds.userDir
-  const syncKey   = `${userId}:profile`
-  const stateRow  = await db.syncState.get(syncKey)
-
-  const fileId = await writeFile(filename, user, folderId, stateRow?.fileId)
-
-  await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
-  await db.users.update(userId, { dirty: 0 })
 }
 
 // ─── Food log helpers ─────────────────────────────────────────────────────────
@@ -534,13 +208,12 @@ export async function getFoodLogForDate(userId, date) {
 }
 
 export async function addFoodLogEntry(userId, entry) {
-  const id = await db.foodLogs.add({
+  return db.foodLogs.add({
     ...entry,
     userId,
-    dirty: 1,
+    dirty:     1,
     updatedAt: new Date().toISOString(),
   })
-  return id
 }
 
 export async function deleteFoodLogEntry(id) {
@@ -567,21 +240,18 @@ export async function getWeightLog(userId, days = 30) {
 export async function addWeightEntry(userId, date, weightKg, note = '') {
   return db.weightLog.put({
     userId, date, weightKg, note,
-    dirty: 1,
+    dirty:     1,
     updatedAt: new Date().toISOString(),
   })
 }
 
 // ─── Macro summary ────────────────────────────────────────────────────────────
 
-/** Sum macros for a user on a given date */
 export async function getDayMacros(userId, date) {
   const entries = await getFoodLogForDate(userId, date)
   const totals  = Object.fromEntries(MACRO_KEYS.map(k => [k, 0]))
   for (const entry of entries) {
-    for (const key of MACRO_KEYS) {
-      totals[key] += entry[key] || 0
-    }
+    for (const key of MACRO_KEYS) totals[key] += entry[key] || 0
   }
   return totals
 }
@@ -595,7 +265,7 @@ export async function getUser(userId) {
 export async function saveUser(user) {
   const updated = { ...user, dirty: 1, updatedAt: new Date().toISOString() }
   await db.users.put(updated)
-  import('../db/supabase.js').then(({ sbSaveProfile }) => sbSaveProfile(updated)).catch(() => {})
+  import('./supabase.js').then(({ sbSaveProfile }) => sbSaveProfile(updated)).catch(() => {})
 }
 
 export async function getAllUsers() {
@@ -615,138 +285,4 @@ export async function saveMeasurement(userId, entry) {
     return existing.id
   }
   return db.measurements.add({ userId, ...entry, dirty: 1, updatedAt: new Date().toISOString() })
-}
-
-// ─── Supabase-only sync (non-admin users / expired Drive token) ───────────────
-
-/**
- * Push dirty records to Supabase without needing a Drive token.
- * Used by non-admin users as their only sync path, and as a fallback
- * for admin users when their Drive token has expired.
- */
-export async function flushDirtyToSupabase(userId) {
-  if (_isSbSyncing) return
-  _isSbSyncing = true
-  try {
-    const { sbPushUserData } = await import('./supabase.js')
-
-    const MONTHLY = ['foodLogs', 'workoutLogs', 'workoutSets', 'weightLog',
-                     'supplementLog', 'stepsLog', 'measurements', 'bloodWork']
-    for (const table of MONTHLY) {
-      const dirty = await getDirtyRecords(table, userId).catch(() => [])
-      if (!dirty.length) continue
-
-      // Find which months have dirty records
-      const dirtyMonths = new Set(
-        dirty.map(r => (r.date || r.updatedAt || '').slice(0, 7)).filter(Boolean)
-      )
-      // Get all records for the user so we push complete months (not just dirty rows)
-      const all = await db[table].where('userId').equals(userId).toArray().catch(() => [])
-      for (const month of dirtyMonths) {
-        const monthData = all.filter(r => (r.date || r.updatedAt || '').startsWith(month))
-        if (monthData.length) await sbPushUserData(userId, table, month, monthData).catch(() => {})
-      }
-      await clearDirty(table, dirty.map(r => r.id))
-    }
-
-    const SINGLE = ['programmes', 'mealTemplates', 'reminders']
-    for (const table of SINGLE) {
-      const dirty = await db[table].where('userId').equals(userId).and(r => r.dirty === 1).toArray().catch(() => [])
-      if (!dirty.length) continue
-      const all = await db[table].where('userId').equals(userId).toArray().catch(() => [])
-      await sbPushUserData(userId, table, 'all', all).catch(() => {})
-      await clearDirty(table, dirty.map(r => r.id))
-    }
-
-    // Always push personal foods — no dirty flag on foods table
-    const foods = await db.foods
-      .where('source').anyOf(['saved', 'scanned', 'recipe'])
-      .toArray().catch(() => [])
-    if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
-  } catch (e) {
-    console.warn('[supabase] flushDirtyToSupabase error:', e.message)
-  } finally {
-    _isSbSyncing = false
-  }
-}
-
-/**
- * Start a Supabase-only sync interval — used for non-admin users who have
- * no Drive token and need their personal data backed up somewhere.
- */
-export function startSupabaseSync(userId) {
-  if (_sbSyncInterval) clearInterval(_sbSyncInterval)
-  _sbSyncInterval = setInterval(
-    () => flushDirtyToSupabase(userId),
-    DRIVE.syncIntervalSeconds * 1000
-  )
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') flushDirtyToSupabase(userId).catch(() => {})
-  })
-}
-
-// ─── Supabase backup / restore ────────────────────────────────────────────────
-
-/** Restore all user data from Supabase. Tried before Drive on new devices. */
-export async function restoreFromSupabase(userId) {
-  try {
-    const { sbFetchAllUserData } = await import('./supabase.js')
-    const rows = await sbFetchAllUserData(userId)
-    if (!rows.length) return 0
-    let total = 0
-    for (const row of rows) {
-      if (!Array.isArray(row.data) || !row.data.length) continue
-      if (row.table_name === 'foods') {
-        // foods has no userId field — just bulkPut directly
-        await db.foods.bulkPut(row.data).catch(() => {})
-        total += row.data.length
-      } else {
-        total += await _safeBulkRestore(row.table_name, row.data)
-      }
-    }
-    console.log('[supabase] restored', total, 'records for', userId)
-    return total
-  } catch (e) {
-    console.warn('[supabase] restoreFromSupabase error:', e.message)
-    return 0
-  }
-}
-
-/** Push every local record to Supabase — called on login when local DB has data. */
-export async function pushAllLocalDataToSupabase(userId) {
-  try {
-    const { sbPushUserData } = await import('./supabase.js')
-
-    const MONTHLY = ['foodLogs', 'workoutLogs', 'workoutSets', 'weightLog',
-                     'supplementLog', 'stepsLog', 'measurements', 'bloodWork']
-    for (const table of MONTHLY) {
-      const records = await db[table].where('userId').equals(userId).toArray().catch(() => [])
-      if (!records.length) continue
-      const byMonth = {}
-      for (const r of records) {
-        const month = (r.date || r.updatedAt || '').slice(0, 7)
-        if (!month) continue
-        ;(byMonth[month] = byMonth[month] || []).push(r)
-      }
-      for (const [month, data] of Object.entries(byMonth)) {
-        await sbPushUserData(userId, table, month, data).catch(() => {})
-      }
-    }
-
-    const SINGLE = ['programmes', 'mealTemplates', 'reminders']
-    for (const table of SINGLE) {
-      const records = await db[table].where('userId').equals(userId).toArray().catch(() => [])
-      if (records.length) await sbPushUserData(userId, table, 'all', records).catch(() => {})
-    }
-
-    // Push personal foods — no userId field, but keyed under this user's id for restore
-    const foods = await db.foods
-      .where('source').anyOf(['saved', 'scanned', 'recipe'])
-      .toArray().catch(() => [])
-    if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
-
-    console.log('[supabase] full push complete for', userId)
-  } catch (e) {
-    console.warn('[supabase] pushAllLocalDataToSupabase error:', e.message)
-  }
 }

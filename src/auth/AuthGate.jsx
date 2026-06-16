@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import { useAuth } from "./useAuth.jsx"
-import { getUserEmail, getUserName, initiateOAuthFlow } from "../db/driveApi.js"
+import { getUserEmail, getUserName, initiateOAuthFlow } from "../db/authApi.js"
 
 export default function AuthGate({ children }) {
   const { user, isLoading, loginWithGoogle } = useAuth()
