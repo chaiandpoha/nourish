@@ -8,16 +8,26 @@ import { MACRO_KEYS } from '../config.js'
 const SYNC_INTERVAL_MS = 30_000
 
 // ─── Sync state ───────────────────────────────────────────────────────────────
-let _syncInterval = null
-let _isSyncing    = false
-let _visHandler   = null
+let _syncInterval  = null
+let _isSyncing     = false
+let _visHandler    = null
+let _lastSyncTime  = null   // ISO timestamp of the last successful flush
+
+export function getLastSyncTime() { return _lastSyncTime }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 export async function initStorage(userId) {
   // New device — restore from Supabase; otherwise push local data to keep it in sync
   try {
-    const localCount = await db.foodLogs.where('userId').equals(userId).count()
+    // Check across multiple tables so a workout-only or weight-only user isn't
+    // treated as a new device every login
+    let localCount = 0
+    for (const t of ['foodLogs', 'workoutLogs', 'weightLog', 'measurements', 'supplementLog']) {
+      if (!db[t]) continue
+      localCount += await db[t].where('userId').equals(userId).count().catch(() => 0)
+      if (localCount > 0) break
+    }
     if (localCount === 0) {
       restoreFromSupabase(userId).catch(e => console.warn('Supabase restore:', e))
     } else {
@@ -92,18 +102,30 @@ export async function flushDirtyToSupabase(userId) {
       if (ok) await clearDirty(table, dirty.map(r => r.id))
     }
 
+    // Personal batches (solo users without a household) — push via user_data table
+    // Household batches are pushed immediately in BatchBuilder via sbSaveBatch
+    const profile = await db.users.get(userId).catch(() => null)
+    if (!profile?.householdId) {
+      const dirtyBatches = await db.batches.where('userId').equals(userId).and(b => b.dirty === 1).toArray().catch(() => [])
+      if (dirtyBatches.length) {
+        const allBatches = await db.batches.where('userId').equals(userId).toArray().catch(() => [])
+        const ok = await sbPushUserData(userId, 'batches', 'all', allBatches).then(() => true).catch(() => false)
+        if (ok) await clearDirty('batches', dirtyBatches.map(b => b.id))
+      }
+    }
+
     // Personal foods — no dirty flag, always push when called
     const foods = await db.foods
       .where('source').anyOf(['saved', 'scanned', 'recipe'])
       .toArray().catch(() => [])
     if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
 
-    // Profile — push if dirty
-    const profile = await db.users.get(userId).catch(() => null)
+    // Profile — push if dirty (reuse profile already fetched above)
     if (profile?.dirty) {
       await sbSaveProfile(profile).catch(() => {})
       await db.users.update(userId, { dirty: 0 }).catch(() => {})
     }
+    _lastSyncTime = new Date().toISOString()
   } catch (e) {
     console.warn('[supabase] flush error:', e.message)
   } finally {
@@ -194,6 +216,10 @@ export async function pushAllLocalDataToSupabase(userId) {
       .where('source').anyOf(['saved', 'scanned', 'recipe'])
       .toArray().catch(() => [])
     if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
+
+    // Personal batches (solo users)
+    const allBatches = await db.batches.where('userId').equals(userId).toArray().catch(() => [])
+    if (allBatches.length) await sbPushUserData(userId, 'batches', 'all', allBatches).catch(() => {})
 
     console.log('[supabase] full push complete for', userId)
   } catch (e) {

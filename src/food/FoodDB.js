@@ -257,7 +257,7 @@ export async function deleteFood(id, householdId) {
     if (!deleted.includes(id)) {
       deleted.push(id)
       // Keep last 500 entries to avoid unbounded growth
-      localStorage.setItem('nourish_deleted_foods', JSON.stringify(deleted.slice(-500)))
+      localStorage.setItem('nourish_deleted_foods', JSON.stringify(deleted.slice(-2000)))
     }
   } catch {}
 
@@ -363,8 +363,8 @@ export async function getActiveBatches(userId) {
 
 export function detectMealSlot() {
   const h = new Date().getHours()
-  if (h < 10) return 'breakfast'
-  if (h < 15) return 'lunch'
-  if (h < 19) return 'dinner'
-  return 'snack'
+  if (h < 12) return 'breakfast'
+  if (h < 16) return 'lunch'
+  if (h < 19) return 'snack'
+  return 'dinner'
 }

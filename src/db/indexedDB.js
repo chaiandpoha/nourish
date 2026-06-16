@@ -200,6 +200,11 @@ db.version(7).stores({})
 // between v6 and v7 can reach the current version cleanly.
 db.version(8).stores({})
 
+// Version 9 — add userId index to batches for personal (solo) cloud backup
+db.version(9).stores({
+  batches: '&id, name, userId, createdBy, shared, closed, createdAt',
+})
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Mark a record dirty — will be picked up by next Supabase flush */

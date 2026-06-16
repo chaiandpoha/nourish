@@ -115,7 +115,15 @@ export default function Home() {
             toDelete.push(e.id)
           }
         }
-        if (toDelete.length) await db.weightLog.bulkDelete(toDelete)
+        if (toDelete.length) {
+          await db.weightLog.bulkDelete(toDelete)
+          // Mark surviving records dirty so next sync overwrites the Supabase copy
+          // (which still has the duplicates) with the deduplicated set
+          const now = new Date().toISOString()
+          for (const e of byDate.values()) {
+            await db.weightLog.update(e.id, { dirty: 1, updatedAt: now }).catch(() => {})
+          }
+        }
         const latest = [...byDate.values()].sort((a, b) => b.date.localeCompare(a.date))[0]
         if (latest) setWeight(latest.weightKg)
       }

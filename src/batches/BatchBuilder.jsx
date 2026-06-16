@@ -140,6 +140,7 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
         ...(existingBatch || {}),
         id:            existingBatch?.id || generateId(),
         name:          name.trim(),
+        userId:        user.id,
         createdBy:     user.email || user.id,
         shared:        shared ? 1 : 0,
         closed:        0,
@@ -154,10 +155,13 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
       // Save locally first — always works offline
       await db.batches.put(batch)
       onSave?.(batch)
-      // Sync to household in background — don't block the UX
-      sbSaveBatch(batch, user.email, user.householdId)
-        .then(() => db.batches.update(batch.id, { dirty: 0 }))
-        .catch(e => console.warn('Batch sync failed:', e.message))
+      // Household users: sync immediately to shared Supabase table
+      // Solo users: dirty=1 will be flushed by the background sync cycle
+      if (user.householdId) {
+        sbSaveBatch(batch, user.email, user.householdId)
+          .then(() => db.batches.update(batch.id, { dirty: 0 }))
+          .catch(e => console.warn('Batch sync failed:', e.message))
+      }
     } catch (e) {
       setErrors([e.message])
     } finally {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '../db/indexedDB.js'
+import { getLastSyncTime } from '../db/db.js'
 import { useAuth } from '../auth/useAuth.jsx'
 
 const TABLES = [
@@ -23,10 +24,8 @@ export default function SyncStatus() {
         dirty += c
       }
       setStatus(dirty > 0 ? 'pending' : 'synced')
-
-      // Show last time something was synced (from any table)
-      const profileDirty = await db.users.get(user.id).then(u => u?.dirty).catch(() => 0)
-      if (dirty === 0 && !profileDirty) setLastSync(new Date().toISOString())
+      const realLastSync = getLastSyncTime()
+      if (realLastSync) setLastSync(realLastSync)
     } catch {}
   }, [user?.id])
 

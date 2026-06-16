@@ -115,11 +115,16 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
       const best = lastSession.reduce((b, s) =>
         (parseFloat(s.weight) || 0) > (parseFloat(b?.weight) || 0) ? s : b, lastSession[0])
 
+      // All-time best weight across every session, not just the last one
+      const allTimeBest = pastSets.reduce((max, s) =>
+        (parseFloat(s.weight) || 0) > max ? (parseFloat(s.weight) || 0) : max, 0)
+
       result[ex.id] = {
-        label:   `${lastSession.length} sets · best ${best.weight} ${localStorage.getItem('workoutUnit') || 'lbs'} × ${best.reps}`,
-        weight:  parseFloat(best.weight) || 0,
-        reps:    parseInt(best.reps)     || 10,
-        allSets: lastSession,
+        label:        `${lastSession.length} sets · best ${best.weight} ${localStorage.getItem('workoutUnit') || 'lbs'} × ${best.reps}`,
+        weight:       parseFloat(best.weight) || 0,
+        allTimeBest,
+        reps:         parseInt(best.reps)     || 10,
+        allSets:      lastSession,
       }
     }
 
@@ -309,9 +314,10 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
         const maxW  = Math.max(...exSets.map(s => parseFloat(s.weight) || 0))
         totalVolume += exSets.reduce((sum, s) =>
           sum + (parseFloat(s.weight) || 0) * (parseInt(s.reps) || 0), 0)
-        const pd = prevData[ex.id]
-        if (maxW > (pd?.weight || 0)) {
-          prs.push({ exercise: ex.name, value: maxW, prev: pd?.weight || 0 })
+        const pd       = prevData[ex.id]
+        const prTarget = pd?.allTimeBest ?? pd?.weight ?? 0
+        if (maxW > prTarget) {
+          prs.push({ exercise: ex.name, value: maxW, prev: prTarget })
         }
       }
 
