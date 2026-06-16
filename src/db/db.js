@@ -9,6 +9,7 @@ import {
   writeFile,
   findFile,
   listFiles,
+  listFolders,
   ensureFolderStructure,
   findFolderStructure,
   searchFilesByPrefix,
@@ -182,6 +183,45 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds, userEma
     }
 
     if (totalRestored > 0) break // found data — stop trying other emails
+  }
+
+  if (totalRestored > 0) return totalRestored
+
+  // --- Strategy 1.5: Scan ALL user subfolders ---
+  // Handles the case where the folder was created under a different email alias
+  // (e.g. data stored under akshaymailers@gmail.com but current email is akshayeshah31@gmail.com)
+  try {
+    console.log('[restore] trying all-folders scan')
+    const nourishId = await findFolder('Nourish')
+    if (nourishId) {
+      const usersId = await findFolder('users', nourishId)
+      if (usersId) {
+        const allFolders = await listFolders(usersId)
+        for (const folder of allFolders) {
+          if (emailsToTry.includes(folder.name)) continue // already tried
+          console.log('[restore] scanning folder:', folder.name)
+          const fIds = {
+            userDir:        folder.id,
+            foodLogsDir:    await findFolder('foodLogs',    folder.id).catch(() => null),
+            workoutLogsDir: await findFolder('workoutLogs', folder.id).catch(() => null),
+          }
+          let n = 0
+          n += await _restoreMonthlyTable('foodLogs',     fIds.foodLogsDir,    userId)
+          n += await _restoreMonthlyTable('workoutLogs',  fIds.workoutLogsDir, userId)
+          n += await _restoreMonthlyTable('workoutSets',  fIds.workoutLogsDir, userId)
+          n += await _restoreMonthlyTable('weightLog',    fIds.userDir,        userId)
+          n += await _restoreMonthlyTable('supplementLog',fIds.userDir,        userId)
+          n += await _restoreMonthlyTable('stepsLog',     fIds.userDir,        userId)
+          n += await _restoreMonthlyTable('measurements', fIds.userDir,        userId)
+          n += await _restoreSingleTable('programmes',    fIds.userDir,        userId)
+          n += await _restoreSingleTable('mealTemplates', fIds.userDir,        userId)
+          n += await _restoreSingleTable('reminders',     fIds.userDir,        userId)
+          if (n > 0) { totalRestored += n; break }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[restore] all-folders scan error:', e)
   }
 
   if (totalRestored > 0) return totalRestored

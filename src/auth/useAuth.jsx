@@ -316,14 +316,35 @@ export function AuthProvider({ children }) {
 
   async function _tryRestoreByEmail(email) {
     try {
-      const { isTokenValid, findFolder, findFile, readFile } = await import('../db/driveApi.js')
+      const { isTokenValid, findFolder, findFile, readFile, listFolders } = await import('../db/driveApi.js')
       if (!isTokenValid()) return null
-      // Direct lookup — folder is named by email in admin's Drive
       const nourishId = await findFolder('Nourish', 'root')
       if (!nourishId) return null
       const usersId = await findFolder('users', nourishId)
       if (!usersId) return null
-      const userDirId = await findFolder(email, usersId)
+
+      // Try direct folder name match first (fast path)
+      let userDirId = await findFolder(email, usersId)
+
+      // If not found by name, scan all user folders and match by profile.json email.
+      // This handles cases where the folder was created under a different email alias.
+      if (!userDirId) {
+        const allFolders = await listFolders(usersId)
+        for (const folder of allFolders) {
+          try {
+            const pf  = await findFile('profile.json', folder.id)
+            if (!pf) continue
+            const raw = await readFile(pf.id)
+            if (!raw) continue
+            const p   = typeof raw === 'string' ? JSON.parse(raw) : raw
+            if (p?.email?.toLowerCase() === email.toLowerCase()) {
+              userDirId = folder.id
+              break
+            }
+          } catch {}
+        }
+      }
+
       if (!userDirId) return null
       const profileFile = await findFile('profile.json', userDirId)
       if (!profileFile) return null
