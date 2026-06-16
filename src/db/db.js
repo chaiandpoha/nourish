@@ -21,7 +21,9 @@ import { shouldBackup, markBackupDone } from './syncManager.js'
 
 // ─── Sync state ───────────────────────────────────────────────────────────────
 let _syncInterval          = null
+let _sbSyncInterval        = null   // Supabase-only sync for non-admin users
 let _isSyncing             = false
+let _isSbSyncing           = false
 let _folderIds             = {}   // cached folder IDs per user
 let _tokenExpiredNotified  = false
 
@@ -262,10 +264,8 @@ async function _safeBulkRestore(tableName, records) {
 
 /** Stop sync interval — called on logout */
 export function teardownStorage() {
-  if (_syncInterval) {
-    clearInterval(_syncInterval)
-    _syncInterval = null
-  }
+  if (_syncInterval)   { clearInterval(_syncInterval);   _syncInterval   = null }
+  if (_sbSyncInterval) { clearInterval(_sbSyncInterval); _sbSyncInterval = null }
   _folderIds = {}
 }
 
@@ -293,6 +293,8 @@ export async function flushDirtyRecords(userId, encryptionKey) {
       _tokenExpiredNotified = true
       window.dispatchEvent(new CustomEvent('nourish:drive-token-expired'))
     }
+    // No Drive token — push dirty records to Supabase so data isn't lost
+    flushDirtyToSupabase(userId).catch(() => {})
     return
   }
   _tokenExpiredNotified = false // token is valid — reset so next expiry fires again
@@ -536,6 +538,68 @@ export async function saveMeasurement(userId, entry) {
     return existing.id
   }
   return db.measurements.add({ userId, ...entry, dirty: 1, updatedAt: new Date().toISOString() })
+}
+
+// ─── Supabase-only sync (non-admin users / expired Drive token) ───────────────
+
+/**
+ * Push dirty records to Supabase without needing a Drive token.
+ * Used by non-admin users as their only sync path, and as a fallback
+ * for admin users when their Drive token has expired.
+ */
+export async function flushDirtyToSupabase(userId) {
+  if (_isSbSyncing) return
+  _isSbSyncing = true
+  try {
+    const { sbPushUserData } = await import('./supabase.js')
+
+    const MONTHLY = ['foodLogs', 'workoutLogs', 'workoutSets', 'weightLog',
+                     'supplementLog', 'stepsLog', 'measurements', 'bloodWork']
+    for (const table of MONTHLY) {
+      const dirty = await getDirtyRecords(table, userId).catch(() => [])
+      if (!dirty.length) continue
+
+      // Find which months have dirty records
+      const dirtyMonths = new Set(
+        dirty.map(r => (r.date || r.updatedAt || '').slice(0, 7)).filter(Boolean)
+      )
+      // Get all records for the user so we push complete months (not just dirty rows)
+      const all = await db[table].where('userId').equals(userId).toArray().catch(() => [])
+      for (const month of dirtyMonths) {
+        const monthData = all.filter(r => (r.date || r.updatedAt || '').startsWith(month))
+        if (monthData.length) await sbPushUserData(userId, table, month, monthData).catch(() => {})
+      }
+      await clearDirty(table, dirty.map(r => r.id))
+    }
+
+    const SINGLE = ['programmes', 'mealTemplates', 'reminders']
+    for (const table of SINGLE) {
+      const dirty = await db[table].where('userId').equals(userId).and(r => r.dirty === 1).toArray().catch(() => [])
+      if (!dirty.length) continue
+      const all = await db[table].where('userId').equals(userId).toArray().catch(() => [])
+      await sbPushUserData(userId, table, 'all', all).catch(() => {})
+      await clearDirty(table, dirty.map(r => r.id))
+    }
+  } catch (e) {
+    console.warn('[supabase] flushDirtyToSupabase error:', e.message)
+  } finally {
+    _isSbSyncing = false
+  }
+}
+
+/**
+ * Start a Supabase-only sync interval — used for non-admin users who have
+ * no Drive token and need their personal data backed up somewhere.
+ */
+export function startSupabaseSync(userId) {
+  if (_sbSyncInterval) clearInterval(_sbSyncInterval)
+  _sbSyncInterval = setInterval(
+    () => flushDirtyToSupabase(userId),
+    DRIVE.syncIntervalSeconds * 1000
+  )
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushDirtyToSupabase(userId).catch(() => {})
+  })
 }
 
 // ─── Supabase backup / restore ────────────────────────────────────────────────

@@ -171,9 +171,11 @@ export function AuthProvider({ children }) {
         const driveEmail = getAdminEmail() || envAdmin || getDriveEmail() || profile.email
         await initStorage(profile.id, key, driveEmail, profile.householdId)
       } else {
-        // No Drive token — try Supabase restore directly (no token needed)
-        const { restoreFromSupabase } = await import('../db/db.js')
+        // No Drive token — Supabase is the only sync backend (non-admin users, expired token)
+        const { restoreFromSupabase, startSupabaseSync, pushAllLocalDataToSupabase } = await import('../db/db.js')
         restoreFromSupabase(profile.id).catch(e => console.warn('Supabase restore error:', e.message))
+        pushAllLocalDataToSupabase(profile.id).catch(() => {})
+        startSupabaseSync(profile.id)
       }
     } catch (e) {
       console.warn('Storage init error:', e.message)
