@@ -181,7 +181,7 @@ function OnboardingScreen() {
     if (!isLoading && !user) navigate('/', { replace: true })
   }, [isLoading, user])
 
-  if (isLoading || !user) return null
+  if (isLoading || !user) return <div style={styles.splash} />
   return (
     <Onboarding
       onComplete={() => { refreshUser(); navigate('/', { replace: true }) }}
