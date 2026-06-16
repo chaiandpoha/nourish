@@ -153,7 +153,7 @@ export async function restoreFromSupabase(userId) {
       if (row.table_name === 'foods') {
         let deletedIds = new Set()
         try { deletedIds = new Set(JSON.parse(localStorage.getItem('nourish_deleted_foods') || '[]')) } catch {}
-        const toRestore = row.data.filter(f => !deletedIds.has(f.id))
+        const toRestore = row.data.filter(f => !deletedIds.has(f.id)).map(f => ({ ...f, dirty: 0 }))
         if (toRestore.length) await db.foods.bulkPut(toRestore).catch(() => {})
         total += toRestore.length
       } else {

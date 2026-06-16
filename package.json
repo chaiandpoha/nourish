@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
@@ -26,8 +28,11 @@
     "eslint-plugin-react": "^7.34.2",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.7",
+    "fake-indexeddb": "^6.2.5",
+    "happy-dom": "^20.10.4",
     "vite": "^5.3.1",
     "vite-plugin-pwa": "^0.20.0",
+    "vitest": "^4.1.9",
     "workbox-window": "^7.1.0"
   }
 }
