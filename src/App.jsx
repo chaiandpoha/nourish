@@ -520,6 +520,7 @@ function SettingsScreen() {
       {tab === 'profile' && (
         <>
           <ProfileEditor user={user} onSaved={refreshUser} />
+          <MergeDuplicateProfile currentUserId={user?.id} />
           <ThemeToggle />
           <ExportData userId={user?.id} />
           {user?.pinHash && (
@@ -1011,6 +1012,82 @@ function ReminderSettings({ userId }) {
       {reminders.length === 0 && (
         <p style={st2.emptySub}>No reminders yet. Reminders appear as banners when you open the app at the right time.</p>
       )}
+    </div>
+  )
+}
+
+// ─── MergeDuplicateProfile ───────────────────────────────────────────────────
+
+function MergeDuplicateProfile({ currentUserId }) {
+  const [others,   setOthers]   = useState([])
+  const [merging,  setMerging]  = useState(false)
+  const [confirm,  setConfirm]  = useState(null)   // profile to merge from
+
+  useEffect(() => {
+    if (!currentUserId) return
+    db.users.toArray().then(all => setOthers(all.filter(u => u.id !== currentUserId)))
+  }, [currentUserId])
+
+  if (!others.length) return null
+
+  async function doMerge(fromUserId) {
+    setMerging(true)
+    const tables = [
+      'foodLogs','workoutLogs','workoutSets','programmes',
+      'weightLog','bloodWork','supplementLog','moodLog',
+      'progressPhotos','mealTemplates','reminders','measurements','waterLog','stepsLog',
+    ]
+    const now = new Date().toISOString()
+    for (const t of tables) {
+      if (!db[t]) continue
+      const records = await db[t].where('userId').equals(fromUserId).toArray()
+      if (!records.length) continue
+      await db[t].bulkPut(records.map(r => ({ ...r, userId: currentUserId, dirty: 1, updatedAt: now })))
+    }
+    await db.users.delete(fromUserId)
+    setOthers(prev => prev.filter(u => u.id !== fromUserId))
+    setConfirm(null)
+    setMerging(false)
+    window.location.reload()
+  }
+
+  return (
+    <div style={{ background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', padding:'14px 16px', display:'flex', flexDirection:'column', gap:'10px' }}>
+      <div style={{ fontSize:'13px', fontWeight:'600', color:'var(--text-secondary)' }}>
+        Duplicate profile{others.length > 1 ? 's' : ''} detected
+      </div>
+      {others.map(other => (
+        <div key={other.id} style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+          <span style={{ flex:1, fontSize:'13px', color:'var(--text-primary)' }}>{other.name || other.email || other.id.slice(0,8)}</span>
+          {confirm?.id === other.id ? (
+            <>
+              <button
+                style={{ padding:'6px 12px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer', opacity: merging ? 0.6 : 1 }}
+                onClick={() => doMerge(other.id)}
+                disabled={merging}
+              >
+                {merging ? 'Merging…' : 'Confirm'}
+              </button>
+              <button
+                style={{ padding:'6px 10px', background:'none', border:'none', color:'var(--text-tertiary)', fontSize:'12px', cursor:'pointer' }}
+                onClick={() => setConfirm(null)}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              style={{ padding:'6px 12px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
+              onClick={() => setConfirm(other)}
+            >
+              Merge into mine
+            </button>
+          )}
+        </div>
+      ))}
+      <p style={{ fontSize:'11px', color:'var(--text-tertiary)', margin:0 }}>
+        Moves all food logs, weights &amp; workouts from the old profile into yours, then removes it.
+      </p>
     </div>
   )
 }
