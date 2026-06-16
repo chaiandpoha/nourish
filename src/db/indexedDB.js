@@ -205,6 +205,15 @@ db.version(9).stores({
   batches: '&id, name, userId, createdBy, shared, closed, createdAt',
 })
 
+// Version 10 — repair: DB_VERSION was briefly set to 9 in config.js, which caused
+// db.version(9) to be registered twice. Dexie applies the later registration last,
+// so the base-schema version (without email/householdId) overwrote the v3/v4
+// definitions on devices that upgraded during that window. Re-apply the correct
+// users schema here to restore any lost indexes.
+db.version(10).stores({
+  users: '&id, name, email, driveFileId, householdId, createdAt',
+})
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Mark a record dirty — will be picked up by next Supabase flush */

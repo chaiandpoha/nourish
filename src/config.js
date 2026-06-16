@@ -69,7 +69,7 @@ export const LABEL_SCAN = {
 
 // ─── IndexedDB ───────────────────────────────────────────────────────────────
 export const DB_NAME    = 'nourish'
-export const DB_VERSION = 9
+export const DB_VERSION = 1
 
 // ─── Misc ────────────────────────────────────────────────────────────────────
 export const FIBRE_LOW_THRESHOLD = 0.5  // flag in AI chat if fibre < 50% of goal by evening
