@@ -38,10 +38,14 @@ export default function AdminPanel() {
     } catch {
       allBatches = await db.batches.toArray()
     }
-    const [allUsers, allFoods] = await Promise.all([
+    const [allUsersRaw, allFoods] = await Promise.all([
       db.users.toArray(),
       db.foods.where('source').anyOf(['saved','scanned']).toArray(),
     ])
+    // Only show profiles in the same household (or just the current user if no household)
+    const allUsers = allUsersRaw.filter(u =>
+      u.id === user?.id || (user?.householdId && u.householdId === user?.householdId)
+    )
     setProfiles(allUsers)
     setFoods(allFoods)
     setBatches(allBatches)

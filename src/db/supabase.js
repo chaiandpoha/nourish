@@ -185,6 +185,14 @@ export async function sbSaveProfile(profile) {
   }
 }
 
+export async function sbClearMemberHousehold(email) {
+  if (!supabase || !email) return
+  await supabase
+    .from('profiles')
+    .update({ household_id: null, updated_at: new Date().toISOString() })
+    .eq('email', email.toLowerCase())
+}
+
 export async function sbFetchProfile(email) {
   if (!supabase || !email) return null
   const { data, error } = await supabase
@@ -268,7 +276,7 @@ export async function sbJoinHousehold(code, email, name) {
     .single()
   if (error || !household) throw new Error('Household not found — check your code')
   if (household.members.length >= HOUSEHOLD.maxMembers) throw new Error(`Household is full (max ${HOUSEHOLD.maxMembers} members)`)
-  if (household.members.some(m => m.email === email)) {
+  if (household.members.some(m => m.email.toLowerCase() === email.toLowerCase())) {
     return fromHouseholdRow(household)
   }
   const newMembers = [...household.members, { email, name, joinedAt: new Date().toISOString() }]

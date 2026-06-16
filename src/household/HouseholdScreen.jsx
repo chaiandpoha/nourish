@@ -4,6 +4,7 @@ import { db } from '../db/indexedDB.js'
 import {
   sbCreateHousehold, sbJoinHousehold, sbFetchHousehold,
   sbUpdateHousehold, sbLeaveHousehold, sbSaveProfile, sbFetchUserHousehold,
+  sbClearMemberHousehold,
 } from '../db/supabase.js'
 import { pushLocalFoodsToHousehold, pushLocalBatchesToHousehold } from '../food/FoodDB.js'
 import { HOUSEHOLD } from '../config.js'
@@ -202,6 +203,8 @@ function HouseholdManager({ user, onDone }) {
         ...household,
         members: household.members.filter(m => m.email !== email),
       })
+      // Clear the removed member's householdId so they lose access immediately
+      sbClearMemberHousehold(email).catch(() => {})
       setHousehold(updated)
     } catch (e) {
       setError(e.message)

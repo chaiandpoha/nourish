@@ -55,6 +55,16 @@ export default function BatchList({ onLogged }) {
       }
       if (toSave.length) await db.batches.bulkPut(toSave)
 
+      // Remove household batches that were deleted remotely
+      if (remote.length > 0 && user.householdId) {
+        const remoteIds = new Set(remote.map(b => b.id))
+        const localHousehold = await db.batches.toArray()
+        const toRemove = localHousehold
+          .filter(b => b.householdId === user.householdId && !remoteIds.has(b.id))
+          .map(b => b.id)
+        if (toRemove.length) await db.batches.bulkDelete(toRemove)
+      }
+
       const sort = arr => arr.sort((a, b) => {
         if (a.shared && !b.shared) return -1
         if (!a.shared && b.shared) return 1
@@ -62,11 +72,14 @@ export default function BatchList({ onLogged }) {
       })
       const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
       const allRaw = await db.batches.toArray()
-      // Only show batches for current household (or personal batches when no household)
+      // Only show household batches + own personal batches (not other users' personal batches)
       const hid = user.householdId
       const all = hid
-        ? allRaw.filter(b => b.householdId === hid || (!b.shared && !b.householdId))
-        : allRaw
+        ? allRaw.filter(b =>
+            b.householdId === hid ||
+            (!b.shared && !b.householdId && (b.userId === user.id || b.createdBy === user.email))
+          )
+        : allRaw.filter(b => b.userId === user.id || b.createdBy === user.email || !b.userId)
       const open   = all.filter(b => !b.closed)
       const closed = all.filter(b => b.closed && (!b.closedAt || b.closedAt >= cutoff))
       setBatches(sort(open))
@@ -75,7 +88,9 @@ export default function BatchList({ onLogged }) {
       const cutoff  = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
       const allRaw  = await db.batches.toArray()
       const hid     = user?.householdId
-      const all     = hid ? allRaw.filter(b => b.householdId === hid || (!b.shared && !b.householdId)) : allRaw
+      const all     = hid
+        ? allRaw.filter(b => b.householdId === hid || (!b.shared && !b.householdId && (b.userId === user?.id || b.createdBy === user?.email)))
+        : allRaw.filter(b => b.userId === user?.id || b.createdBy === user?.email || !b.userId)
       setBatches(all.filter(b => !b.closed))
       setClosedBatches(all.filter(b => b.closed && (b.closedAt || b.updatedAt || '') >= cutoff))
     }
@@ -278,6 +293,7 @@ function LogPortion({ batch, onLogged, onCancel }) {
 
   async function handleLog() {
     if (parsedGrams <= 0) { setError('Enter a valid amount'); return }
+    if (batch.closed) { setError('This batch is closed'); return }
     setSaving(true)
     try {
       await addFoodLogEntry(user.id, {

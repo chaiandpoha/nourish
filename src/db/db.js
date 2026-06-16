@@ -114,11 +114,13 @@ export async function flushDirtyToSupabase(userId) {
       }
     }
 
-    // Personal foods — no dirty flag, always push when called
-    const foods = await db.foods
-      .where('source').anyOf(['saved', 'scanned', 'recipe'])
-      .toArray().catch(() => [])
-    if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
+    // Personal foods — solo users only (household users sync via household_foods table)
+    if (!profile?.householdId) {
+      const foods = await db.foods
+        .where('source').anyOf(['saved', 'scanned', 'recipe'])
+        .toArray().catch(() => [])
+      if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
+    }
 
     // Profile — push if dirty (reuse profile already fetched above)
     if (profile?.dirty) {
@@ -149,8 +151,11 @@ export async function restoreFromSupabase(userId) {
     for (const row of rows) {
       if (!Array.isArray(row.data) || !row.data.length) continue
       if (row.table_name === 'foods') {
-        await db.foods.bulkPut(row.data).catch(() => {})
-        total += row.data.length
+        let deletedIds = new Set()
+        try { deletedIds = new Set(JSON.parse(localStorage.getItem('nourish_deleted_foods') || '[]')) } catch {}
+        const toRestore = row.data.filter(f => !deletedIds.has(f.id))
+        if (toRestore.length) await db.foods.bulkPut(toRestore).catch(() => {})
+        total += toRestore.length
       } else {
         total += await _safeBulkRestore(row.table_name, row.data)
       }
@@ -212,14 +217,17 @@ export async function pushAllLocalDataToSupabase(userId) {
       if (records.length) await sbPushUserData(userId, table, 'all', records).catch(() => {})
     }
 
-    const foods = await db.foods
-      .where('source').anyOf(['saved', 'scanned', 'recipe'])
-      .toArray().catch(() => [])
-    if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
+    // Foods and personal batches only for solo users — household users use household_foods/batches tables
+    const userProfile = await db.users.get(userId).catch(() => null)
+    if (!userProfile?.householdId) {
+      const foods = await db.foods
+        .where('source').anyOf(['saved', 'scanned', 'recipe'])
+        .toArray().catch(() => [])
+      if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
 
-    // Personal batches (solo users)
-    const allBatches = await db.batches.where('userId').equals(userId).toArray().catch(() => [])
-    if (allBatches.length) await sbPushUserData(userId, 'batches', 'all', allBatches).catch(() => {})
+      const allBatches = await db.batches.where('userId').equals(userId).toArray().catch(() => [])
+      if (allBatches.length) await sbPushUserData(userId, 'batches', 'all', allBatches).catch(() => {})
+    }
 
     console.log('[supabase] full push complete for', userId)
   } catch (e) {

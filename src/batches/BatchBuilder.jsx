@@ -37,11 +37,15 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
 
   useEffect(() => {
     db.batches.where('closed').equals(0).toArray().then(all => {
-      setOwnBatches(all.filter(b => b.macrosPer100g).sort((a, b) =>
+      setOwnBatches(all.filter(b =>
+        b.macrosPer100g &&
+        (b.userId === user?.id ||
+         (user?.householdId && b.householdId === user?.householdId))
+      ).sort((a, b) =>
         new Date(b.createdAt) - new Date(a.createdAt)
       ))
     })
-  }, [])
+  }, [user?.id, user?.householdId])
 
   useEffect(() => {
     if (!query.trim() || !seeded) { setResults([]); return }

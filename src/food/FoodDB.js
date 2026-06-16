@@ -6,6 +6,7 @@ import { db } from '../db/indexedDB.js'
 import usdaFoodsData from '../data/usda_foods.json'
 import ninFoodsData  from '../data/nin_foods.json'
 import { localDate } from '../log/DayLog.jsx'
+import { generateId } from '../auth/crypto.js'
 
 // ─── Seed bundled foods into IndexedDB ───────────────────────────────────────
 // Data is bundled as static imports — no fetch needed, works offline from
@@ -232,7 +233,7 @@ export async function saveFood(food, householdId) {
   const entry = {
     tags:   [],
     ...food,
-    id:     food.id || `saved_${Date.now()}`,
+    id:     food.id || generateId(),
     source: food.source || 'saved',
   }
   await db.foods.put(entry)
@@ -285,6 +286,10 @@ export async function fetchHouseholdFoods(householdId) {
       if (deletedIds.has(remote.id)) return false
       const local = localRecords[i]
       if (!local) return true
+      // Don't clobber local data that is newer or equal
+      const localTs  = local.updatedAt || ''
+      const remoteTs = remote.updatedAt || ''
+      if (localTs && remoteTs && localTs >= remoteTs) return false
       const localHasIngredients  = Array.isArray(local.ingredients)  && local.ingredients.length  > 0
       const remoteHasIngredients = Array.isArray(remote.ingredients) && remote.ingredients.length > 0
       if (localHasIngredients && !remoteHasIngredients) return false
@@ -343,16 +348,22 @@ export async function pushLocalBatchesToHousehold(householdId, email) {
 // ─── Active batches ───────────────────────────────────────────────────────────
 
 /**
- * Get all open batches — shared ones first, then personal.
+ * Get all open batches visible to this user — household batches + own personal batches.
  */
-export async function getActiveBatches(userId) {
+export async function getActiveBatches(userId, householdId) {
   const all = await db.batches
     .where('closed')
     .equals(0)
     .toArray()
 
+  // Show household batches and the current user's personal batches only
+  const relevant = all.filter(b =>
+    (householdId && b.householdId === householdId) ||
+    b.userId === userId
+  )
+
   // Shared batches first, then personal
-  return all.sort((a, b) => {
+  return relevant.sort((a, b) => {
     if (a.shared && !b.shared) return -1
     if (!a.shared && b.shared) return 1
     return new Date(b.createdAt) - new Date(a.createdAt)

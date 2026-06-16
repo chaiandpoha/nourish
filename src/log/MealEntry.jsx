@@ -107,7 +107,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
     if (!open || !user) return
     setMeal(readMealPref() || timeSlot())
     Promise.all([
-      getActiveBatches(user.id),
+      getActiveBatches(user.id, user.householdId),
       getRecentFoods(user.id),
       import('../db/indexedDB.js').then(({ db }) => db.foods.where('source').equals('recipe').toArray()),
     ]).then(([b, r, rec]) => {
@@ -115,12 +115,32 @@ export default function MealEntry({ date, onLogged, inline = false }) {
       setRecents(r)
       setRecipes(rec.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')))
     })
-    // Sync household foods with Supabase each time the sheet opens
+    // Sync household foods + batches with Supabase each time the sheet opens
     if (user.householdId) {
       import('../food/FoodDB.js').then(({ fetchHouseholdFoods, pushLocalFoodsToHousehold }) => {
         fetchHouseholdFoods(user.householdId).catch(e => console.error('fetch household foods:', e))
         pushLocalFoodsToHousehold(user.householdId).catch(e => console.error('push household foods:', e))
       })
+      // Fetch household batches so User B can see batches created by User A
+      import('../db/supabase.js').then(({ sbFetchBatches }) =>
+        sbFetchBatches(user.householdId)
+      ).then(async remote => {
+        if (!remote?.length) return
+        const { db } = await import('../db/indexedDB.js')
+        const localRecords = await db.batches.bulkGet(remote.map(b => b.id))
+        const toSave = remote.filter((r, i) => {
+          const local = localRecords[i]
+          if (!local) return true
+          if (local.updatedAt && r.updatedAt && r.updatedAt <= local.updatedAt) return false
+          const localHasIng  = Array.isArray(local.ingredients) && local.ingredients.length > 0
+          const remoteHasIng = Array.isArray(r.ingredients) && r.ingredients.length > 0
+          return !(localHasIng && !remoteHasIng)
+        })
+        if (toSave.length) {
+          await db.batches.bulkPut(toSave)
+          getActiveBatches(user.id, user.householdId).then(setBatches)
+        }
+      }).catch(() => {})
     }
   }, [open, user])
 
