@@ -17,14 +17,17 @@ export default function AdminLogin() {
     setLoading(true)
     setError('')
     try {
-      const users  = await db.users.toArray()
-      if (users.length === 0) {
-        // No profiles yet — go to main screen, Google sign-in will create one
-        window.location.hash = '#/'
-        return
+      const { isTokenValid, initiateOAuthFlow } = await import('../db/driveApi.js')
+      const users = await db.users.toArray()
+
+      if (users.length === 0 || !isTokenValid()) {
+        // No profile or Drive token expired — OAuth refreshes the token and
+        // restores the profile via AuthCallbackScreen → loginWithGoogle
+        initiateOAuthFlow()
+        return // page redirects to Google, setLoading stays true intentionally
       }
 
-      // Find admin profile: prefer isAdmin flag, then email match, then first user
+      // Profile exists and Drive token is valid — log in directly
       const target =
         users.find(u => u.isAdmin) ||
         (ADMIN_EMAIL && users.find(u => (u.email || '').toLowerCase() === ADMIN_EMAIL)) ||
@@ -44,7 +47,6 @@ export default function AdminLogin() {
       window.location.hash = '#/'
     } catch (err) {
       setError(err.message)
-    } finally {
       setLoading(false)
     }
   }
