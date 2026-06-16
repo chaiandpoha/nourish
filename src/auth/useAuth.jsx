@@ -203,11 +203,16 @@ export function AuthProvider({ children }) {
       }
     }
 
-    // 3. Profile found but householdId missing — look it up
+    // 3. Profile found but householdId missing — look it up two ways
     if (profile && !profile.householdId) {
       try {
-        const { sbFetchUserHousehold } = await import('../db/supabase.js')
-        const hid = await sbFetchUserHousehold(normalEmail)
+        const { sbFetchUserHousehold, sbFetchProfile } = await import('../db/supabase.js')
+        // Try members-array query first, then fall back to the profile's household_id column
+        let hid = await sbFetchUserHousehold(normalEmail).catch(() => null)
+        if (!hid) {
+          const sp = await sbFetchProfile(normalEmail).catch(() => null)
+          hid = sp?.householdId || null
+        }
         if (hid) {
           profile = { ...profile, householdId: hid }
           await db.users.put(profile)

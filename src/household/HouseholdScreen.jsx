@@ -28,8 +28,20 @@ function HouseholdSetup({ user, onDone }) {
   async function handleRecover() {
     setLoading(true); setError('')
     try {
-      const hid = await sbFetchUserHousehold(user.email)
-      if (!hid) { setError("No household found for your account. Create one or ask your admin for the code."); return }
+      // Try 1: look up by email in the household members array
+      let hid = await sbFetchUserHousehold(user.email)
+
+      // Try 2: read household_id directly from the Supabase profile row
+      if (!hid) {
+        const { sbFetchProfile } = await import('../db/supabase.js')
+        const sp = await sbFetchProfile(user.email).catch(() => null)
+        hid = sp?.householdId || null
+      }
+
+      if (!hid) {
+        setError("No household found. Ask your household admin for the 6-character code and use \"Join with code\" above.")
+        return
+      }
       await db.users.update(user.id, { householdId: hid, dirty: 1, updatedAt: new Date().toISOString() })
       sbSaveProfile({ ...user, householdId: hid }).catch(() => {})
       await onDone()
