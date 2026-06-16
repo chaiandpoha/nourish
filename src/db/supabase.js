@@ -321,6 +321,16 @@ export async function sbFetchUserHousehold(email) {
   return data?.id || null
 }
 
+// Returns ALL household IDs the email is a member of (for recipe recovery)
+export async function sbFetchAllUserHouseholds(email) {
+  if (!supabase || !email) return []
+  const { data } = await supabase
+    .from('households')
+    .select('id')
+    .contains('members', [{ email: email.toLowerCase() }])
+  return (data || []).map(r => r.id)
+}
+
 export async function sbLeaveHousehold(householdId, email) {
   if (!supabase) throw new Error('Supabase not configured')
   const household = await sbFetchHousehold(householdId)

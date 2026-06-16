@@ -252,6 +252,33 @@ export default function DebugPanel() {
     }
   }
 
+  async function doRecoverAllFoods() {
+    if (!user.householdId) { log('No current household — skipping', false); return }
+    log('Recovering recipes from all past households…')
+    try {
+      const { sbFetchAllUserHouseholds, sbFetchHouseholdFoods, sbSaveFood } = await import('../db/supabase.js')
+      const allHids = await sbFetchAllUserHouseholds(user.email)
+      log(`Found ${allHids.length} household(s) for ${user.email}`)
+      let totalFoods = 0
+      for (const hid of allHids) {
+        const foods = await sbFetchHouseholdFoods(hid)
+        if (!foods.length) { log(`Household ${hid.slice(0,8)}: 0 foods`); continue }
+        log(`Household ${hid.slice(0,8)}: ${foods.length} foods — merging locally`)
+        await db.foods.bulkPut(foods)
+        // Push any foods not already in the current household
+        for (const food of foods) {
+          if (food.source === 'usda' || food.source === 'nin') continue
+          await sbSaveFood(food, user.householdId).catch(() => {})
+        }
+        totalFoods += foods.length
+      }
+      log(`Recovery complete — ${totalFoods} foods merged`, totalFoods > 0)
+      await runDiagnostics()
+    } catch (e) {
+      log(`Recovery error: ${e.message}`, false)
+    }
+  }
+
   async function doClearDirtyFlags() {
     log('Clearing all dirty flags (mark as synced)…')
     try {
@@ -283,6 +310,7 @@ export default function DebugPanel() {
         <button style={b.action} onClick={doPushAll}    disabled={running}>⬆⬆ Push All Data</button>
         <button style={b.action} onClick={doRestore}    disabled={running}>⬇ Restore from SB</button>
         <button style={b.action} onClick={doPushHousehold} disabled={running}>🏠 Push Household</button>
+        <button style={{ ...b.action, color:'var(--accent)' }} onClick={doRecoverAllFoods} disabled={running}>♻ Recover Recipes</button>
         <button style={{ ...b.action, color:'var(--red)' }} onClick={doClearDirtyFlags} disabled={running}>✗ Clear Dirty Flags</button>
       </div>
 

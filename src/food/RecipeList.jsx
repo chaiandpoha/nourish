@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { db } from '../db/indexedDB.js'
 import RecipeBuilder from './RecipeBuilder.jsx'
 import { deleteFood, pushLocalFoodsToHousehold } from './FoodDB.js'
-import { sbFetchHouseholdFoods } from '../db/supabase.js'
 import { MACRO_COLORS } from '../config.js'
 
 export default function RecipeList({ householdId }) {
@@ -12,64 +11,58 @@ export default function RecipeList({ householdId }) {
   const [deleting, setDeleting] = useState(null) // id being confirmed
   const didSync = useRef(false)
 
-  async function load() {
+  async function loadLocal() {
+    const local = await db.foods.where('source').equals('recipe').toArray()
+    local.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+    setRecipes(local)
+    return local
+  }
+
+  async function syncFromCloud(localRecipes) {
+    if (!householdId) return
     try {
-      const local = await db.foods.where('source').equals('recipe').toArray()
-      const byId  = new Map(local.map(f => [f.id, f]))
-
-      if (householdId) {
-        const remote = await sbFetchHouseholdFoods(householdId)
-        const toSave = []
-        const toDeleteFromSupabase = []
-        for (const f of remote) {
-          const isRecipe = f.source === 'recipe' || (Array.isArray(f.ingredients) && f.ingredients.length > 0)
-          if (!isRecipe) continue
-          const localEntry           = byId.get(f.id)
-          const remoteHasIngredients = Array.isArray(f.ingredients) && f.ingredients.length > 0
-
-          if (!localEntry) {
-            // In Supabase but not local — user deleted it locally but Supabase delete failed.
-            // Retry the delete rather than re-adding to local.
-            toDeleteFromSupabase.push(f.id)
-            continue
-          }
-
-          const localHasIngredients = Array.isArray(localEntry.ingredients) && localEntry.ingredients.length > 0
-          // Keep local if it has ingredients and remote doesn't (Supabase column may lag)
-          if (localHasIngredients && !remoteHasIngredients) continue
-          // Keep local if it's newer than remote
-          if (localEntry.updatedAt && f.updatedAt && localEntry.updatedAt >= f.updatedAt) continue
-
-          const entry = { ...f, source: 'recipe' }
-          byId.set(f.id, entry)
-          toSave.push(entry)
-        }
-        if (toSave.length) await db.foods.bulkPut(toSave)
-        if (toDeleteFromSupabase.length) {
-          const { sbDeleteFood } = await import('../db/supabase.js')
-          for (const id of toDeleteFromSupabase) sbDeleteFood(id).catch(() => {})
+      const { sbFetchHouseholdFoods } = await import('../db/supabase.js')
+      const remote = await sbFetchHouseholdFoods(householdId)
+      const localById = new Map(localRecipes.map(f => [f.id, f]))
+      const toSave = []
+      for (const f of remote) {
+        const isRecipe = f.source === 'recipe' || (Array.isArray(f.ingredients) && f.ingredients.length > 0)
+        if (!isRecipe) continue
+        const local = localById.get(f.id)
+        const remoteHasIng = Array.isArray(f.ingredients) && f.ingredients.length > 0
+        if (!local) {
+          // In Supabase but not local — restore it (data loss scenario)
+          toSave.push({ ...f, source: 'recipe' })
+        } else {
+          const localHasIng = Array.isArray(local.ingredients) && local.ingredients.length > 0
+          if (localHasIng && !remoteHasIng) continue  // local is richer
+          if (local.updatedAt && f.updatedAt && local.updatedAt >= f.updatedAt) continue  // local is newer
+          toSave.push({ ...f, source: 'recipe' })
         }
       }
-
-      const merged = [...byId.values()].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
-      setRecipes(merged)
+      if (toSave.length) {
+        await db.foods.bulkPut(toSave)
+        await loadLocal()  // refresh display with restored recipes
+      }
     } catch {
-      const all = await db.foods.where('source').equals('recipe').toArray()
-      all.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
-      setRecipes(all)
+      // Cloud sync failed — local data already shown
     }
   }
 
   useEffect(() => {
-    async function syncAndLoad() {
-      // Push local recipes first so Supabase is up-to-date before we fetch and compare
+    let cancelled = false
+    async function init() {
+      const local = await loadLocal()
+      if (cancelled) return
+      // Background push + pull — doesn't block display
       if (householdId && !didSync.current) {
         didSync.current = true
-        await pushLocalFoodsToHousehold(householdId).catch(() => {})
+        pushLocalFoodsToHousehold(householdId).catch(() => {})
       }
-      load()
+      syncFromCloud(local)
     }
-    syncAndLoad()
+    init()
+    return () => { cancelled = true }
   }, [householdId])
 
   async function handleDelete(id) {
