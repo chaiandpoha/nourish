@@ -14,8 +14,6 @@ export default defineConfig({
       manifest: false, // We manage public/manifest.json manually
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
-        // Bump this string on each deploy so the SW detects the new version
-        additionalManifestEntries: [{ url: '/', revision: 'v20260615-5' }],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
       devOptions: {

@@ -15,22 +15,46 @@
   <body>
     <div id="root"></div>
     <script>
-      // Reload page when a new service worker activates so the new bundle loads cleanly.
-      // Without this, the old page keeps running with old JS chunks that the new SW no longer caches.
+      // When a new SW activates (auto-skipWaiting), reload to load fresh assets.
+      // Guard: only reload after the page has fully loaded so we never go blank mid-startup.
       if ('serviceWorker' in navigator) {
         var _swReloading = false;
+        var _pageLoaded = false;
+        window.addEventListener('load', function() { _pageLoaded = true; });
         navigator.serviceWorker.addEventListener('controllerchange', function() {
-          if (!_swReloading) { _swReloading = true; window.location.reload(); }
+          if (_swReloading) return;
+          _swReloading = true;
+          if (_pageLoaded) {
+            window.location.reload();
+          } else {
+            // Page is mid-load — wait for it to finish, then reload to get new assets
+            window.addEventListener('load', function() {
+              setTimeout(function() { window.location.reload(); }, 800);
+            }, { once: true });
+          }
         });
       }
       function _showCrash(msg) {
         var r = document.getElementById('root');
         if (r && !r.innerHTML.trim()) {
-          r.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;background:#0f0f0f;color:#fff;gap:12px;padding:24px;text-align:center;font-family:sans-serif"><div style="font-size:48px">⚠️</div><p style="font-size:16px;margin:0">Startup failed</p><p style="font-size:12px;color:#888;margin:0;word-break:break-all">' + (msg || 'Unknown error') + '</p><button onclick="window.location.reload()" style="margin-top:8px;padding:10px 20px;background:#333;border:none;border-radius:8px;color:#fff;cursor:pointer">Reload</button></div>';
+          r.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;background:#0f0f0f;color:#fff;gap:12px;padding:24px;text-align:center;font-family:sans-serif"><div style="font-size:48px">&#x26A0;&#xFE0F;</div><p style="font-size:16px;margin:0">Startup failed</p><p style="font-size:12px;color:#888;margin:0;word-break:break-all">' + (msg || 'Unknown error') + '</p><button onclick="window.location.reload()" style="margin-top:8px;padding:10px 20px;background:#333;border:none;border-radius:8px;color:#fff;cursor:pointer">Reload</button></div>';
         }
       }
       window.onerror = function(msg) { _showCrash(msg); };
-      window.addEventListener('unhandledrejection', function(e) { _showCrash(e.reason?.message || String(e.reason)); });
+      window.addEventListener('unhandledrejection', function(e) {
+        // Auto-recover from stale-asset errors that happen when the SW updates mid-session.
+        // If React hasn't rendered yet and we get an unhandled rejection, clear caches and reload once.
+        var r = document.getElementById('root');
+        var rootEmpty = !r || !r.innerHTML.trim();
+        if (rootEmpty && !sessionStorage.getItem('_nr_sw_recover')) {
+          sessionStorage.setItem('_nr_sw_recover', '1');
+          caches.keys().then(function(ks) {
+            return Promise.all(ks.map(function(k) { return caches.delete(k); }));
+          }).then(function() { window.location.reload(); });
+          return;
+        }
+        _showCrash(e.reason?.message || String(e.reason));
+      });
     </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>

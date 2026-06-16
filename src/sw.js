@@ -1,8 +1,14 @@
+import { skipWaiting, clientsClaim } from 'workbox-core'
 import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
 import { CacheFirst } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
+
+// Auto-activate immediately on install and claim all open clients.
+// This means updates deploy without requiring the user to close all tabs.
+skipWaiting()
+clientsClaim()
 
 // Precache manifest is injected by vite-plugin-pwa at build time
 precacheAndRoute(self.__WB_MANIFEST)
@@ -22,9 +28,3 @@ registerRoute(
     ],
   })
 )
-
-// Allow the app to trigger an update: the banner sends 'SKIP_WAITING',
-// the new SW activates immediately, then the page reloads cleanly.
-self.addEventListener('message', e => {
-  if (e.data === 'SKIP_WAITING') self.skipWaiting()
-})

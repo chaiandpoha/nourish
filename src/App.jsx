@@ -31,7 +31,6 @@ import HouseholdScreen from './household/HouseholdScreen.jsx'
 import RecipeList from './food/RecipeList.jsx'
 import LabelList from './food/LabelList.jsx'
 import { getThemePref, setThemePref } from './shared/theme.js'
-import SWUpdateBanner from './shared/SWUpdateBanner.jsx'
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -118,7 +117,6 @@ export default function App() {
     <ErrorBoundary>
     <AuthProvider>
       <BannerProvider>
-        <SWUpdateBanner />
         <HashRouter>
           {dbWasRebuilt && (
             <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:9999, background:'#FF9500', color:'#000', padding:'10px 16px', fontSize:'13px', textAlign:'center' }}>
