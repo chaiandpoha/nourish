@@ -166,6 +166,21 @@ export async function restoreFromDrive(userId, encryptionKey, folderIds, userEma
     totalRestored += await _restoreSingleTable('mealTemplates', fIds.userDir,        userId)
     totalRestored += await _restoreSingleTable('reminders',     fIds.userDir,        userId)
 
+    // Restore personal scanned/saved/recipe foods — no userId field, stored flat
+    try {
+      const foodsFile = await findFile('foods.json', fIds.userDir)
+      if (foodsFile) {
+        const raw   = await readFile(foodsFile.id)
+        const foods = typeof raw === 'string' ? JSON.parse(raw) : raw
+        if (Array.isArray(foods) && foods.length) {
+          await db.foods.bulkPut(foods).catch(() => {})
+          totalRestored += foods.length
+        }
+      }
+    } catch (e) {
+      console.warn('[restore] foods error:', e)
+    }
+
     if (totalRestored > 0) break // found data — stop trying other emails
   }
 
@@ -310,6 +325,7 @@ export async function flushDirtyRecords(userId, encryptionKey) {
     await flushMonthlyTable('measurements', userId, encryptionKey, _folderIds.userDir)
     await flushReminders(userId)
     await flushProgrammes(userId, encryptionKey)
+    await flushFoods(userId)
     await flushProfile(userId, encryptionKey)
   } catch (e) {
     console.error('Sync flush error:', e)
@@ -433,6 +449,27 @@ async function flushProgrammes(userId, encryptionKey) {
   import('./supabase.js').then(({ sbPushUserData }) =>
     sbPushUserData(userId, 'programmes', 'all', all)
   ).catch(() => {})
+}
+
+async function flushFoods(userId) {
+  if (!_folderIds.userDir) return
+  try {
+    const personal = await db.foods
+      .where('source').anyOf(['saved', 'scanned', 'recipe'])
+      .toArray()
+    if (!personal.length) return
+
+    const syncKey  = `${userId}:foods`
+    const stateRow = await db.syncState.get(syncKey)
+    const fileId   = await writeFile('foods.json', personal, _folderIds.userDir, stateRow?.fileId)
+    await db.syncState.put({ key: syncKey, userId, fileId, lastSyncAt: new Date().toISOString() })
+
+    import('./supabase.js').then(({ sbPushUserData }) =>
+      sbPushUserData(userId, 'foods', 'all', personal)
+    ).catch(() => {})
+  } catch (e) {
+    console.warn('[foods] flush error:', e)
+  }
 }
 
 async function flushProfile(userId, encryptionKey) {
@@ -580,6 +617,12 @@ export async function flushDirtyToSupabase(userId) {
       await sbPushUserData(userId, table, 'all', all).catch(() => {})
       await clearDirty(table, dirty.map(r => r.id))
     }
+
+    // Always push personal foods — no dirty flag on foods table
+    const foods = await db.foods
+      .where('source').anyOf(['saved', 'scanned', 'recipe'])
+      .toArray().catch(() => [])
+    if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
   } catch (e) {
     console.warn('[supabase] flushDirtyToSupabase error:', e.message)
   } finally {
@@ -612,7 +655,12 @@ export async function restoreFromSupabase(userId) {
     if (!rows.length) return 0
     let total = 0
     for (const row of rows) {
-      if (Array.isArray(row.data) && row.data.length > 0) {
+      if (!Array.isArray(row.data) || !row.data.length) continue
+      if (row.table_name === 'foods') {
+        // foods has no userId field — just bulkPut directly
+        await db.foods.bulkPut(row.data).catch(() => {})
+        total += row.data.length
+      } else {
         total += await _safeBulkRestore(row.table_name, row.data)
       }
     }
@@ -650,6 +698,12 @@ export async function pushAllLocalDataToSupabase(userId) {
       const records = await db[table].where('userId').equals(userId).toArray().catch(() => [])
       if (records.length) await sbPushUserData(userId, table, 'all', records).catch(() => {})
     }
+
+    // Push personal foods — no userId field, but keyed under this user's id for restore
+    const foods = await db.foods
+      .where('source').anyOf(['saved', 'scanned', 'recipe'])
+      .toArray().catch(() => [])
+    if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
 
     console.log('[supabase] full push complete for', userId)
   } catch (e) {
