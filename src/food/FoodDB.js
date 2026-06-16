@@ -248,8 +248,22 @@ export async function saveFood(food, householdId) {
 }
 
 export async function deleteFood(id, householdId) {
+  const food = await db.foods.get(id).catch(() => null)
   await db.foods.delete(id)
-  if (householdId) {
+
+  // Track deleted IDs in localStorage so syncFromCloud never restores them
+  try {
+    const deleted = JSON.parse(localStorage.getItem('nourish_deleted_foods') || '[]')
+    if (!deleted.includes(id)) {
+      deleted.push(id)
+      // Keep last 500 entries to avoid unbounded growth
+      localStorage.setItem('nourish_deleted_foods', JSON.stringify(deleted.slice(-500)))
+    }
+  } catch {}
+
+  // Recipes: only delete locally — other household members should keep access.
+  // Non-recipe foods (labels, scanned): also remove from Supabase.
+  if (householdId && food?.source !== 'recipe') {
     const { sbDeleteFood } = await import('../db/supabase.js')
     await sbDeleteFood(id).catch(e => console.warn('Supabase food delete error:', e))
   }

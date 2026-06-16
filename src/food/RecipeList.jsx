@@ -24,8 +24,11 @@ export default function RecipeList({ householdId }) {
       const { sbFetchHouseholdFoods } = await import('../db/supabase.js')
       const remote = await sbFetchHouseholdFoods(householdId)
       const localById = new Map(localRecipes.map(f => [f.id, f]))
+      let deletedIds = new Set()
+      try { deletedIds = new Set(JSON.parse(localStorage.getItem('nourish_deleted_foods') || '[]')) } catch {}
       const toSave = []
       for (const f of remote) {
+        if (deletedIds.has(f.id)) continue  // skip foods this user explicitly deleted
         const isRecipe = f.source === 'recipe' || (Array.isArray(f.ingredients) && f.ingredients.length > 0)
         if (!isRecipe) continue
         const local = localById.get(f.id)

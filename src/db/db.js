@@ -67,11 +67,17 @@ export async function flushDirtyToSupabase(userId) {
         dirty.map(r => (r.date || r.updatedAt || '').slice(0, 7)).filter(Boolean)
       )
       const all = await db[table].where('userId').equals(userId).toArray().catch(() => [])
+
+      // Track which dirty record IDs were successfully pushed — only clear those
+      const pushedIds = new Set()
       for (const month of dirtyMonths) {
         const monthData = all.filter(r => (r.date || r.updatedAt || '').startsWith(month))
-        if (monthData.length) await sbPushUserData(userId, table, month, monthData).catch(() => {})
+        if (!monthData.length) continue
+        const ok = await sbPushUserData(userId, table, month, monthData).then(() => true).catch(() => false)
+        if (ok) monthData.forEach(r => pushedIds.add(r.id))
       }
-      await clearDirty(table, dirty.map(r => r.id))
+      const toClear = dirty.filter(r => pushedIds.has(r.id)).map(r => r.id)
+      if (toClear.length) await clearDirty(table, toClear)
     }
 
     const SINGLE = ['programmes', 'mealTemplates', 'reminders']
@@ -80,8 +86,8 @@ export async function flushDirtyToSupabase(userId) {
       const dirty = await db[table].where('userId').equals(userId).and(r => r.dirty === 1).toArray().catch(() => [])
       if (!dirty.length) continue
       const all = await db[table].where('userId').equals(userId).toArray().catch(() => [])
-      await sbPushUserData(userId, table, 'all', all).catch(() => {})
-      await clearDirty(table, dirty.map(r => r.id))
+      const ok  = await sbPushUserData(userId, table, 'all', all).then(() => true).catch(() => false)
+      if (ok) await clearDirty(table, dirty.map(r => r.id))
     }
 
     // Personal foods — no dirty flag, always push when called

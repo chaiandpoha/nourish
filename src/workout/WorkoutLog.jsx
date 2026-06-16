@@ -4,6 +4,7 @@ import { db } from '../db/indexedDB.js'
 import { generateId } from '../auth/crypto.js'
 import { searchExercises, getAlternates } from './ExerciseDB.js'
 import { localDate } from '../log/DayLog.jsx'
+import { flushDirtyToSupabase } from '../db/db.js'
 
 const RPE_OPTIONS = ['6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10']
 const DEFAULT_REST = 90
@@ -342,6 +343,9 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
       }
 
       setSummary({ duration, totalSets, totalVolume, prs })
+
+      // Push to Supabase immediately — don't wait for the 30s interval
+      if (user?.id) flushDirtyToSupabase(user.id).catch(() => {})
     } catch (e) {
       console.error('Finish error:', e)
     } finally {

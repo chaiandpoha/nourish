@@ -20,9 +20,14 @@ export default function BatchList({ onLogged }) {
   useEffect(() => { loadBatches() }, [user])
 
   useEffect(() => {
-    const onFocus = () => loadBatches()
+    const onFocus    = () => loadBatches()
+    const onVisible  = () => { if (document.visibilityState === 'visible') loadBatches() }
     window.addEventListener('focus', onFocus)
-    return () => window.removeEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [user])
 
   async function loadBatches() {
@@ -30,18 +35,24 @@ export default function BatchList({ onLogged }) {
     try {
       const remote = await sbFetchBatches(user.householdId)
       const localRecords = await db.batches.bulkGet(remote.map(b => b.id))
-      const toSave = remote.filter((r, i) => {
+      const toSave = []
+      for (let i = 0; i < remote.length; i++) {
+        const r     = remote[i]
         const local = localRecords[i]
-        if (!local) return true
-        // Never let sync close or reopen a batch — only explicit user action can do that
-        if (!local.closed && r.closed)  return false
-        if (local.closed  && !r.closed) return false
-        // Never overwrite a local batch that has ingredients with a remote that doesn't
+        if (!local) {
+          // Not in local DB — restore it and derive closedAt from updatedAt if missing
+          toSave.push({ ...r, closedAt: r.closed ? (r.closedAt || r.updatedAt) : undefined })
+          continue
+        }
+        // Local is newer or same — skip (trust local)
+        if (local.updatedAt && r.updatedAt && r.updatedAt <= local.updatedAt) continue
+        // Never clobber local ingredients with an empty remote payload
         const localHasIng  = Array.isArray(local.ingredients) && local.ingredients.length > 0
         const remoteHasIng = Array.isArray(r.ingredients)     && r.ingredients.length > 0
-        if (localHasIng && !remoteHasIng) return false
-        return true
-      })
+        if (localHasIng && !remoteHasIng) continue
+        // Remote is newer — apply it (this includes close/reopen state from other members)
+        toSave.push({ ...r, closedAt: r.closed ? (r.closedAt || r.updatedAt) : undefined })
+      }
       if (toSave.length) await db.batches.bulkPut(toSave)
 
       const sort = arr => arr.sort((a, b) => {
