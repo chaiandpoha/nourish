@@ -23,7 +23,8 @@ registerRoute(
   })
 )
 
-// ── NO skipWaiting(), NO clientsClaim(), NO SKIP_WAITING message handler ──
-// The new SW waits in "waiting" state until all tabs using the old SW are
-// naturally closed, then activates on the next fresh open. This eliminates
-// the white screen that occurred when the SW hijacked an active page mid-session.
+// Allow the app to trigger an update: the banner sends 'SKIP_WAITING',
+// the new SW activates immediately, then the page reloads cleanly.
+self.addEventListener('message', e => {
+  if (e.data === 'SKIP_WAITING') self.skipWaiting()
+})
