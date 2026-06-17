@@ -29,21 +29,19 @@ function muscleStyle(muscle) {
   return MUSCLE_COLOR[key] || { bg:'var(--bg-elevated)', fg:'var(--text-tertiary)' }
 }
 
-// Fetches an animated exercise form GIF from Giphy public search
-const GIPHY_KEY = 'dc6zaTOxFJmzC'
 function FormGif({ exercise }) {
-  const [gif, setGif] = useState(null)  // { url, width, height } | null
+  const [gif, setGif] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
     setGif(null)
-    const q = encodeURIComponent(exercise.name + ' exercise proper form')
-    fetch(`https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${q}&limit=1&rating=g`)
+    const q = encodeURIComponent(exercise.name + ' exercise form')
+    fetch(`https://tenor.googleapis.com/v2/search?q=${q}&key=LIVDSRZULELA&client_key=nourish&limit=1&media_filter=gif&contentfilter=medium`)
       .then(r => r.json())
       .then(data => {
-        const item = data?.data?.[0]?.images?.original
-        if (item?.url) setGif({ url: item.url })
+        const url = data?.results?.[0]?.media_formats?.gif?.url
+        if (url) setGif({ url })
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -59,10 +57,8 @@ function FormGif({ exercise }) {
 
   return (
     <div style={{ borderRadius:'var(--r-lg)', overflow:'hidden', background:'var(--bg-elevated)' }}>
-      <img src={gif.url} alt={exercise.name} style={{ width:'100%', display:'block' }} />
-      <div style={{ padding:'4px 8px 6px', fontSize:'10px', color:'var(--text-tertiary)', textAlign:'right' }}>
-        via GIPHY
-      </div>
+      <img src={gif.url} alt={exercise.name} style={{ width:'100%', display:'block' }}
+        onError={() => setGif(null)} />
     </div>
   )
 }
@@ -400,6 +396,8 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
         programmeId: programme?.id || null,
         dayName:     day?.name     || null,
         duration,
+        totalSets,
+        totalVolume,
         prs,
         status:      'complete',
         dirty:       1,

@@ -28,9 +28,10 @@ export default function WorkoutHistory() {
   async function loadLogs() {
     setLoading(true)
     try {
+      const today = new Date().toISOString().slice(0, 10)
       const all = await db.workoutLogs
         .where('userId').equals(user.id)
-        .and(l => l.status === 'complete')
+        .and(l => l.status === 'complete' || (l.status === 'draft' && l.date < today))
         .toArray()
       all.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.updatedAt || '').localeCompare(a.updatedAt || ''))
       setLogs(all)
@@ -119,7 +120,7 @@ export default function WorkoutHistory() {
         <div style={s.empty}>
           <div style={s.emptyIcon}>📋</div>
           <div style={s.emptyTitle}>No workouts yet</div>
-          <div style={s.emptySub}>Complete your first session to see history here</div>
+          <div style={s.emptySub}>Log sets during a session, then tap "Finish Workout" to save it here</div>
         </div>
       </div>
     )
@@ -132,24 +133,24 @@ export default function WorkoutHistory() {
         <span style={s.count}>{logs.length} sessions</span>
       </div>
 
-      {logs.map(log => {
-        const vol = Math.round(log.totalVolume || 0)
-        return (
-          <button key={log.id} style={s.card} onClick={() => openDetail(log)}>
-            <div style={s.cardLeft}>
-              <div style={s.cardDate}>{fmtDate(log.date)}</div>
-              <div style={s.cardName}>{log.name || 'Workout'}</div>
-              <div style={s.cardMeta}>
-                {fmt(log.duration)}
-                {log.prs?.length > 0 && (
-                  <span style={s.prPill}>🏆 {log.prs.length} PR{log.prs.length > 1 ? 's' : ''}</span>
-                )}
-              </div>
+      {logs.map(log => (
+        <button key={log.id} style={s.card} onClick={() => openDetail(log)}>
+          <div style={s.cardLeft}>
+            <div style={s.cardDate}>{fmtDate(log.date)}</div>
+            <div style={s.cardName}>{log.name || 'Workout'}</div>
+            <div style={s.cardMeta}>
+              {log.status === 'complete' ? fmt(log.duration) : '—'}
+              {log.status !== 'complete' && (
+                <span style={s.draftPill}>not finished</span>
+              )}
+              {log.prs?.length > 0 && (
+                <span style={s.prPill}>🏆 {log.prs.length} PR{log.prs.length > 1 ? 's' : ''}</span>
+              )}
             </div>
-            <span style={s.chevron}>›</span>
-          </button>
-        )
-      })}
+          </div>
+          <span style={s.chevron}>›</span>
+        </button>
+      ))}
     </div>
   )
 }
@@ -167,6 +168,7 @@ const s = {
   cardName:   { fontSize:'16px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.02em', marginTop:'2px' },
   cardMeta:   { display:'flex', alignItems:'center', gap:'8px', fontSize:'13px', color:'var(--text-secondary)', marginTop:'4px' },
   prPill:     { fontSize:'11px', fontWeight:'600', color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 8px', borderRadius:'var(--r-full)' },
+  draftPill:  { fontSize:'11px', fontWeight:'600', color:'var(--text-tertiary)', background:'var(--bg-elevated)', padding:'2px 8px', borderRadius:'var(--r-full)' },
   chevron:    { fontSize:'20px', color:'var(--text-tertiary)', flexShrink:0, lineHeight:1 },
 
   empty:      { display:'flex', flexDirection:'column', alignItems:'center', gap:'10px', padding:'56px 16px' },
