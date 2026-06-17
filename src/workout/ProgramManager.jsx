@@ -56,7 +56,12 @@ export default function ProgramManager({ onStartWorkout }) {
       <CreateProgram
         userId={user?.id}
         programme={selected}
-        onSave={() => { setScreen('list'); loadProgrammes() }}
+        onSave={async () => {
+          await loadProgrammes()
+          const fresh = await db.programmes.get(selected.id)
+          if (fresh) setSelected(fresh)
+          setScreen('view')
+        }}
         onCancel={() => { setScreen('view') }}
       />
     )

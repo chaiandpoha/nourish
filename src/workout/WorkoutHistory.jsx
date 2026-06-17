@@ -53,7 +53,10 @@ export default function WorkoutHistory() {
       if (!byEx[key]) byEx[key] = []
       byEx[key].push(s)
     }
-    setDetail(Object.entries(byEx).map(([name, exSets]) => ({ name, sets: exSets })))
+    setDetail(Object.entries(byEx).map(([name, exSets]) => ({
+      name,
+      sets: exSets.slice().sort((a, b) => (a.updatedAt || '').localeCompare(b.updatedAt || '')),
+    })))
     setSelected(log)
   }
 

@@ -439,7 +439,15 @@ function WorkoutScreen() {
 
   return (
     <div style={styles.screen}>
-      <h1 style={styles.screenTitle}>Workout</h1>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'20px' }}>
+        <h1 style={{ ...styles.screenTitle, margin:0 }}>Workout</h1>
+        <button
+          style={{ padding:'9px 16px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'#fff', fontSize:'14px', fontWeight:'600', cursor:'pointer', letterSpacing:'-0.01em', flexShrink:0 }}
+          onClick={() => handleStartWorkout(null, null)}
+        >
+          + Quick Start
+        </button>
+      </div>
       <div style={styles.tabBar}>
         {WORKOUT_TABS.map(t => (
           <button

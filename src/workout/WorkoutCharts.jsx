@@ -10,6 +10,7 @@ export default function WorkoutCharts() {
   const [exercise, setExercise]   = useState(null)
   const [points,   setPoints]     = useState([])
   const [loading,  setLoading]    = useState(false)
+  const unit = localStorage.getItem('workoutUnit') || 'lbs'
 
   useEffect(() => {
     if (!query.trim()) { setResults([]); return }
@@ -93,7 +94,7 @@ export default function WorkoutCharts() {
         <div style={s.empty}>No sets logged for this exercise yet</div>
       )}
 
-      {!loading && points.length > 0 && <LineChart points={points} />}
+      {!loading && points.length > 0 && <LineChart points={points} unit={unit} />}
 
       {!exercise && (
         <div style={s.placeholder}>
@@ -107,7 +108,7 @@ export default function WorkoutCharts() {
 
 // ── SVG line chart ─────────────────────────────────────────────────────────────
 
-function LineChart({ points }) {
+function LineChart({ points, unit }) {
   const W = 300, H = 130
   const PAD = { t: 14, r: 14, b: 26, l: 38 }
   const iW  = W - PAD.l - PAD.r
@@ -129,7 +130,9 @@ function LineChart({ points }) {
     : [0, Math.floor((points.length - 1) / 2), points.length - 1]
 
   const delta = points[points.length - 1].maxWeight - points[0].maxWeight
-  const deltaStr = (delta >= 0 ? '+' : '') + delta + ' kg'
+  const deltaStr = points.length === 1
+    ? 'First session'
+    : (delta >= 0 ? '+' : '') + delta + ` ${unit}`
 
   return (
     <div style={s.chartWrap}>
@@ -176,7 +179,7 @@ function LineChart({ points }) {
 
       <div style={s.statsRow}>
         <div style={s.stat}>
-          <div style={s.statVal}>{maxW} kg</div>
+          <div style={s.statVal}>{maxW} {unit}</div>
           <div style={s.statLbl}>Best</div>
         </div>
         <div style={s.stat}>

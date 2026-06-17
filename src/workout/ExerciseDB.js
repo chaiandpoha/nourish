@@ -849,10 +849,6 @@ export function searchExercises(query, limit = 20) {
     .slice(0, limit)
 }
 
-export function getByMuscle(muscle) {
-  return EXERCISES.filter(e => e.muscle === muscle)
-}
-
 // Alternates kept in a separate map so exercise objects stay clean
 const ALTERNATES = {
   ex001:['ex002','ex003','ex004'], ex002:['ex001','ex005'],       ex003:['ex001','ex004'],
@@ -944,10 +940,3 @@ export function getAlternates(exerciseId) {
   return ids.map(id => getExerciseById(id)).filter(Boolean)
 }
 
-export const MUSCLE_GROUPS = [
-  'All', 'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps',
-  'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Core',
-  'Cardio', 'Full Body', 'Forearms', 'Neck', 'Mobility'
-]
-
-export const MOVEMENTS = ['push', 'pull', 'squat', 'hinge', 'core', 'cardio', 'carry']
