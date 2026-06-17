@@ -29,36 +29,42 @@ function muscleStyle(muscle) {
   return MUSCLE_COLOR[key] || { bg:'var(--bg-elevated)', fg:'var(--text-tertiary)' }
 }
 
+function muscleWikiUrl(name) {
+  return 'https://musclewiki.com/media/uploads/videos/branded/' +
+    name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-male.gif'
+}
+
 function FormGif({ exercise }) {
-  const [gif, setGif] = useState(null)
+  const [gifUrl, setGifUrl] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
-    setGif(null)
+    setGifUrl(null)
     const q = encodeURIComponent(exercise.name + ' exercise form')
-    fetch(`https://tenor.googleapis.com/v2/search?q=${q}&key=LIVDSRZULELA&client_key=nourish&limit=1&media_filter=gif&contentfilter=medium`)
+    // Tenor v1 — LIVDSRZULELA is the v1 demo key; response lives at media[0].gif.url
+    fetch(`https://g.tenor.com/v1/search?q=${q}&key=LIVDSRZULELA&limit=1&safesearch=moderate&media_filter=minimal`)
       .then(r => r.json())
       .then(data => {
-        const url = data?.results?.[0]?.media_formats?.gif?.url
-        if (url) setGif({ url })
+        const url = data?.results?.[0]?.media?.[0]?.gif?.url
+        setGifUrl(url || muscleWikiUrl(exercise.name))
       })
-      .catch(() => {})
+      .catch(() => setGifUrl(muscleWikiUrl(exercise.name)))
       .finally(() => setLoading(false))
   }, [exercise.id])
 
   if (loading) return (
-    <div style={{ height:'180px', borderRadius:'var(--r-lg)', background:'var(--bg-elevated)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <span style={{ fontSize:'12px', color:'var(--text-tertiary)' }}>Loading GIF…</span>
+    <div style={{ height:'160px', borderRadius:'var(--r-lg)', background:'var(--bg-elevated)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <span style={{ fontSize:'12px', color:'var(--text-tertiary)' }}>Loading…</span>
     </div>
   )
 
-  if (!gif) return null
+  if (!gifUrl) return null
 
   return (
     <div style={{ borderRadius:'var(--r-lg)', overflow:'hidden', background:'var(--bg-elevated)' }}>
-      <img src={gif.url} alt={exercise.name} style={{ width:'100%', display:'block' }}
-        onError={() => setGif(null)} />
+      <img src={gifUrl} alt={exercise.name} style={{ width:'100%', display:'block' }}
+        referrerPolicy="no-referrer" onError={() => setGifUrl(null)} />
     </div>
   )
 }
