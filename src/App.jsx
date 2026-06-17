@@ -439,6 +439,7 @@ function WorkoutScreen() {
 
   return (
     <div style={styles.screen}>
+      <h1 style={styles.screenTitle}>Workout</h1>
       <div style={styles.tabBar}>
         {WORKOUT_TABS.map(t => (
           <button
@@ -1390,8 +1391,8 @@ const styles = {
   retryBtn:    { marginTop: '16px', padding: '12px 24px', background: 'var(--accent)', border: 'none', borderRadius: 'var(--r-lg)', color: '#fff', fontSize: '16px', fontWeight: '700', cursor: 'pointer' },
   resetBtn:    { padding: '10px 20px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', color: 'var(--text-secondary)', fontSize: '14px', cursor: 'pointer' },
   appShell:    { display: 'flex', flexDirection: 'column', minHeight: '100dvh', background: 'var(--bg-base)', color: 'var(--text-primary)' },
-  main:        { flex: 1, overflowY: 'auto' },
-  screen:      { padding: '24px 16px 16px', minHeight: '100%', animation: 'pageIn 0.25s var(--ease-out) both' },
+  main:        { flex: 1, overflowY: 'auto', paddingTop: 'env(safe-area-inset-top, 0px)' },
+  screen:      { padding: '16px 16px 16px', minHeight: '100%', animation: 'pageIn 0.25s var(--ease-out) both' },
   screenTitle: { fontSize: '26px', fontWeight: '600', margin: '0 0 20px', letterSpacing: '-0.03em', color: 'var(--text-primary)' },
   tabBar: {
     display:        'flex',

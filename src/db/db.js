@@ -126,6 +126,21 @@ export async function flushDirtyToSupabase(userId) {
       if (foods.length) await sbPushUserData(userId, 'foods', 'all', foods).catch(() => {})
     }
 
+    // Household foods retry — push any dirty foods that failed earlier
+    if (profile?.householdId) {
+      const dirtyFoods = await db.foods
+        .where('source').anyOf(['saved', 'scanned', 'recipe'])
+        .filter(f => f.dirty === 1)
+        .toArray().catch(() => [])
+      if (dirtyFoods.length) {
+        const { sbSaveFood } = await import('./supabase.js')
+        await Promise.allSettled(dirtyFoods.map(food =>
+          sbSaveFood(food, profile.householdId)
+            .then(() => db.foods.update(food.id, { dirty: 0 }))
+        ))
+      }
+    }
+
     // Process pending resyncs — full-blob pushes triggered by record deletions
     try {
       const pending = JSON.parse(localStorage.getItem('nourish_pending_resyncs') || '[]')

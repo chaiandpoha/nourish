@@ -227,6 +227,22 @@ export default function DebugPanel() {
     }
   }
 
+  async function doPushAllUsers() {
+    log('Pushing data for ALL local users…')
+    try {
+      const allUsers = await db.users.toArray()
+      log(`Found ${allUsers.length} user(s) in local DB`)
+      for (const u of allUsers) {
+        log(`Pushing: ${u.email || u.id}`)
+        await pushAllLocalDataToSupabase(u.id)
+        log(`Done: ${u.email || u.id}`, true)
+      }
+      await runDiagnostics()
+    } catch (e) {
+      log(`Push-all-users error: ${e.message}`, false)
+    }
+  }
+
   async function doRestore() {
     log('Restoring from Supabase…')
     try {
@@ -308,6 +324,7 @@ export default function DebugPanel() {
         </button>
         <button style={b.action} onClick={doFlushDirty} disabled={running}>⬆ Flush Dirty</button>
         <button style={b.action} onClick={doPushAll}    disabled={running}>⬆⬆ Push All Data</button>
+        <button style={b.action} onClick={doPushAllUsers} disabled={running}>⬆⬆⬆ Push All Users</button>
         <button style={b.action} onClick={doRestore}    disabled={running}>⬇ Restore from SB</button>
         <button style={b.action} onClick={doPushHousehold} disabled={running}>🏠 Push Household</button>
         <button style={{ ...b.action, color:'var(--accent)' }} onClick={doRecoverAllFoods} disabled={running}>♻ Recover Recipes</button>
