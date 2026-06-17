@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { generateId } from '../auth/crypto.js'
-import { searchExercises, getAlternates } from './ExerciseDB.js'
+import { searchExercises, getAlternates, getExerciseById } from './ExerciseDB.js'
 import { localDate } from '../log/DayLog.jsx'
 import { flushDirtyToSupabase } from '../db/db.js'
 
@@ -55,8 +55,12 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   const workoutLogId = useRef(generateId())
   const draftSaved   = useRef(false)
 
-  const exercises   = [...(day?.exercises || []), ...extraEx]
-  const sessionName = day?.name || 'Quick Workout'
+  // Merge saved programme exercises with full ExerciseDB data (restores cues, yt, equipment, etc.)
+  const exercises   = [...(day?.exercises || []), ...extraEx].map(ex => ({
+    ...getExerciseById(ex.id),
+    ...ex,
+  }))
+  const sessionName = day?.name || 'Workout'
   const exKey       = exercises.map(e => e.id).join(',')
 
   // Running volume across all completed sets

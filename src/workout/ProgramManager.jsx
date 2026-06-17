@@ -66,20 +66,6 @@ export default function ProgramManager({ onStartWorkout }) {
   return (
     <div style={s.container}>
 
-      {/* Quick Start */}
-      <div style={s.quickCard}>
-        <div style={s.quickLeft}>
-          <div style={s.quickTitle}>Quick Start</div>
-          <div style={s.quickSub}>Empty session — add exercises as you go</div>
-        </div>
-        <button
-          style={s.quickBtn}
-          onClick={() => onStartWorkout(null, { name: 'Quick Workout', exercises: [] })}
-        >
-          Start
-        </button>
-      </div>
-
       {/* Active programme */}
       {activeProg && (
         <div style={s.section}>
@@ -400,13 +386,6 @@ function DayBuilder({ day, dayIndex, onNameChange, onAddExercise, onUpdateExerci
 const s = {
   container:    { display:'flex', flexDirection:'column', gap:'12px', paddingBottom:'24px' },
   backBtn:      { background:'none', border:'none', color:'var(--accent)', fontSize:'15px', cursor:'pointer', padding:0, alignSelf:'flex-start' },
-
-  // Quick Start
-  quickCard:    { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 18px', background:'var(--accent)', borderRadius:'var(--r-xl)', gap:'12px' },
-  quickLeft:    { flex:1, minWidth:0 },
-  quickTitle:   { fontSize:'17px', fontWeight:'700', color:'#fff', letterSpacing:'-0.02em' },
-  quickSub:     { fontSize:'12px', color:'rgba(255,255,255,0.75)', marginTop:'2px' },
-  quickBtn:     { padding:'10px 20px', background:'rgba(255,255,255,0.2)', border:'1.5px solid rgba(255,255,255,0.4)', borderRadius:'var(--r-lg)', color:'#fff', fontSize:'15px', fontWeight:'700', cursor:'pointer', flexShrink:0 },
 
   // Sections
   section:      { display:'flex', flexDirection:'column', gap:'8px' },
