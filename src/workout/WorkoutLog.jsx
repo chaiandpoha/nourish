@@ -29,31 +29,40 @@ function muscleStyle(muscle) {
   return MUSCLE_COLOR[key] || { bg:'var(--bg-elevated)', fg:'var(--text-tertiary)' }
 }
 
-// Animated GIF for exercise form — constructs a musclewiki CDN URL, falls back silently
+// Fetches an animated exercise form GIF from Giphy public search
+const GIPHY_KEY = 'dc6zaTOxFJmzC'
 function FormGif({ exercise }) {
-  const [status, setStatus] = useState('loading') // loading | loaded | error
+  const [gif, setGif] = useState(null)  // { url, width, height } | null
+  const [loading, setLoading] = useState(true)
 
-  const src = useMemo(() => {
-    const muscle = (exercise.muscle || '').toLowerCase().replace(/[^a-z]/g, '')
-    const slug   = (exercise.name  || '').toLowerCase()
-      .replace(/[^a-z0-9 ]/g, '').trim().replace(/\s+/g, '-')
-    return `https://musclewiki.com/media/uploads/videos/male/male-${muscle}-${slug}.gif`
+  useEffect(() => {
+    setLoading(true)
+    setGif(null)
+    const q = encodeURIComponent(exercise.name + ' exercise proper form')
+    fetch(`https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${q}&limit=1&rating=g`)
+      .then(r => r.json())
+      .then(data => {
+        const item = data?.data?.[0]?.images?.original
+        if (item?.url) setGif({ url: item.url })
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [exercise.id])
 
-  if (status === 'error') return null
+  if (loading) return (
+    <div style={{ height:'180px', borderRadius:'var(--r-lg)', background:'var(--bg-elevated)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <span style={{ fontSize:'12px', color:'var(--text-tertiary)' }}>Loading GIF…</span>
+    </div>
+  )
+
+  if (!gif) return null
 
   return (
-    <div style={{ borderRadius:'var(--r-xl)', overflow:'hidden', background:'var(--bg-elevated)', minHeight: status === 'loaded' ? 0 : '200px', position:'relative', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      {status === 'loading' && (
-        <span style={{ fontSize:'13px', color:'var(--text-tertiary)', position:'absolute' }}>Loading GIF…</span>
-      )}
-      <img
-        src={src}
-        alt={exercise.name}
-        style={{ width:'100%', display: status === 'loaded' ? 'block' : 'none', borderRadius:'var(--r-xl)' }}
-        onLoad={() => setStatus('loaded')}
-        onError={() => setStatus('error')}
-      />
+    <div style={{ borderRadius:'var(--r-lg)', overflow:'hidden', background:'var(--bg-elevated)' }}>
+      <img src={gif.url} alt={exercise.name} style={{ width:'100%', display:'block' }} />
+      <div style={{ padding:'4px 8px 6px', fontSize:'10px', color:'var(--text-tertiary)', textAlign:'right' }}>
+        via GIPHY
+      </div>
     </div>
   )
 }
@@ -76,7 +85,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   const [summary,         setSummary]         = useState(null)
   const [rpePicker,       setRpePicker]       = useState(null)
   const [unit,            setUnit]            = useState(() => localStorage.getItem('workoutUnit') || 'lbs')
-  const [formSheet,       setFormSheet]       = useState(null)
+  const [formExpanded,    setFormExpanded]    = useState(new Set()) // exercise IDs with form open
   const [inactivityAlert, setInactivityAlert] = useState(false)
 
   const startRef        = useRef(Date.now())
@@ -629,7 +638,16 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
               </div>
               <div style={{ display:'flex', gap:'6px', flexShrink:0, marginTop:'2px' }}>
                 {ex.cues?.length > 0 && (
-                  <button style={st.formBtn} onClick={() => setFormSheet(ex)}>Form</button>
+                  <button
+                    style={{ ...st.formBtn, ...(formExpanded.has(ex.id) ? st.formBtnActive : {}) }}
+                    onClick={() => setFormExpanded(prev => {
+                      const next = new Set(prev)
+                      next.has(ex.id) ? next.delete(ex.id) : next.add(ex.id)
+                      return next
+                    })}
+                  >
+                    {formExpanded.has(ex.id) ? 'Hide Form' : 'Form'}
+                  </button>
                 )}
                 <button style={st.swapBtn} onClick={() => setSwapTarget(ex)}>Swap</button>
               </div>
@@ -645,6 +663,30 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
               </div>
             ) : (
               <div style={st.prevFirstTime}>First time · set a starting weight below</div>
+            )}
+
+            {/* Inline form panel */}
+            {formExpanded.has(ex.id) && (
+              <div style={st.formPanel}>
+                <FormGif exercise={ex} />
+                <div style={st.formPanelCues}>
+                  {ex.cues.map((cue, ci) => (
+                    <div key={ci} style={st.cueRow}>
+                      <span style={st.cueDot}>{ci + 1}</span>
+                      <span style={st.cueText}>{cue}</span>
+                    </div>
+                  ))}
+                </div>
+                {ex.yt && (
+                  <a
+                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ex.yt)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    style={st.ytBtn}
+                  >
+                    Watch tutorial on YouTube ↗
+                  </a>
+                )}
+              </div>
             )}
 
             {/* Column headers */}
@@ -760,36 +802,6 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
         </div>
       )}
 
-      {/* ── Form overlay (full-screen) ── */}
-      {formSheet && (
-        <div style={st.formOverlay}>
-          <div style={st.formOverlayHeader}>
-            <div style={st.formOverlayName}>{formSheet.name}</div>
-            <button style={st.formCloseBtn} onClick={() => setFormSheet(null)}>✕</button>
-          </div>
-          <div style={st.formOverlayScroll}>
-            <FormGif exercise={formSheet} />
-            <div style={st.cueList}>
-              {formSheet.cues.map((cue, i) => (
-                <div key={i} style={st.cueRow}>
-                  <span style={st.cueDot}>{i + 1}</span>
-                  <span style={st.cueText}>{cue}</span>
-                </div>
-              ))}
-            </div>
-            {formSheet.yt && (
-              <a
-                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(formSheet.yt)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={st.ytBtn}
-              >
-                Watch tutorial on YouTube ↗
-              </a>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ── RPE bottom sheet ── */}
       {rpePicker && (
@@ -882,6 +894,7 @@ const st = {
   muscleTag:     { fontSize:'11px', fontWeight:'600', padding:'2px 8px', borderRadius:'var(--r-full)', textTransform:'capitalize' },
   equipTag:      { fontSize:'11px', color:'var(--text-tertiary)', background:'var(--bg-elevated)', padding:'2px 8px', borderRadius:'var(--r-full)', textTransform:'capitalize' },
   formBtn:       { padding:'7px 13px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'12px', fontWeight:'600', cursor:'pointer', flexShrink:0 },
+  formBtnActive: { background:'var(--accent)', color:'#fff' },
   swapBtn:       { padding:'7px 13px', background:'var(--bg-elevated)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'12px', fontWeight:'500', cursor:'pointer', flexShrink:0 },
 
   // Previous session
@@ -941,22 +954,13 @@ const st = {
   searchInput:   { padding:'13px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', fontSize:'15px', color:'var(--text-primary)', outline:'none', width:'100%', boxSizing:'border-box', marginTop:'8px' },
   hint:          { fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center', padding:'24px 0' },
 
-  // Form overlay (full-screen)
-  formOverlay:       { position:'fixed', inset:0, background:'var(--bg-base)', zIndex:301, display:'flex', flexDirection:'column' },
-  formOverlayHeader: { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 16px 12px', borderBottom:'0.5px solid var(--border-subtle)', flexShrink:0 },
-  formOverlayName:   { fontSize:'20px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.03em', flex:1, paddingRight:'12px' },
-  formCloseBtn:      { width:'36px', height:'36px', borderRadius:'50%', background:'var(--bg-elevated)', border:'none', color:'var(--text-secondary)', fontSize:'16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
-  formOverlayScroll: { flex:1, overflowY:'auto', padding:'16px', display:'flex', flexDirection:'column', gap:'16px' },
-  // GIF
-  gifWrap:           { borderRadius:'var(--r-xl)', overflow:'hidden', background:'var(--bg-elevated)', minHeight:'200px', display:'flex', alignItems:'center', justifyContent:'center', position:'relative' },
-  gifImg:            { width:'100%', display:'block', borderRadius:'var(--r-xl)' },
-  gifLoading:        { fontSize:'13px', color:'var(--text-tertiary)', position:'absolute' },
-  // Cues
-  cueList:       { display:'flex', flexDirection:'column', gap:'12px', background:'var(--bg-surface)', borderRadius:'var(--r-xl)', padding:'16px', border:'0.5px solid var(--border-subtle)' },
-  cueRow:        { display:'flex', alignItems:'flex-start', gap:'12px' },
-  cueDot:        { width:'22px', height:'22px', borderRadius:'50%', background:'var(--accent-dim)', color:'var(--accent)', fontSize:'12px', fontWeight:'700', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:'1px' },
-  cueText:       { fontSize:'15px', color:'var(--text-primary)', lineHeight:1.55 },
-  ytBtn:         { display:'block', padding:'14px 16px', background:'rgba(255,0,0,0.06)', border:'1px solid rgba(255,0,0,0.15)', borderRadius:'var(--r-lg)', color:'#c00', fontSize:'14px', fontWeight:'600', textDecoration:'none', textAlign:'center' },
+  // Inline form panel (inside exercise card)
+  formPanel:      { display:'flex', flexDirection:'column', gap:'12px', padding:'0 12px 12px', borderTop:'0.5px solid var(--border-subtle)', paddingTop:'12px' },
+  formPanelCues:  { display:'flex', flexDirection:'column', gap:'8px' },
+  cueRow:         { display:'flex', alignItems:'flex-start', gap:'10px' },
+  cueDot:         { width:'20px', height:'20px', borderRadius:'50%', background:'var(--accent-dim)', color:'var(--accent)', fontSize:'11px', fontWeight:'700', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:'1px' },
+  cueText:        { fontSize:'14px', color:'var(--text-primary)', lineHeight:1.5 },
+  ytBtn:          { display:'block', padding:'11px 14px', background:'rgba(255,0,0,0.06)', border:'1px solid rgba(255,0,0,0.15)', borderRadius:'var(--r-md)', color:'#c00', fontSize:'13px', fontWeight:'600', textDecoration:'none', textAlign:'center' },
 
   // RPE sheet
   backdrop:      { position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:300 },
