@@ -55,12 +55,13 @@ export default function BatchList({ onLogged }) {
       }
       if (toSave.length) await db.batches.bulkPut(toSave)
 
-      // Remove household batches that were deleted remotely (runs even when remote is empty)
+      // Remove household batches deleted remotely — but never delete dirty (unsynced) batches,
+      // they may not be in Supabase yet (e.g. just created, sbSaveBatch still in flight)
       if (user.householdId) {
         const remoteIds = new Set(remote.map(b => b.id))
         const localHousehold = await db.batches.toArray()
         const toRemove = localHousehold
-          .filter(b => b.householdId === user.householdId && !remoteIds.has(b.id))
+          .filter(b => b.householdId === user.householdId && !remoteIds.has(b.id) && !b.dirty)
           .map(b => b.id)
         if (toRemove.length) await db.batches.bulkDelete(toRemove)
       }

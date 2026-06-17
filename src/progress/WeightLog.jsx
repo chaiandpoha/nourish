@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { localDate } from '../log/DayLog.jsx'
+import { flushDirtyToSupabase } from '../db/db.js'
 
 export default function WeightLog() {
   const [entries,  setEntries]  = useState([])
@@ -65,6 +66,7 @@ export default function WeightLog() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
       loadEntries()
+      flushDirtyToSupabase(user.id).catch(() => {})
     } catch (e) {
       console.error(e)
     } finally {

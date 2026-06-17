@@ -235,14 +235,19 @@ export async function saveFood(food, householdId) {
     ...food,
     id:     food.id || generateId(),
     source: food.source || 'saved',
+    dirty:  1,
+    updatedAt: new Date().toISOString(),
   }
+  // Write to IndexedDB first — visible immediately, works offline
   await db.foods.put(entry)
 
-  // Sync to Supabase for household sharing
+  // Sync to Supabase in the background — failure is safe, dirty:1 means
+  // the background sync or next flushDirtyToSupabase will retry
   if (householdId) {
     const { sbSaveFood } = await import('../db/supabase.js')
-    const err = await sbSaveFood(entry, householdId).catch(e => e)
-    if (err instanceof Error) console.error('Supabase food sync error:', err.message, entry.name)
+    sbSaveFood(entry, householdId)
+      .then(() => db.foods.update(entry.id, { dirty: 0 }))
+      .catch(e => console.warn('Food sync will retry on next flush:', e.message))
   }
 
   return entry
