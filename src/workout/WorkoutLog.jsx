@@ -61,41 +61,6 @@ function ExThumb({ exercise }) {
   )
 }
 
-function FormGif({ exercise }) {
-  const [gifUrl, setGifUrl] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    setLoading(true)
-    setGifUrl(null)
-    const q = encodeURIComponent(exercise.name + ' exercise form')
-    // Tenor v1 — LIVDSRZULELA is the v1 demo key; response lives at media[0].gif.url
-    fetch(`https://g.tenor.com/v1/search?q=${q}&key=LIVDSRZULELA&limit=1&safesearch=moderate&media_filter=minimal`)
-      .then(r => r.json())
-      .then(data => {
-        const url = data?.results?.[0]?.media?.[0]?.gif?.url
-        setGifUrl(url || muscleWikiUrl(exercise.name))
-      })
-      .catch(() => setGifUrl(muscleWikiUrl(exercise.name)))
-      .finally(() => setLoading(false))
-  }, [exercise.id])
-
-  if (loading) return (
-    <div style={{ height:'160px', borderRadius:'var(--r-lg)', background:'var(--bg-elevated)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <span style={{ fontSize:'12px', color:'var(--text-tertiary)' }}>Loading…</span>
-    </div>
-  )
-
-  if (!gifUrl) return null
-
-  return (
-    <div style={{ borderRadius:'var(--r-lg)', overflow:'hidden', background:'var(--bg-elevated)' }}>
-      <img src={gifUrl} alt={exercise.name} style={{ width:'100%', display:'block' }}
-        referrerPolicy="no-referrer" onError={() => setGifUrl(null)} />
-    </div>
-  )
-}
-
 export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   const { user } = useAuth()
 
@@ -683,7 +648,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
                       return next
                     })}
                   >
-                    {formExpanded.has(ex.id) ? 'Hide Form' : 'Form'}
+                    {formExpanded.has(ex.id) ? 'Hide' : 'Cues'}
                   </button>
                 )}
                 <button style={st.swapBtn} onClick={() => setSwapTarget(ex)}>Swap</button>
@@ -705,10 +670,10 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
             {/* Inline form panel */}
             {formExpanded.has(ex.id) && (
               <div style={st.formPanel}>
-                <FormGif exercise={ex} />
-                <div style={st.formPanelCues}>
-                  {ex.cues.map((cue, ci) => (
-                    <div key={ci} style={st.cueRow}>
+                <div style={st.cueCard}>
+                  <div style={st.cuePanelHeader}>Key cues</div>
+                  {(ex.cues || []).map((cue, ci) => (
+                    <div key={ci} style={{ ...st.cueRow, ...(ci > 0 ? { borderTop:'0.5px solid var(--border-subtle)' } : {}) }}>
                       <span style={st.cueDot}>{ci + 1}</span>
                       <span style={st.cueText}>{cue}</span>
                     </div>
@@ -720,7 +685,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
                     target="_blank" rel="noopener noreferrer"
                     style={st.ytBtn}
                   >
-                    Watch tutorial on YouTube ↗
+                    ▶ Watch on YouTube
                   </a>
                 )}
               </div>
@@ -993,12 +958,13 @@ const st = {
   hint:          { fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center', padding:'24px 0' },
 
   // Inline form panel (inside exercise card)
-  formPanel:      { display:'flex', flexDirection:'column', gap:'12px', padding:'0 12px 12px', borderTop:'0.5px solid var(--border-subtle)', paddingTop:'12px' },
-  formPanelCues:  { display:'flex', flexDirection:'column', gap:'8px' },
-  cueRow:         { display:'flex', alignItems:'flex-start', gap:'10px' },
-  cueDot:         { width:'20px', height:'20px', borderRadius:'50%', background:'var(--accent-dim)', color:'var(--accent)', fontSize:'11px', fontWeight:'700', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:'1px' },
-  cueText:        { fontSize:'14px', color:'var(--text-primary)', lineHeight:1.5 },
-  ytBtn:          { display:'block', padding:'11px 14px', background:'rgba(255,0,0,0.06)', border:'1px solid rgba(255,0,0,0.15)', borderRadius:'var(--r-md)', color:'#c00', fontSize:'13px', fontWeight:'600', textDecoration:'none', textAlign:'center' },
+  formPanel:      { display:'flex', flexDirection:'column', gap:'10px', padding:'12px 12px 4px', borderTop:'0.5px solid var(--border-subtle)' },
+  cueCard:        { background:'var(--bg-elevated)', borderRadius:'var(--r-lg)', overflow:'hidden' },
+  cuePanelHeader: { fontSize:'10px', fontWeight:'700', color:'var(--text-tertiary)', letterSpacing:'0.08em', textTransform:'uppercase', padding:'11px 14px 5px' },
+  cueRow:         { display:'flex', alignItems:'flex-start', gap:'12px', padding:'10px 14px' },
+  cueDot:         { width:'22px', height:'22px', borderRadius:'50%', background:'var(--accent)', color:'#fff', fontSize:'11px', fontWeight:'700', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:'1px' },
+  cueText:        { fontSize:'14px', color:'var(--text-primary)', lineHeight:1.55, fontWeight:'400' },
+  ytBtn:          { display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', padding:'12px 14px', background:'rgba(255,0,0,0.07)', border:'0.5px solid rgba(255,0,0,0.18)', borderRadius:'var(--r-lg)', color:'#cc0000', fontSize:'14px', fontWeight:'600', textDecoration:'none' },
 
   // RPE sheet
   backdrop:      { position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:300 },
