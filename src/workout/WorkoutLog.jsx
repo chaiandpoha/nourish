@@ -4,6 +4,7 @@ import { db } from '../db/indexedDB.js'
 import { generateId } from '../auth/crypto.js'
 import { searchExercises, getAlternates, getExerciseById } from './ExerciseDB.js'
 import MovementGif from './MovementGif.jsx'
+import DeltabolicCard from './DeltabolicCard.jsx'
 import { localDate } from '../log/DayLog.jsx'
 import { flushDirtyToSupabase, queueResync } from '../db/db.js'
 
@@ -671,7 +672,14 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
             {/* Inline form panel */}
             {formExpanded.has(ex.id) && (
               <div style={st.formPanel}>
-                <MovementGif movement={ex.movement} />
+                <div style={{ display:'flex', gap:'10px' }}>
+                  <div style={{ flex:1 }}>
+                    <MovementGif movement={ex.movement} />
+                  </div>
+                  <div style={{ flex:2 }}>
+                    <DeltabolicCard exerciseName={ex.name} />
+                  </div>
+                </div>
                 {ex.feel && (
                   <div style={st.feelCard}>
                     <div style={st.feelLabel}>Where to feel it</div>
@@ -687,15 +695,6 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
                     </div>
                   ))}
                 </div>
-                {ex.yt && (
-                  <a
-                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ex.yt)}`}
-                    target="_blank" rel="noopener noreferrer"
-                    style={st.ytBtn}
-                  >
-                    ▶ Watch on YouTube
-                  </a>
-                )}
               </div>
             )}
 
