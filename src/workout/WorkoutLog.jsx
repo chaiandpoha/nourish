@@ -43,17 +43,20 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   const [addingEx,   setAddingEx]   = useState(false)
   const [exQuery,    setExQuery]    = useState('')
   const [exResults,  setExResults]  = useState([])
-  const [finishing,  setFinishing]  = useState(false)
-  const [summary,    setSummary]    = useState(null)
-  const [rpePicker,  setRpePicker]  = useState(null)
-  const [unit,       setUnit]       = useState(() => localStorage.getItem('workoutUnit') || 'lbs')
-  const [formSheet,  setFormSheet]  = useState(null)   // exercise object or null
+  const [finishing,       setFinishing]       = useState(false)
+  const [summary,         setSummary]         = useState(null)
+  const [rpePicker,       setRpePicker]       = useState(null)
+  const [unit,            setUnit]            = useState(() => localStorage.getItem('workoutUnit') || 'lbs')
+  const [formSheet,       setFormSheet]       = useState(null)
+  const [inactivityAlert, setInactivityAlert] = useState(false)
 
-  const startRef     = useRef(Date.now())
-  const timerRef     = useRef(null)
-  const restRef      = useRef(null)
-  const workoutLogId = useRef(generateId())
-  const draftSaved   = useRef(false)
+  const startRef        = useRef(Date.now())
+  const lastActivityRef = useRef(Date.now())
+  const timerRef        = useRef(null)
+  const restRef         = useRef(null)
+  const inactivityRef   = useRef(null)
+  const workoutLogId    = useRef(generateId())
+  const draftSaved      = useRef(false)
 
   // Merge saved programme exercises with full ExerciseDB data (restores cues, yt, equipment, etc.)
   const exercises   = [...(day?.exercises || []), ...extraEx].map(ex => ({
@@ -141,11 +144,15 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
         if (!pd) continue
         const cur = next[ex.id] || []
         if (cur.some(s => s.done)) continue
+        // Empty strings so fields appear blank — prev values shown as grey placeholder
         next[ex.id] = pd.allSets.map(s => ({
-          weight: String(parseFloat(s.weight) || 0),
-          reps:   String(parseInt(s.reps)     || 10),
-          rpe:    s.rpe != null && s.rpe !== '' ? String(s.rpe) : '',
-          done:   false,
+          weight:      '',
+          reps:        '',
+          rpe:         '',
+          done:        false,
+          weightHint:  String(parseFloat(s.weight) || 0),
+          repsHint:    String(parseInt(s.reps)     || 10),
+          rpeHint:     s.rpe != null && s.rpe !== '' ? String(s.rpe) : '',
         }))
       }
       return next
@@ -165,6 +172,15 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
     restRef.current = setTimeout(() => setRestTimer(t => Math.max(0, t - 1)), 1000)
     return () => clearTimeout(restRef.current)
   }, [restActive, restTimer])
+
+  // Check for inactivity every 60s — alert after 90 minutes without a logged set
+  useEffect(() => {
+    inactivityRef.current = setInterval(() => {
+      const idleMs = Date.now() - lastActivityRef.current
+      if (idleMs >= 90 * 60 * 1000) setInactivityAlert(true)
+    }, 60_000)
+    return () => clearInterval(inactivityRef.current)
+  }, [])
 
   // ── Exercise search ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -216,10 +232,20 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
 
   function completeSet(exId, setIdx) {
     const setId = generateId()
+    lastActivityRef.current = Date.now()
+    setInactivityAlert(false)
     setSets(s => {
+      const cur = s[exId][setIdx]
+      // Fall back to grey hint values if user left the field blank
+      const resolved = {
+        ...cur,
+        weight: cur.weight !== '' ? cur.weight : (cur.weightHint ?? '0'),
+        reps:   cur.reps   !== '' ? cur.reps   : (cur.repsHint  ?? '0'),
+        rpe:    cur.rpe    !== '' ? cur.rpe    : (cur.rpeHint   ?? ''),
+      }
       const next = {
         ...s,
-        [exId]: s[exId].map((set, i) => i === setIdx ? { ...set, done: true, dbId: setId } : set)
+        [exId]: s[exId].map((set, i) => i === setIdx ? { ...resolved, done: true, dbId: setId } : set)
       }
       persistSet(exId, next[exId][setIdx], setId)
       return next
@@ -476,6 +502,11 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
               </span>
             )}
           </div>
+          <div style={st.startedAt}>
+            {new Date(startRef.current).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}
+            {' · Started '}
+            {new Date(startRef.current).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })}
+          </div>
         </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexShrink: 0 }}>
           <button style={st.unitToggle} onClick={toggleUnit}>{unit.toUpperCase()}</button>
@@ -485,6 +516,26 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
           </button>
         </div>
       </div>
+
+      {/* ── Inactivity alert ── */}
+      {inactivityAlert && (
+        <div style={st.inactivityBanner}>
+          <div style={st.inactivityText}>
+            Still going? No sets logged in 90+ min.
+          </div>
+          <div style={st.inactivityBtns}>
+            <button style={st.inactivityFinish} onClick={handleFinish}>
+              Finish Workout
+            </button>
+            <button style={st.inactivityDismiss} onClick={() => {
+              lastActivityRef.current = Date.now()
+              setInactivityAlert(false)
+            }}>
+              Still going
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Overall progress ── */}
       {totalSetsAll > 0 && (
@@ -570,8 +621,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
             {/* Column headers */}
             <div style={st.colHeader}>
               <span style={{ ...st.colLbl, width:'26px' }}>#</span>
-              <span style={{ ...st.colLbl, width:'58px' }}>PREV</span>
-              <span style={{ ...st.colLbl, flex:1 }}>{unit.toUpperCase()}</span>
+              <span style={{ ...st.colLbl, flex:1.2 }}>{unit.toUpperCase()}</span>
               <span style={{ ...st.colLbl, flex:1 }}>REPS</span>
               <span style={{ ...st.colLbl, width:'44px' }}>RPE</span>
               <span style={{ ...st.colLbl, width:'48px' }}></span>
@@ -579,33 +629,38 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
 
             {/* Set rows */}
             {exSets.map((set, i) => {
-              const isDone   = set.done
-              const ps       = pd?.allSets?.[i]
-              const prevHint = ps ? `${ps.weight}×${ps.reps}` : '—'
+              const isDone      = set.done
+              const ps          = pd?.allSets?.[i]
+              const wPlaceholder = set.weightHint ?? (ps ? String(ps.weight) : '0')
+              const rPlaceholder = set.repsHint   ?? (ps ? String(ps.reps)   : '10')
+              const rpeHint      = set.rpeHint    ?? (ps?.rpe ? String(ps.rpe) : '')
               return (
                 <div key={i} style={{ ...st.setRow, ...(isDone ? st.setDone : {}) }}>
                   <span style={st.setNum}>{i + 1}</span>
-                  <span style={st.setHint}>{prevHint}</span>
                   <input
-                    style={{ ...st.numIn, ...(isDone ? st.numInDone : {}) }}
-                    type="number" inputMode="decimal"
+                    className="workout-num-input"
+                    style={{ ...st.numIn, ...(isDone ? st.numInDone : {}), flex: 1.2 }}
+                    type="text" inputMode="decimal"
+                    placeholder={wPlaceholder}
                     value={set.weight}
                     onChange={e => update(ex.id, i, 'weight', e.target.value)}
                     disabled={isDone}
                   />
                   <input
+                    className="workout-num-input"
                     style={{ ...st.numIn, ...(isDone ? st.numInDone : {}) }}
-                    type="number" inputMode="numeric"
+                    type="text" inputMode="numeric"
+                    placeholder={rPlaceholder}
                     value={set.reps}
                     onChange={e => update(ex.id, i, 'reps', e.target.value)}
                     disabled={isDone}
                   />
                   <button
-                    style={{ ...st.rpeBtn, ...(set.rpe ? st.rpeBtnSet : {}), ...(isDone ? st.rpeBtnDone : {}) }}
+                    style={{ ...st.rpeBtn, ...(set.rpe ? st.rpeBtnSet : {}), ...(isDone ? st.rpeBtnDone : {}), ...((!set.rpe && rpeHint) ? st.rpeBtnHint : {}) }}
                     onClick={() => !isDone && setRpePicker({ exId: ex.id, setIdx: i })}
                     disabled={isDone}
                   >
-                    {set.rpe || '—'}
+                    {set.rpe || (rpeHint ? rpeHint : '—')}
                   </button>
                   {isDone ? (
                     <button style={st.checkDone} onClick={() => uncompleteSet(ex.id, i)}>✓</button>
@@ -635,6 +690,13 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
       )}
 
       <button style={st.addExBtn} onClick={() => setAddingEx(true)}>+ Add Exercise</button>
+      <button
+        style={{ ...st.finishBtnBottom, opacity: finishing ? 0.6 : 1 }}
+        onClick={handleFinish}
+        disabled={finishing}
+      >
+        {finishing ? 'Saving…' : 'Finish Workout'}
+      </button>
       <button style={st.cancelBtn} onClick={handleCancel}>Cancel Workout</button>
 
       {/* ── Add exercise overlay ── */}
@@ -744,14 +806,23 @@ const st = {
   container:     { display:'flex', flexDirection:'column', gap:'12px', paddingBottom:'40px' },
 
   // Header
-  header:        { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 0 6px', gap:'8px' },
+  header:        { display:'flex', alignItems:'flex-start', justifyContent:'space-between', padding:'4px 0 6px', gap:'8px' },
   sessionName:   { fontSize:'19px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.03em', lineHeight:1.2 },
   headerMeta:    { display:'flex', alignItems:'center', gap:'8px', marginTop:'4px' },
+  startedAt:     { fontSize:'11px', color:'var(--text-tertiary)', marginTop:'3px', letterSpacing:'0.01em' },
   timerDot:      { width:'7px', height:'7px', borderRadius:'50%', background:'var(--accent)', display:'inline-block', flexShrink:0 },
   elapsed:       { fontSize:'13px', color:'var(--text-tertiary)', fontFamily:'var(--font-mono)' },
   volumePill:    { fontSize:'12px', fontWeight:'600', color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 8px', borderRadius:'var(--r-full)' },
   finishBtn:     { padding:'10px 20px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'#fff', fontSize:'15px', fontWeight:'600', cursor:'pointer', letterSpacing:'-0.01em', whiteSpace:'nowrap' },
+  finishBtnBottom: { padding:'16px', background:'var(--accent)', border:'none', borderRadius:'var(--r-xl)', color:'#fff', fontSize:'16px', fontWeight:'600', cursor:'pointer', letterSpacing:'-0.01em' },
   unitToggle:    { padding:'9px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'12px', fontWeight:'700', cursor:'pointer', letterSpacing:'0.04em' },
+
+  // Inactivity alert
+  inactivityBanner:  { background:'rgba(184,120,48,0.08)', border:'1px solid rgba(184,120,48,0.25)', borderRadius:'var(--r-xl)', padding:'16px', display:'flex', flexDirection:'column', gap:'12px' },
+  inactivityText:    { fontSize:'14px', fontWeight:'600', color:'var(--amber)' },
+  inactivityBtns:    { display:'flex', gap:'8px' },
+  inactivityFinish:  { flex:1, padding:'11px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'#fff', fontSize:'14px', fontWeight:'600', cursor:'pointer' },
+  inactivityDismiss: { flex:1, padding:'11px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', color:'var(--text-secondary)', fontSize:'14px', fontWeight:'500', cursor:'pointer' },
 
   // Overall progress bar
   overallTrack:  { height:'3px', background:'var(--bg-elevated)', borderRadius:'2px', overflow:'hidden' },
@@ -804,6 +875,7 @@ const st = {
   // RPE
   rpeBtn:        { width:'44px', flexShrink:0, padding:'10px 2px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'12px', fontWeight:'500', color:'var(--text-tertiary)', cursor:'pointer', textAlign:'center' },
   rpeBtnSet:     { background:'var(--accent-dim)', borderColor:'var(--accent)', color:'var(--accent)', fontWeight:'700' },
+  rpeBtnHint:    { color:'var(--text-tertiary)', fontStyle:'italic' },
   rpeBtnDone:    { background:'transparent', border:'1px solid transparent', cursor:'default' },
 
   // Check buttons
