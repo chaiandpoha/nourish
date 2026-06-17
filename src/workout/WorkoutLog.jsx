@@ -4,7 +4,7 @@ import { db } from '../db/indexedDB.js'
 import { generateId } from '../auth/crypto.js'
 import { searchExercises, getAlternates, getExerciseById } from './ExerciseDB.js'
 import { localDate } from '../log/DayLog.jsx'
-import { flushDirtyToSupabase } from '../db/db.js'
+import { flushDirtyToSupabase, queueResync } from '../db/db.js'
 
 const RPE_OPTIONS = ['6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10']
 const DEFAULT_REST = 90
@@ -268,7 +268,10 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   function uncompleteSet(exId, setIdx) {
     setSets(s => {
       const set = s[exId]?.[setIdx]
-      if (set?.dbId) db.workoutSets.delete(set.dbId).catch(() => {})
+      if (set?.dbId) {
+        db.workoutSets.delete(set.dbId).catch(() => {})
+        if (user?.id) queueResync('workoutSets', user.id, localDate().slice(0, 7))
+      }
       return {
         ...s,
         [exId]: s[exId].map((cur, i) => i === setIdx ? { ...cur, done: false, dbId: undefined } : cur)
@@ -366,6 +369,19 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
     } finally {
       setFinishing(false)
     }
+  }
+
+  async function handleCancel() {
+    // Clean up draft log and any persisted sets so they don't linger in IndexedDB
+    if (draftSaved.current && user?.id) {
+      const month = localDate().slice(0, 7)
+      await db.workoutSets.where('workoutLogId').equals(workoutLogId.current).delete().catch(() => {})
+      await db.workoutLogs.delete(workoutLogId.current).catch(() => {})
+      queueResync('workoutSets',  user.id, month)
+      queueResync('workoutLogs',  user.id, month)
+      flushDirtyToSupabase(user.id).catch(() => {})
+    }
+    onCancel?.()
   }
 
   function fmt(s) {
@@ -611,7 +627,6 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
         )
       })}
 
-      {/* Empty state for quick start */}
       {exercises.length === 0 && (
         <div style={st.emptySession}>
           <div style={st.emptyIcon}>💪</div>
@@ -620,7 +635,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
       )}
 
       <button style={st.addExBtn} onClick={() => setAddingEx(true)}>+ Add Exercise</button>
-      <button style={st.cancelBtn} onClick={onCancel}>Cancel Workout</button>
+      <button style={st.cancelBtn} onClick={handleCancel}>Cancel Workout</button>
 
       {/* ── Add exercise overlay ── */}
       {addingEx && (
