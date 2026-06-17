@@ -7,7 +7,7 @@ import { queueResync, flushDirtyToSupabase } from '../db/db.js'
 
 export default function ProgramManager({ onStartWorkout }) {
   const [programmes,     setProgrammes]     = useState([])
-  const [screen,         setScreen]         = useState('list') // list | create | view
+  const [screen,         setScreen]         = useState('list') // list | create | view | edit
   const [selected,       setSelected]       = useState(null)
   const [confirmDelete,  setConfirmDelete]  = useState(null)
   const { user } = useAuth()
@@ -51,12 +51,24 @@ export default function ProgramManager({ onStartWorkout }) {
     )
   }
 
+  if (screen === 'edit' && selected) {
+    return (
+      <CreateProgram
+        userId={user?.id}
+        programme={selected}
+        onSave={() => { setScreen('list'); loadProgrammes() }}
+        onCancel={() => { setScreen('view') }}
+      />
+    )
+  }
+
   if (screen === 'view' && selected) {
     return (
       <ViewProgram
         programme={selected}
         onStartWorkout={onStartWorkout}
         onBack={() => setScreen('list')}
+        onEdit={() => setScreen('edit')}
       />
     )
   }
@@ -157,10 +169,13 @@ export default function ProgramManager({ onStartWorkout }) {
 
 // ─── ViewProgram ──────────────────────────────────────────────────────────────
 
-function ViewProgram({ programme, onStartWorkout, onBack }) {
+function ViewProgram({ programme, onStartWorkout, onBack, onEdit }) {
   return (
     <div style={s.container}>
-      <button style={s.backBtn} onClick={onBack}>← Back</button>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <button style={s.backBtn} onClick={onBack}>← Back</button>
+        <button style={s.editBtn} onClick={onEdit}>Edit</button>
+      </div>
       <div style={s.viewTitle}>{programme.name}</div>
 
       {programme.days?.map((day, i) => (
@@ -193,9 +208,10 @@ function ViewProgram({ programme, onStartWorkout, onBack }) {
 
 // ─── CreateProgram ────────────────────────────────────────────────────────────
 
-function CreateProgram({ userId, onSave, onCancel }) {
-  const [name,   setName]   = useState('')
-  const [days,   setDays]   = useState([{ name: 'Day 1', exercises: [] }])
+function CreateProgram({ userId, programme, onSave, onCancel }) {
+  const isEditing = !!programme
+  const [name,   setName]   = useState(programme?.name || '')
+  const [days,   setDays]   = useState(programme?.days || [{ name: 'Day 1', exercises: [] }])
   const [error,  setError]  = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -251,11 +267,11 @@ function CreateProgram({ userId, onSave, onCancel }) {
     setSaving(true)
     try {
       await db.programmes.put({
-        id:        generateId(),
+        id:        programme?.id || generateId(),
         userId,
         name:      name.trim(),
         days,
-        active:    0,
+        active:    programme?.active ?? 0,
         dirty:     1,
         updatedAt: new Date().toISOString(),
       })
@@ -270,7 +286,7 @@ function CreateProgram({ userId, onSave, onCancel }) {
   return (
     <div style={s.container}>
       <button style={s.backBtn} onClick={onCancel}>← Back</button>
-      <div style={s.viewTitle}>New Programme</div>
+      <div style={s.viewTitle}>{isEditing ? 'Edit Programme' : 'New Programme'}</div>
 
       <input
         style={s.input}
@@ -301,7 +317,7 @@ function CreateProgram({ userId, onSave, onCancel }) {
         onClick={handleSave}
         disabled={saving}
       >
-        {saving ? 'Saving…' : 'Save Programme'}
+        {saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Save Programme'}
       </button>
     </div>
   )
@@ -385,7 +401,8 @@ function DayBuilder({ day, dayIndex, onNameChange, onAddExercise, onUpdateExerci
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = {
   container:    { display:'flex', flexDirection:'column', gap:'12px', paddingBottom:'24px' },
-  backBtn:      { background:'none', border:'none', color:'var(--accent)', fontSize:'15px', cursor:'pointer', padding:0, alignSelf:'flex-start' },
+  backBtn:      { background:'none', border:'none', color:'var(--accent)', fontSize:'15px', cursor:'pointer', padding:0 },
+  editBtn:      { background:'none', border:'none', color:'var(--accent)', fontSize:'15px', fontWeight:'600', cursor:'pointer', padding:0 },
 
   // Sections
   section:      { display:'flex', flexDirection:'column', gap:'8px' },

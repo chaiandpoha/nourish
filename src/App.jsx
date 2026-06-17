@@ -256,7 +256,7 @@ function ProtectedApp() {
         </Routes>
       </main>
       <BottomNav />
-      {user && pathname !== '/calendar' && pathname !== '/chat' && <MealEntry date={today} onLogged={handleGlobalLogged} />}
+      {user && pathname !== '/calendar' && pathname !== '/chat' && pathname !== '/workout' && <MealEntry date={today} onLogged={handleGlobalLogged} />}
       <InstallPrompt />
     </div>
   )

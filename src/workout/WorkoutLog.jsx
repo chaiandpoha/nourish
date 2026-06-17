@@ -670,6 +670,12 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
             {/* Inline form panel */}
             {formExpanded.has(ex.id) && (
               <div style={st.formPanel}>
+                {ex.feel && (
+                  <div style={st.feelCard}>
+                    <div style={st.feelLabel}>Where to feel it</div>
+                    <div style={st.feelText}>{ex.feel}</div>
+                  </div>
+                )}
                 <div style={st.cueCard}>
                   <div style={st.cuePanelHeader}>Key cues</div>
                   {(ex.cues || []).map((cue, ci) => (
@@ -959,6 +965,9 @@ const st = {
 
   // Inline form panel (inside exercise card)
   formPanel:      { display:'flex', flexDirection:'column', gap:'10px', padding:'12px 12px 4px', borderTop:'0.5px solid var(--border-subtle)' },
+  feelCard:       { background:'var(--accent-dim)', borderRadius:'var(--r-lg)', padding:'12px 14px', display:'flex', flexDirection:'column', gap:'4px' },
+  feelLabel:      { fontSize:'10px', fontWeight:'700', color:'var(--accent)', letterSpacing:'0.08em', textTransform:'uppercase' },
+  feelText:       { fontSize:'14px', color:'var(--text-primary)', lineHeight:1.55, fontWeight:'400' },
   cueCard:        { background:'var(--bg-elevated)', borderRadius:'var(--r-lg)', overflow:'hidden' },
   cuePanelHeader: { fontSize:'10px', fontWeight:'700', color:'var(--text-tertiary)', letterSpacing:'0.08em', textTransform:'uppercase', padding:'11px 14px 5px' },
   cueRow:         { display:'flex', alignItems:'flex-start', gap:'12px', padding:'10px 14px' },
