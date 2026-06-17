@@ -34,6 +34,33 @@ function muscleWikiUrl(name) {
     name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-male.gif'
 }
 
+function ExThumb({ exercise }) {
+  const [err, setErr] = useState(false)
+  const mc = muscleStyle(exercise.muscle)
+  const size = { width: 52, height: 52, borderRadius: 10, flexShrink: 0 }
+  if (err) {
+    return (
+      <div style={{ ...size, background: mc.bg, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: mc.fg, letterSpacing: '0.04em' }}>
+          {(exercise.muscle || '').slice(0, 3).toUpperCase()}
+        </span>
+      </div>
+    )
+  }
+  return (
+    <div style={{ ...size, overflow:'hidden', background: mc.bg }}>
+      <img
+        src={muscleWikiUrl(exercise.name)}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        style={{ width:'100%', height:'100%', objectFit:'cover' }}
+        onError={() => setErr(true)}
+      />
+    </div>
+  )
+}
+
 function FormGif({ exercise }) {
   const [gifUrl, setGifUrl] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -507,8 +534,11 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
         <div style={st.swapTitle}>Swap: {swapTarget.name}</div>
         {alternates.map(alt => (
           <button key={alt.id} style={st.listRow} onClick={() => swapExercise(swapTarget, alt)}>
-            <span style={st.listName}>{alt.name}</span>
-            <span style={st.listMeta}>{alt.equipment}</span>
+            <ExThumb exercise={alt} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={st.listName}>{alt.name}</div>
+              <div style={st.listMeta}>{alt.muscle} · {alt.equipment}</div>
+            </div>
           </button>
         ))}
         {!alternates.length && <p style={st.hint}>No built-in alternates — search below</p>}
@@ -516,8 +546,11 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
           value={exQuery} onChange={e => setExQuery(e.target.value)} />
         {exResults.map(ex => (
           <button key={ex.id} style={st.listRow} onClick={() => swapExercise(swapTarget, ex)}>
-            <span style={st.listName}>{ex.name}</span>
-            <span style={st.listMeta}>{ex.muscle} · {ex.equipment}</span>
+            <ExThumb exercise={ex} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={st.listName}>{ex.name}</div>
+              <div style={st.listMeta}>{ex.muscle} · {ex.equipment}</div>
+            </div>
           </button>
         ))}
       </div>
@@ -789,7 +822,8 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
             />
             {exResults.map(ex => (
               <button key={ex.id} style={st.listRow} onClick={() => addExercise(ex)}>
-                <div>
+                <ExThumb exercise={ex} />
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={st.listName}>{ex.name}</div>
                   <div style={st.listMeta}>{ex.muscle} · {ex.equipment}</div>
                 </div>
@@ -951,9 +985,9 @@ const st = {
   // Shared list
   backBtn:       { background:'none', border:'none', color:'var(--accent)', fontSize:'15px', cursor:'pointer', padding:0, alignSelf:'flex-start' },
   swapTitle:     { fontSize:'18px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.03em', margin:'8px 0 4px' },
-  listRow:       { display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', padding:'13px 0', background:'transparent', border:'none', borderBottom:'0.5px solid var(--border-subtle)', cursor:'pointer', textAlign:'left' },
-  listName:      { fontSize:'15px', color:'var(--text-primary)', fontWeight:'500' },
-  listMeta:      { fontSize:'12px', color:'var(--text-tertiary)', textTransform:'capitalize', marginTop:'2px' },
+  listRow:       { display:'flex', alignItems:'center', gap:'12px', justifyContent:'space-between', width:'100%', padding:'10px 0', background:'transparent', border:'none', borderBottom:'0.5px solid var(--border-subtle)', cursor:'pointer', textAlign:'left' },
+  listName:      { fontSize:'15px', color:'var(--text-primary)', fontWeight:'500', lineHeight:1.2 },
+  listMeta:      { fontSize:'12px', color:'var(--text-tertiary)', textTransform:'capitalize', marginTop:'3px' },
   listAdd:       { fontSize:'20px', color:'var(--accent)', fontWeight:'300', flexShrink:0, paddingLeft:'8px' },
   searchInput:   { padding:'13px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', fontSize:'15px', color:'var(--text-primary)', outline:'none', width:'100%', boxSizing:'border-box', marginTop:'8px' },
   hint:          { fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center', padding:'24px 0' },
