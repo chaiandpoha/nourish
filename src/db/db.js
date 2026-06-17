@@ -10,6 +10,7 @@ const SYNC_INTERVAL_MS = 30_000
 // ─── Sync state ───────────────────────────────────────────────────────────────
 let _syncInterval  = null
 let _isSyncing     = false
+let _isRestoring   = false  // true while restoreFromSupabase is running — blocks flushes
 let _visHandler    = null
 let _lastSyncTime  = null   // ISO timestamp of the last successful flush
 
@@ -29,7 +30,10 @@ export async function initStorage(userId) {
       if (localCount > 0) break
     }
     if (localCount === 0) {
-      restoreFromSupabase(userId).catch(e => console.warn('Supabase restore:', e))
+      _isRestoring = true
+      restoreFromSupabase(userId)
+        .catch(e => console.warn('Supabase restore:', e))
+        .finally(() => { _isRestoring = false })
     } else {
       pushAllLocalDataToSupabase(userId).catch(() => {})
     }
@@ -61,7 +65,7 @@ export function startSupabaseSync(userId) {
 }
 
 export async function flushDirtyToSupabase(userId) {
-  if (_isSyncing) return
+  if (_isSyncing || _isRestoring) return
   _isSyncing = true
   try {
     const { sbPushUserData, sbSaveProfile } = await import('./supabase.js')
@@ -243,7 +247,14 @@ export async function pushAllLocalDataToSupabase(userId) {
         ;(byMonth[month] = byMonth[month] || []).push(r)
       }
       for (const [month, data] of Object.entries(byMonth)) {
-        await sbPushUserData(userId, table, month, data).catch(() => {})
+        const ok = await sbPushUserData(userId, table, month, data).then(() => true).catch(() => false)
+        if (!ok) {
+          // Mark records dirty so the 30s sync timer retries them
+          const now = new Date().toISOString()
+          await db[table].bulkUpdate(
+            data.map(r => ({ key: r.id, changes: { dirty: 1, updatedAt: r.updatedAt || now } }))
+          ).catch(() => {})
+        }
       }
     }
 
@@ -251,7 +262,14 @@ export async function pushAllLocalDataToSupabase(userId) {
     for (const table of SINGLE) {
       if (!db[table]) continue
       const records = await db[table].where('userId').equals(userId).toArray().catch(() => [])
-      if (records.length) await sbPushUserData(userId, table, 'all', records).catch(() => {})
+      if (!records.length) continue
+      const ok = await sbPushUserData(userId, table, 'all', records).then(() => true).catch(() => false)
+      if (!ok) {
+        const now = new Date().toISOString()
+        await db[table].bulkUpdate(
+          records.map(r => ({ key: r.id, changes: { dirty: 1, updatedAt: r.updatedAt || now } }))
+        ).catch(() => {})
+      }
     }
 
     // Foods and personal batches only for solo users — household users use household_foods/batches tables
