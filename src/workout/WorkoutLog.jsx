@@ -3,6 +3,7 @@ import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { generateId } from '../auth/crypto.js'
 import { searchExercises, getAlternates, getExerciseById } from './ExerciseDB.js'
+import MovementGif from './MovementGif.jsx'
 import { localDate } from '../log/DayLog.jsx'
 import { flushDirtyToSupabase, queueResync } from '../db/db.js'
 
@@ -670,6 +671,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
             {/* Inline form panel */}
             {formExpanded.has(ex.id) && (
               <div style={st.formPanel}>
+                <MovementGif movement={ex.movement} />
                 {ex.feel && (
                   <div style={st.feelCard}>
                     <div style={st.feelLabel}>Where to feel it</div>
