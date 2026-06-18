@@ -1095,7 +1095,7 @@ function MergeDuplicateProfile({ currentUserId }) {
     const tables = [
       'foodLogs','workoutLogs','workoutSets','programmes',
       'weightLog','bloodWork','supplementLog','moodLog',
-      'progressPhotos','mealTemplates','reminders','measurements','waterLog','stepsLog',
+      'progressPhotos','mealTemplates','reminders','measurements','stepsLog',
     ]
     const now = new Date().toISOString()
     for (const t of tables) {

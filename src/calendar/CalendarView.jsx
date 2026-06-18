@@ -143,8 +143,7 @@ export default function CalendarView() {
                   ...(isToday ? s.dayCellToday : {}),
                   ...(isFuture ? s.dayCellFuture : {}),
                 }}
-                onClick={() => !isFuture && setSelectedDay(dateStr)}
-                disabled={isFuture}
+                onClick={() => setSelectedDay(dateStr)}
               >
                 <span style={{
                   ...s.dayNum,

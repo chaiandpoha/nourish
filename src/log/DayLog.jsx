@@ -19,6 +19,11 @@ function yesterday(dateStr) {
   return new Date(y, m - 1, dy - 1).toLocaleDateString('en-CA')
 }
 
+function nDaysAgo(dateStr, n) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d - n).toLocaleDateString('en-CA')
+}
+
 // Active meal persisted with date so it resets each day
 const MEAL_PREF_KEY = 'nourish_active_meal'
 
@@ -57,9 +62,22 @@ export function smartMealSlot(byMeal) {
 
 // ─── DayLog ───────────────────────────────────────────────────────────────────
 
+function loadNote(userId, date, meal) {
+  return localStorage.getItem(`nourish_note_${userId}_${date}_${meal}`) || ''
+}
+function saveNote(userId, date, meal, text) {
+  const key = `nourish_note_${userId}_${date}_${meal}`
+  if (text.trim()) localStorage.setItem(key, text)
+  else localStorage.removeItem(key)
+}
+
 export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
-  const [logs,      setLogs]      = useState([])
-  const [loading,   setLoading]   = useState(true)
+  const [logs,           setLogs]           = useState([])
+  const [loading,        setLoading]        = useState(true)
+  const [showCopyPicker, setShowCopyPicker] = useState(false)
+  const [copyDates,      setCopyDates]      = useState(null) // null=not loaded yet
+  const [note,           setNote]           = useState('')
+  const [editingNote,    setEditingNote]    = useState(false)
   // Past dates default to breakfast; today uses saved pref or time-based slot
   const [activeTab, setActiveTab] = useState(() =>
     (!date || date === localDate()) ? (readMealPref() || timeSlot()) : 'breakfast'
@@ -98,6 +116,11 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
 
   useEffect(() => { loadLogs() }, [loadLogs, reloadTrigger])
 
+  useEffect(() => {
+    if (user) setNote(loadNote(user.id, date || localDate(), activeTab))
+    setEditingNote(false)
+  }, [activeTab, user, date])
+
   // Reload when app comes back to foreground (handles midnight date change)
   useEffect(() => {
     const onVisible = () => { if (document.visibilityState === 'visible') loadLogs() }
@@ -107,7 +130,14 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
 
   function handleTabChange(meal) {
     setActiveTab(meal)
+    setShowCopyPicker(false)
+    setCopyDates(null)
     if (isToday) saveMealPref(meal)
+  }
+
+  function handleNoteBlur(text) {
+    setNote(text)
+    if (user) saveNote(user.id, date || localDate(), activeTab, text)
   }
 
   async function handleDelete(id) {
@@ -120,17 +150,39 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
     loadLogs()
   }
 
-  async function handleCopyFromYesterday() {
+  async function openCopyPicker() {
+    if (showCopyPicker) { setShowCopyPicker(false); return }
+    setShowCopyPicker(true)
+    if (copyDates !== null) return // already loaded for this slot
+    const today = getTargetDate()
+    const result = []
+    for (let i = 1; i <= 14; i++) {
+      const src = nDaysAgo(today, i)
+      const dayLogs = await getFoodLogForDate(user.id, src)
+      const slotLogs = dayLogs.filter(l => l.meal === activeTab)
+      if (slotLogs.length > 0) {
+        const d = new Date(src + 'T12:00:00')
+        const label = i === 1 ? 'Yesterday' : d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })
+        const names = slotLogs.map(l => l.foodName)
+        const preview = names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2}` : '')
+        result.push({ date: src, label, preview })
+      }
+    }
+    setCopyDates(result)
+  }
+
+  async function handleCopyFromDate(sourceDate) {
     if (!user) return
-    const today   = getTargetDate()
-    const prev    = yesterday(today)
-    const prevLogs = await getFoodLogForDate(user.id, prev)
-    const slotLogs = prevLogs.filter(l => l.meal === activeTab)
+    const today = getTargetDate()
+    const sourceLogs = await getFoodLogForDate(user.id, sourceDate)
+    const slotLogs = sourceLogs.filter(l => l.meal === activeTab)
     if (!slotLogs.length) return
     for (const log of slotLogs) {
       const { id, ...entry } = log
       await addFoodLogEntry(user.id, { ...entry, date: today })
     }
+    setShowCopyPicker(false)
+    setCopyDates(null)
     loadLogs()
   }
 
@@ -219,22 +271,66 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
         {activeEntries.length > 0 && (
           <div style={s.mealMacros}>
             {[
-              { key: 'protein', label: 'P', val: activeTotals.protein  },
-              { key: 'carbs',   label: 'C', val: activeTotals.carbs    },
-              { key: 'fat',     label: 'F', val: activeTotals.fat      },
-              { key: 'fibre',   label: 'Fi',val: activeTotals.fibre    },
+              { key: 'protein', label: 'P',    val: activeTotals.protein },
+              { key: 'carbs',   label: 'Net C', val: Math.max(0, Math.round((activeTotals.carbs - activeTotals.fibre) * 10) / 10) },
+              { key: 'fat',     label: 'F',    val: activeTotals.fat     },
+              { key: 'fibre',   label: 'Fi',   val: activeTotals.fibre   },
             ].map(({ key, label, val }) => (
               <span key={key} style={{ ...s.mealMacro, color: MACRO_COLORS[key] }}>
                 {val}g {label}
               </span>
+            ))}
+            {activeTotals.sugar > 0 && (
+              <span style={{ ...s.mealMacro, color: 'var(--text-tertiary)' }}>
+                {activeTotals.sugar}g Sugar
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Meal note */}
+        {(note || editingNote) ? (
+          <div style={s.noteRow}>
+            <textarea
+              style={s.noteInput}
+              value={note}
+              placeholder="Add a note for this meal…"
+              onChange={e => setNote(e.target.value)}
+              onBlur={e => { handleNoteBlur(e.target.value); setEditingNote(false) }}
+              autoFocus={editingNote}
+              rows={2}
+            />
+          </div>
+        ) : (
+          <button style={s.noteAdd} onClick={() => setEditingNote(true)}>
+            ✎ Add note
+          </button>
+        )}
+
+        {/* Copy-from picker — expands inline within the card */}
+        {showCopyPicker && (
+          <div style={s.copyPickerSection}>
+            {copyDates === null ? (
+              <div style={s.copyEmpty}>Loading…</div>
+            ) : copyDates.length === 0 ? (
+              <div style={s.copyEmpty}>No previous {activeTab} entries in the last 14 days</div>
+            ) : copyDates.map(item => (
+              <button
+                key={item.date}
+                style={s.copyDateRow}
+                onClick={() => handleCopyFromDate(item.date)}
+              >
+                <span style={s.copyDateLabel}>{item.label}</span>
+                <span style={s.copyDatePreview}>{item.preview}</span>
+              </button>
             ))}
           </div>
         )}
 
         {/* Footer */}
         <div style={s.cardFooter}>
-          <button style={s.copyBtn} onClick={handleCopyFromYesterday}>
-            ↩ Copy from yesterday
+          <button style={s.copyBtn} onClick={openCopyPicker}>
+            ↩ Copy from {showCopyPicker ? '▴' : '▾'}
           </button>
           {logs.length > 0 && (
             <span style={s.dayTotal}>{dayTotals.calories} kcal {isToday ? 'today' : 'total'}</span>
@@ -435,7 +531,15 @@ const s = {
   mealMacro:    { fontSize:'12px', fontWeight:'600', fontFamily:'var(--font-mono)' },
 
   cardFooter:   { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderTop:'0.5px solid var(--border-subtle)' },
-  copyBtn:      { background:'none', border:'none', color:'var(--text-tertiary)', fontSize:'12px', cursor:'pointer', padding:0, fontWeight:'500' },
+  noteRow:        { padding:'8px 14px', borderTop:'0.5px solid var(--border-subtle)' },
+  noteInput:      { width:'100%', boxSizing:'border-box', background:'transparent', border:'none', outline:'none', fontSize:'13px', color:'var(--text-secondary)', lineHeight:'1.5', resize:'none', fontFamily:'inherit' },
+  noteAdd:        { display:'block', width:'100%', textAlign:'left', padding:'8px 14px', background:'none', border:'none', borderTop:'0.5px solid var(--border-subtle)', fontSize:'12px', color:'var(--text-tertiary)', cursor:'pointer', fontFamily:'inherit' },
+  copyBtn:        { background:'none', border:'none', color:'var(--text-tertiary)', fontSize:'12px', cursor:'pointer', padding:0, fontWeight:'500' },
+  copyPickerSection:{ borderTop:'0.5px solid var(--border-subtle)', maxHeight:'200px', overflowY:'auto' },
+  copyDateRow:    { display:'flex', alignItems:'baseline', gap:'10px', width:'100%', padding:'10px 14px', background:'none', border:'none', borderBottom:'0.5px solid var(--border-subtle)', cursor:'pointer', textAlign:'left' },
+  copyDateLabel:  { fontSize:'13px', fontWeight:'600', color:'var(--text-primary)', flexShrink:0 },
+  copyDatePreview:{ fontSize:'12px', color:'var(--text-tertiary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
+  copyEmpty:      { padding:'12px 14px', fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center' },
   dayTotal:     { fontSize:'12px', color:'var(--text-secondary)', fontWeight:'600', fontFamily:'var(--font-mono)' },
 
   entryRow:     { display:'flex', alignItems:'center', padding:'10px 14px', borderTop:'0.5px solid var(--border-subtle)', cursor:'pointer', gap:'8px' },

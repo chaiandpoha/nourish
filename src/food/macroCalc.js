@@ -14,7 +14,10 @@ export function calcMacros(food, grams) {
   const ratio = grams / 100
   const result = {}
   for (const key of MACRO_KEYS) {
-    result[key] = round2(( food.per100g[key] || 0) * ratio)
+    result[key] = round2((food.per100g[key] || 0) * ratio)
+  }
+  if (food.per100g.sugar != null) {
+    result.sugar = round2(food.per100g.sugar * ratio)
   }
   return result
 }
@@ -72,11 +75,12 @@ export function sumMacros(macroArray) {
     for (const key of MACRO_KEYS) {
       totals[key] += macros[key] || 0
     }
+    totals.sugar = (totals.sugar || 0) + (macros.sugar || 0)
   }
-  // Round totals
   for (const key of MACRO_KEYS) {
     totals[key] = round2(totals[key])
   }
+  totals.sugar = round2(totals.sugar || 0)
   return totals
 }
 
