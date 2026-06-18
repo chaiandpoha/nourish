@@ -78,6 +78,8 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
   const [copyStep,          setCopyStep]          = useState('date') // 'date' | 'meal'
   const [copyDates,         setCopyDates]         = useState(null)   // null=not loaded yet
   const [copySelectedDate,  setCopySelectedDate]  = useState(null)   // {date, label, byMeal}
+  const [copyCustomDate,    setCopyCustomDate]    = useState('')      // YYYY-MM-DD input value
+  const [copyCustomLoading, setCopyCustomLoading] = useState(false)
   const [note,              setNote]              = useState('')
   const [editingNote,       setEditingNote]       = useState(false)
   // Past dates default to breakfast; today uses saved pref or time-based slot
@@ -134,6 +136,7 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
     setShowCopyPicker(false)
     setCopyStep('date')
     setCopySelectedDate(null)
+    setCopyCustomDate('')
   }
 
   function handleTabChange(meal) {
@@ -187,6 +190,25 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
   function handleSelectCopyDate(item) {
     setCopySelectedDate(item)
     setCopyStep('meal')
+  }
+
+  async function handleCustomDatePick(dateStr) {
+    if (!dateStr || !user) return
+    setCopyCustomLoading(true)
+    const dayLogs = await getFoodLogForDate(user.id, dateStr)
+    setCopyCustomLoading(false)
+    const d = new Date(dateStr + 'T12:00:00')
+    const label = d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })
+    const byMeal = MEAL_SLOTS.reduce((acc, m) => {
+      const entries = dayLogs.filter(l => l.meal === m)
+      if (entries.length) {
+        const names = entries.map(l => l.name || l.foodName)
+        acc[m] = names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2}` : '')
+      }
+      return acc
+    }, {})
+    if (Object.keys(byMeal).length === 0) return // nothing logged that day
+    handleSelectCopyDate({ date: dateStr, label, byMeal })
   }
 
   async function handleCopyFromMeal(sourceDate, sourceMeal) {
@@ -329,23 +351,43 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
           <div style={s.copyPickerSection}>
             {/* Step 1: date list */}
             {copyStep === 'date' && (
-              copyDates === null ? (
-                <div style={s.copyEmpty}>Loading…</div>
-              ) : copyDates.length === 0 ? (
-                <div style={s.copyEmpty}>No food logged in the last 14 days</div>
-              ) : copyDates.map(item => (
-                <button
-                  key={item.date}
-                  style={s.copyDateRow}
-                  onClick={() => handleSelectCopyDate(item)}
-                >
-                  <span style={s.copyDateLabel}>{item.label}</span>
-                  <span style={s.copyDatePreview}>
-                    {Object.keys(item.byMeal).map(m => MEAL_LABELS[m]).join(' · ')}
-                  </span>
-                  <span style={s.copyChevron}>›</span>
-                </button>
-              ))
+              <>
+                {copyDates === null ? (
+                  <div style={s.copyEmpty}>Loading…</div>
+                ) : copyDates.length === 0 ? (
+                  <div style={s.copyEmpty}>No food logged in the last 14 days</div>
+                ) : copyDates.map(item => (
+                  <button
+                    key={item.date}
+                    style={s.copyDateRow}
+                    onClick={() => handleSelectCopyDate(item)}
+                  >
+                    <span style={s.copyDateLabel}>{item.label}</span>
+                    <span style={s.copyDatePreview}>
+                      {Object.keys(item.byMeal).map(m => MEAL_LABELS[m]).join(' · ')}
+                    </span>
+                    <span style={s.copyChevron}>›</span>
+                  </button>
+                ))}
+                {/* Pick any older date */}
+                <div style={s.copyCustomRow}>
+                  <span style={s.copyCustomLabel}>Older date</span>
+                  <input
+                    type="date"
+                    max={nDaysAgo(getTargetDate(), 1)}
+                    style={s.copyCustomInput}
+                    value={copyCustomDate}
+                    onChange={e => setCopyCustomDate(e.target.value)}
+                  />
+                  <button
+                    style={{ ...s.copyCustomBtn, opacity: copyCustomLoading ? 0.5 : 1 }}
+                    disabled={!copyCustomDate || copyCustomLoading}
+                    onClick={() => handleCustomDatePick(copyCustomDate)}
+                  >
+                    {copyCustomLoading ? '…' : '→'}
+                  </button>
+                </div>
+              </>
             )}
 
             {/* Step 2: meal list for selected date */}
@@ -599,6 +641,10 @@ const s = {
   copyMealHint:        { padding:'6px 14px', fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em', borderBottom:'0.5px solid var(--border-subtle)', background:'var(--bg-base)' },
   copyMealIcon:        { fontSize:'16px', flexShrink:0 },
   copyEmpty:           { padding:'12px 14px', fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center' },
+  copyCustomRow:       { display:'flex', alignItems:'center', gap:'8px', padding:'10px 14px', borderTop:'0.5px solid var(--border-subtle)' },
+  copyCustomLabel:     { fontSize:'12px', color:'var(--text-tertiary)', flexShrink:0 },
+  copyCustomInput:     { flex:1, padding:'5px 8px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'13px', color:'var(--text-primary)', outline:'none', minWidth:0 },
+  copyCustomBtn:       { padding:'5px 12px', background:'var(--accent)', border:'none', borderRadius:'var(--r-sm)', color:'#fff', fontSize:'14px', fontWeight:'700', cursor:'pointer', flexShrink:0 },
   dayTotal:     { fontSize:'12px', color:'var(--text-secondary)', fontWeight:'600', fontFamily:'var(--font-mono)' },
 
   entryRow:     { display:'flex', alignItems:'center', padding:'10px 14px', borderTop:'0.5px solid var(--border-subtle)', cursor:'pointer', gap:'8px' },
