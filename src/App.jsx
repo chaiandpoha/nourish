@@ -413,6 +413,7 @@ function WorkoutScreen() {
   const [activeProg,    setActiveProg]    = useState(null)
   const [activeDay,     setActiveDay]     = useState(null)
   const [draftWorkout,  setDraftWorkout]  = useState(null)
+  const [draftLogId,    setDraftLogId]    = useState(null)
 
   useEffect(() => {
     if (!user) return
@@ -422,6 +423,21 @@ function WorkoutScreen() {
       .first()
       .then(draft => { if (draft) setDraftWorkout(draft) })
   }, [user])
+
+  async function resumeDraft() {
+    if (!draftWorkout) return
+    let prog = null, day = null
+    if (draftWorkout.programmeId) {
+      prog = await db.programmes.get(draftWorkout.programmeId) || null
+      if (prog && draftWorkout.dayName) {
+        day = prog.days?.find(d => d.name === draftWorkout.dayName) || null
+      }
+    }
+    setActiveProg(prog)
+    setActiveDay(day)
+    setDraftLogId(draftWorkout.id)
+    setScreen('logging')
+  }
 
   async function discardDraft() {
     if (!draftWorkout) return
@@ -433,6 +449,7 @@ function WorkoutScreen() {
   function handleStartWorkout(programme, day) {
     setActiveProg(programme)
     setActiveDay(day)
+    setDraftLogId(null)
     setScreen('logging')
   }
 
@@ -440,6 +457,7 @@ function WorkoutScreen() {
     setScreen('programmes')
     setActiveProg(null)
     setActiveDay(null)
+    setDraftLogId(null)
     setDraftWorkout(null)
   }
 
@@ -449,6 +467,7 @@ function WorkoutScreen() {
         <WorkoutLog
           programme={activeProg}
           day={activeDay}
+          draftLogId={draftLogId}
           onFinish={handleFinish}
           onCancel={() => setScreen('programmes')}
         />
@@ -474,7 +493,10 @@ function WorkoutScreen() {
             <div style={styles.draftTitle}>Unfinished workout</div>
             <div style={styles.draftSub}>{draftWorkout.name || 'Workout'} · {draftWorkout.date}</div>
           </div>
-          <button style={styles.discardBtn} onClick={discardDraft}>Discard</button>
+          <div style={{ display:'flex', gap:'12px', alignItems:'center' }}>
+            <button style={styles.resumeBtn} onClick={resumeDraft}>Resume</button>
+            <button style={styles.discardBtn} onClick={discardDraft}>Discard</button>
+          </div>
         </div>
       )}
 
@@ -1435,6 +1457,7 @@ const styles = {
   draftBanner: { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 14px', background:'rgba(200,100,50,0.1)', border:'0.5px solid rgba(200,100,50,0.25)', borderRadius:'var(--r-lg)', marginBottom:'14px' },
   draftTitle:  { fontSize:'13px', fontWeight:'700', color:'#c86432', marginBottom:'2px' },
   draftSub:    { fontSize:'12px', color:'var(--text-secondary)' },
+  resumeBtn:   { background:'#c86432', border:'none', color:'#fff', fontSize:'13px', fontWeight:'600', cursor:'pointer', padding:'6px 12px', borderRadius:'var(--r-lg)', flexShrink:0 },
   discardBtn:  { background:'none', border:'none', color:'#c86432', fontSize:'13px', fontWeight:'600', cursor:'pointer', padding:'0', flexShrink:0 },
   tabBar: {
     display:        'flex',

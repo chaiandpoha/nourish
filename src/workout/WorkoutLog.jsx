@@ -62,7 +62,7 @@ function ExThumb({ exercise }) {
   )
 }
 
-export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
+export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCancel }) {
   const { user } = useAuth()
 
   const [sets,       setSets]       = useState({})
@@ -72,6 +72,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   const [restTotal,  setRestTotal]  = useState(DEFAULT_REST)
   const [restActive, setRestActive] = useState(false)
   const [extraEx,    setExtraEx]    = useState([])
+  const [swapped,    setSwapped]    = useState(new Set()) // IDs of programme exercises swapped out
   const [swapTarget, setSwapTarget] = useState(null)
   const [addingEx,   setAddingEx]   = useState(false)
   const [exQuery,    setExQuery]    = useState('')
@@ -88,11 +89,14 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   const timerRef        = useRef(null)
   const restRef         = useRef(null)
   const inactivityRef   = useRef(null)
-  const workoutLogId    = useRef(generateId())
-  const draftSaved      = useRef(false)
+  const workoutLogId    = useRef(draftLogId || generateId())
+  const draftSaved      = useRef(!!draftLogId)
 
   // Merge saved programme exercises with full ExerciseDB data (restores cues, yt, equipment, etc.)
-  const exercises   = [...(day?.exercises || []), ...extraEx].map(ex => ({
+  const exercises   = [
+    ...(day?.exercises || []).filter(ex => !swapped.has(ex.id)),
+    ...extraEx,
+  ].map(ex => ({
     ...getExerciseById(ex.id),
     ...ex,
   }))
@@ -107,6 +111,24 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
         .reduce((v, s) => v + (parseFloat(s.weight)||0) * (parseInt(s.reps)||0), 0)
     , 0)
   , [sets, exKey])
+
+  // ── Resume: load existing sets from a draft log ────────────────────────────
+  useEffect(() => {
+    if (!draftLogId || !user) return
+    db.workoutSets
+      .where('workoutLogId').equals(draftLogId)
+      .and(s => s.userId === user.id)
+      .toArray()
+      .then(existing => {
+        if (!existing.length) return
+        const byEx = {}
+        for (const s of existing) {
+          if (!byEx[s.exerciseId]) byEx[s.exerciseId] = []
+          byEx[s.exerciseId].push({ id: s.id, weight: String(s.weight ?? ''), reps: String(s.reps ?? ''), rpe: s.rpe || '', done: s.done !== false })
+        }
+        setSets(byEx)
+      })
+  }, [draftLogId, user?.id])
 
   // ── Init set rows ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -345,10 +367,18 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
   }
 
   function swapExercise(oldEx, newEx) {
-    setExtraEx(prev => [
-      ...prev.filter(e => e.id !== oldEx.id),
-      { ...newEx, sets: oldEx.sets, reps: oldEx.reps, weight: oldEx.weight },
-    ])
+    const isProgrammeEx = (day?.exercises || []).some(e => e.id === oldEx.id)
+    if (isProgrammeEx) {
+      // Mark the programme exercise as swapped out, add replacement to extraEx
+      setSwapped(prev => new Set([...prev, oldEx.id]))
+      setExtraEx(prev => [...prev, { ...newEx, sets: oldEx.sets, reps: oldEx.reps, weight: oldEx.weight }])
+    } else {
+      // Already in extraEx — replace in place
+      setExtraEx(prev => [
+        ...prev.filter(e => e.id !== oldEx.id),
+        { ...newEx, sets: oldEx.sets, reps: oldEx.reps, weight: oldEx.weight },
+      ])
+    }
     setSets(s => {
       const c = { ...s }
       c[newEx.id] = c[oldEx.id] || []
