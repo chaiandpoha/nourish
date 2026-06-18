@@ -644,7 +644,7 @@ const styles = {
   mealBtnActive: {
     background:      'var(--text-primary)',
     color:           'var(--text-inverse)',
-    borderColor:     'var(--text-primary)',
+    border:          '0.5px solid var(--text-primary)',
   },
   gramRow: {
     display:         'flex',

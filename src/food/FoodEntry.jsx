@@ -285,7 +285,7 @@ const styles = {
   },
   voiceBtnActive: {
     background:     'var(--accent-dim)',
-    borderColor:    'var(--accent)',
+    border:         '1px solid var(--accent)',
   },
   gramsEquiv: {
     fontSize:       '13px',

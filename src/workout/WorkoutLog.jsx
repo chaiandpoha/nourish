@@ -926,7 +926,7 @@ const st = {
 
   // Exercise card
   exCard:        { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.04)' },
-  exCardDone:    { borderColor:'var(--accent)', borderWidth:'1px' },
+  exCardDone:    { border:'1px solid var(--accent)' },
   exProgress:    { height:'4px', background:'var(--bg-elevated)' },
   exProgressBar: { height:'100%', background:'var(--accent)', transition:'width 0.4s var(--ease-out)', borderRadius:'0 2px 2px 0' },
   exHeader:      { display:'flex', alignItems:'flex-start', justifyContent:'space-between', padding:'14px 16px 10px', gap:'12px' },
@@ -960,7 +960,7 @@ const st = {
 
   // RPE
   rpeBtn:        { width:'44px', flexShrink:0, padding:'10px 2px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'12px', fontWeight:'500', color:'var(--text-tertiary)', cursor:'pointer', textAlign:'center' },
-  rpeBtnSet:     { background:'var(--accent-dim)', borderColor:'var(--accent)', color:'var(--accent)', fontWeight:'700' },
+  rpeBtnSet:     { background:'var(--accent-dim)', border:'1px solid var(--accent)', color:'var(--accent)', fontWeight:'700' },
   rpeBtnHint:    { color:'var(--text-tertiary)', fontStyle:'italic' },
   rpeBtnDone:    { background:'transparent', border:'1px solid transparent', cursor:'default' },
 
@@ -1017,7 +1017,7 @@ const st = {
   rpeScale:      { display:'flex', justifyContent:'space-between', fontSize:'12px', color:'var(--text-tertiary)', padding:'0 4px' },
   rpeGrid:       { display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:'8px' },
   rpeChip:       { padding:'13px 4px', background:'var(--bg-elevated)', border:'1.5px solid var(--border-default)', borderRadius:'var(--r-lg)', fontSize:'15px', fontWeight:'600', color:'var(--text-primary)', cursor:'pointer', textAlign:'center' },
-  rpeChipOn:     { background:'var(--accent)', borderColor:'var(--accent)', color:'#fff' },
+  rpeChipOn:     { background:'var(--accent)', border:'1.5px solid var(--accent)', color:'#fff' },
   rpeClear:      { padding:'12px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', color:'var(--text-secondary)', fontSize:'14px', cursor:'pointer' },
 
   // Summary

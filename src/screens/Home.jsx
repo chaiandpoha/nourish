@@ -715,7 +715,7 @@ const styles = {
   },
   suppChipDone: {
     background:  'var(--accent-dim)',
-    borderColor: 'var(--accent)',
+    border:      '1px solid var(--accent)',
     color:       'var(--accent)',
     fontWeight:  '600',
   },

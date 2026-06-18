@@ -1435,7 +1435,7 @@ const st2 = {
   timeInput:     { background:'transparent', border:'none', fontSize:'15px', fontWeight:'500', color:'var(--text-primary)', outline:'none', textAlign:'right', cursor:'pointer' },
   daysRow:       { display:'flex', gap:'6px', padding:'12px 0', borderBottom:'0.5px solid var(--border-subtle)' },
   dayBtn:        { width:'34px', height:'34px', borderRadius:'50%', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', color:'var(--text-secondary)', fontSize:'11px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
-  dayBtnActive:  { background:'var(--text-primary)', borderColor:'var(--text-primary)', color:'var(--text-inverse)' },
+  dayBtnActive:  { background:'var(--text-primary)', border:'1px solid var(--text-primary)', color:'var(--text-inverse)' },
   addBtn:        { width:'100%', padding:'13px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-md)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer', marginTop:'4px' },
   error:         { fontSize:'13px', color:'var(--red)', margin:'4px 0 0' },
   empty:         { display:'flex', flexDirection:'column', alignItems:'center', padding:'48px 0', gap:'6px' },
@@ -1481,7 +1481,7 @@ const styles = {
   tabBtnActive: {
     background:     'var(--text-primary)',
     color:          'var(--text-inverse)',
-    borderColor:    'var(--text-primary)',
+    border:         '0.5px solid var(--text-primary)',
   },
   settingsSection: {
     background:    'var(--bg-surface)',

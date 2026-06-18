@@ -52,7 +52,7 @@ export default function Banner({
 
       {action && (
         <button
-          style={{ ...styles.actionBtn, color: theme.color, borderColor: theme.border }}
+          style={{ ...styles.actionBtn, color: theme.color, border: `1px solid ${theme.border}` }}
           onClick={action.onClick}
         >
           {action.label}

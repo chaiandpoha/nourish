@@ -417,7 +417,7 @@ const s = {
   container:    { display:'flex', flexDirection:'column', gap:'8px' },
   tabRow:       { display:'flex', gap:'6px' },
   tab:          { flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:'2px', padding:'8px 4px', background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', cursor:'pointer', minWidth:0 },
-  tabActive:    { background:'var(--text-primary)', borderColor:'var(--text-primary)' },
+  tabActive:    { background:'var(--text-primary)', border:'0.5px solid var(--text-primary)' },
   tabIcon:      { fontSize:'14px', lineHeight:1 },
   tabLabel:     { fontSize:'10px', fontWeight:'600', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' },
   tabLabelActive:{ color:'var(--text-inverse)' },

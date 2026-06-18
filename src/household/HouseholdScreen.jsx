@@ -380,7 +380,7 @@ const s = {
   sub:           { fontSize:'14px', color:'var(--text-secondary)', margin:0 },
   tabRow:        { display:'flex', gap:'6px' },
   tab:           { flex:1, padding:'9px 14px', background:'var(--bg-elevated)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-full)', fontSize:'14px', fontWeight:'500', color:'var(--text-secondary)', cursor:'pointer' },
-  tabActive:     { background:'var(--text-primary)', color:'var(--text-inverse)', borderColor:'var(--text-primary)' },
+  tabActive:     { background:'var(--text-primary)', color:'var(--text-inverse)', border:'0.5px solid var(--text-primary)' },
   card:          { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', padding:'16px', display:'flex', flexDirection:'column', gap:'12px' },
   actionCard:    { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', padding:'16px', display:'flex', flexDirection:'column', gap:'12px' },
   label:         { fontSize:'12px', fontWeight:'600', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' },

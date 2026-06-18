@@ -744,7 +744,7 @@ function FoodEntryInline({ food, batch, meal, onAdd, onBack, onEditRecipe, initi
       {isBatch   && <div style={s.batchTag}>From batch</div>}
       {isRecipe  && (
         <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-          <div style={{ ...s.batchTag, background:'var(--bg-elevated)', color:'var(--text-secondary)', borderColor:'var(--border-default)' }}>Recipe</div>
+          <div style={{ ...s.batchTag, background:'var(--bg-elevated)', color:'var(--text-secondary)' }}>Recipe</div>
           <button style={s.editRecipeLink} onClick={onEditRecipe}>Edit recipe ✏️</button>
         </div>
       )}
@@ -950,11 +950,11 @@ const s = {
   handle:       { width:"32px", height:"3px", background:"var(--border-strong)", borderRadius:"99px", margin:"0 auto 16px" },
   mealRow:      { display:"flex", gap:"6px", marginBottom:"12px" },
   mealBtn:      { flex:1, padding:"8px 4px", background:"var(--bg-elevated)", border:"0.5px solid var(--border-subtle)", borderRadius:"var(--r-md)", fontSize:"12px", fontWeight:"500", color:"var(--text-secondary)", cursor:"pointer" },
-  mealBtnActive:{ background:"var(--text-primary)", color:"var(--text-inverse)", borderColor:"var(--text-primary)" },
+  mealBtnActive:{ background:"var(--text-primary)", color:"var(--text-inverse)", border:"0.5px solid var(--text-primary)" },
   searchRow:    { display:"flex", alignItems:"center", gap:"6px", marginBottom:"6px" },
   searchInput:  { flex:1, padding:"11px 14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-md)", fontSize:"15px", color:"var(--text-primary)", outline:"none", minWidth:0 },
   searchIconBtn:{ width:"40px", height:"40px", borderRadius:"var(--r-md)", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", color:"var(--text-secondary)", fontSize:"15px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
-  micActive:    { background:"var(--accent)", borderColor:"var(--accent)", color:"#fff", animation:"micPulse 1s ease-in-out infinite" },
+  micActive:    { background:"var(--accent)", border:"1px solid var(--accent)", color:"#fff", animation:"micPulse 1s ease-in-out infinite" },
   voiceHint:    { fontSize:"12px", color:"var(--accent)", marginBottom:"8px", paddingLeft:"2px", fontWeight:"500" },
   actionRow:    { display:"flex", gap:"8px", marginBottom:"12px" },
   actionGrid:   { display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px", marginBottom:"12px" },
@@ -981,7 +981,7 @@ const s = {
   servingHint:     { background:"none", border:"none", color:"var(--accent)", fontSize:"13px", cursor:"pointer", padding:0, textAlign:"left" },
   modeToggleRow:   { display:"flex", gap:"4px" },
   modeToggleBtn:   { padding:"6px 14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-full)", fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", cursor:"pointer" },
-  modeToggleActive:{ background:"var(--text-primary)", borderColor:"var(--text-primary)", color:"var(--text-inverse)" },
+  modeToggleActive:{ background:"var(--text-primary)", border:"1px solid var(--text-primary)", color:"var(--text-inverse)" },
   servingUnitInfo: { display:"flex", flexDirection:"column", alignItems:"flex-end", flexShrink:0, gap:"2px" },
   servingUnitName: { fontSize:"15px", fontWeight:"500", color:"var(--text-primary)" },
   servingUnitGrams:{ fontSize:"12px", color:"var(--text-tertiary)", fontFamily:"var(--font-mono)" },
@@ -1001,12 +1001,12 @@ const s = {
   cancelBtn:    { flex:1, padding:"14px", background:"transparent", border:"1px solid var(--border-default)", borderRadius:"var(--r-lg)", color:"var(--text-secondary)", fontSize:"15px", fontWeight:"500", cursor:"pointer" },
   addBtn:       { flex:2, padding:"14px", background:"var(--text-primary)", border:"none", borderRadius:"var(--r-lg)", color:"var(--text-inverse)", fontSize:"15px", fontWeight:"600", cursor:"pointer" },
   saveToggle:   { display:"flex", alignItems:"center", gap:"10px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-lg)", padding:"12px 14px", cursor:"pointer", width:"100%", textAlign:"left", fontSize:"13px", color:"var(--text-secondary)", fontWeight:"500" },
-  saveToggleOn: { borderColor:"var(--accent)", color:"var(--accent)", background:"var(--accent-dim)" },
+  saveToggleOn: { border:"1px solid var(--accent)", color:"var(--accent)", background:"var(--accent-dim)" },
   saveToggleDot:{ width:"18px", height:"18px", borderRadius:"50%", border:"2px solid var(--border-default)", flexShrink:0, transition:"all 0.15s" },
-  saveToggleDotOn:{ background:"var(--accent)", borderColor:"var(--accent)" },
+  saveToggleDotOn:{ background:"var(--accent)", border:"2px solid var(--accent)" },
   // Adjust ingredients
   adjustToggle: { display:"flex", alignItems:"center", justifyContent:"center", gap:"6px", padding:"10px 14px", background:"var(--bg-elevated)", border:"1px dashed var(--border-strong)", borderRadius:"var(--r-lg)", fontSize:"13px", fontWeight:"600", color:"var(--text-secondary)", cursor:"pointer", width:"100%" },
-  adjustToggleOn:{ borderStyle:"solid", borderColor:"var(--accent)", color:"var(--accent)", background:"var(--accent-dim)" },
+  adjustToggleOn:{ border:"1px solid var(--accent)", color:"var(--accent)", background:"var(--accent-dim)" },
   adjCard:      { background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-lg)", overflow:"hidden" },
   adjHeader:    { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px 8px", borderBottom:"0.5px solid var(--border-subtle)" },
   adjTitle:     { fontSize:"11px", fontWeight:"700", color:"var(--text-tertiary)", textTransform:"uppercase", letterSpacing:"0.08em" },

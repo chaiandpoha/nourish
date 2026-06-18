@@ -574,7 +574,7 @@ const s = {
   loading:        { textAlign:'center', padding:'48px 0', fontSize:'14px', color:'var(--text-tertiary)' },
   tabBar:         { display:'flex', gap:'6px', overflowX:'auto', paddingBottom:'4px' },
   tabBtn:         { padding:'8px 14px', background:'var(--bg-elevated)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-full)', fontSize:'13px', fontWeight:'500', color:'var(--text-secondary)', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 },
-  tabBtnActive:   { background:'var(--text-primary)', color:'var(--text-inverse)', borderColor:'var(--text-primary)' },
+  tabBtnActive:   { background:'var(--text-primary)', color:'var(--text-inverse)', border:'0.5px solid var(--text-primary)' },
   section:        { display:'flex', flexDirection:'column', gap:'10px' },
   sectionHeader:  { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 2px' },
   sectionTitle:   { fontSize:'12px', fontWeight:'600', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' },

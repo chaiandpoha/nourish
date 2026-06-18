@@ -65,7 +65,6 @@ borderTop:  '1px solid var(--border-subtle)',
     justifyContent:  'space-around',
     paddingBottom:   'env(safe-area-inset-bottom)',
     zIndex:          100,
-    backdropFilter:  'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
   },
   tab: {
