@@ -408,9 +408,27 @@ const WORKOUT_TABS = [
 ]
 
 function WorkoutScreen() {
-  const [screen,     setScreen]     = useState('programmes') // programmes | charts | volume | logging
-  const [activeProg, setActiveProg] = useState(null)
-  const [activeDay,  setActiveDay]  = useState(null)
+  const { user }                           = useAuth()
+  const [screen,        setScreen]        = useState('programmes')
+  const [activeProg,    setActiveProg]    = useState(null)
+  const [activeDay,     setActiveDay]     = useState(null)
+  const [draftWorkout,  setDraftWorkout]  = useState(null)
+
+  useEffect(() => {
+    if (!user) return
+    db.workoutLogs
+      .where('userId').equals(user.id)
+      .and(l => l.status === 'draft')
+      .first()
+      .then(draft => { if (draft) setDraftWorkout(draft) })
+  }, [user])
+
+  async function discardDraft() {
+    if (!draftWorkout) return
+    await db.workoutSets.where('workoutLogId').equals(draftWorkout.id).delete()
+    await db.workoutLogs.delete(draftWorkout.id)
+    setDraftWorkout(null)
+  }
 
   function handleStartWorkout(programme, day) {
     setActiveProg(programme)
@@ -422,6 +440,7 @@ function WorkoutScreen() {
     setScreen('programmes')
     setActiveProg(null)
     setActiveDay(null)
+    setDraftWorkout(null)
   }
 
   if (screen === 'logging') {
@@ -448,6 +467,17 @@ function WorkoutScreen() {
           + Quick Start
         </button>
       </div>
+
+      {draftWorkout && (
+        <div style={styles.draftBanner}>
+          <div>
+            <div style={styles.draftTitle}>Unfinished workout</div>
+            <div style={styles.draftSub}>{draftWorkout.name || 'Workout'} · {draftWorkout.date}</div>
+          </div>
+          <button style={styles.discardBtn} onClick={discardDraft}>Discard</button>
+        </div>
+      )}
+
       <div style={styles.tabBar}>
         {WORKOUT_TABS.map(t => (
           <button
@@ -1402,6 +1432,10 @@ const styles = {
   main:        { flex: 1, overflowY: 'auto', paddingTop: 'env(safe-area-inset-top, 0px)' },
   screen:      { padding: '16px 16px 16px', minHeight: '100%', animation: 'pageIn 0.25s var(--ease-out) both' },
   screenTitle: { fontSize: '26px', fontWeight: '600', margin: '0 0 20px', letterSpacing: '-0.03em', color: 'var(--text-primary)' },
+  draftBanner: { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 14px', background:'rgba(200,100,50,0.1)', border:'0.5px solid rgba(200,100,50,0.25)', borderRadius:'var(--r-lg)', marginBottom:'14px' },
+  draftTitle:  { fontSize:'13px', fontWeight:'700', color:'#c86432', marginBottom:'2px' },
+  draftSub:    { fontSize:'12px', color:'var(--text-secondary)' },
+  discardBtn:  { background:'none', border:'none', color:'#c86432', fontSize:'13px', fontWeight:'600', cursor:'pointer', padding:'0', flexShrink:0 },
   tabBar: {
     display:        'flex',
     gap:            '4px',

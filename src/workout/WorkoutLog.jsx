@@ -3,8 +3,7 @@ import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { generateId } from '../auth/crypto.js'
 import { searchExercises, getAlternates, getExerciseById } from './ExerciseDB.js'
-import MovementGif from './MovementGif.jsx'
-import DeltabolicCard from './DeltabolicCard.jsx'
+import ExerciseVideo from './ExerciseVideo.jsx'
 import { localDate } from '../log/DayLog.jsx'
 import { flushDirtyToSupabase, queueResync } from '../db/db.js'
 
@@ -672,14 +671,7 @@ export default function WorkoutLog({ programme, day, onFinish, onCancel }) {
             {/* Inline form panel */}
             {formExpanded.has(ex.id) && (
               <div style={st.formPanel}>
-                <div style={{ display:'flex', gap:'10px' }}>
-                  <div style={{ flex:1 }}>
-                    <MovementGif movement={ex.movement} />
-                  </div>
-                  <div style={{ flex:2 }}>
-                    <DeltabolicCard exerciseName={ex.name} />
-                  </div>
-                </div>
+                <ExerciseVideo exerciseId={ex.id} exerciseName={ex.name} />
                 {ex.feel && (
                   <div style={st.feelCard}>
                     <div style={st.feelLabel}>Where to feel it</div>

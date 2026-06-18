@@ -40,6 +40,14 @@ export default function WorkoutHistory() {
     }
   }
 
+  async function deleteLog(log) {
+    await db.workoutSets.where('workoutLogId').equals(log.id).delete()
+    await db.workoutLogs.delete(log.id)
+    setSelected(null)
+    setDetail([])
+    loadLogs()
+  }
+
   async function openDetail(log) {
     const sets = await db.workoutSets
       .where('userId').equals(user.id)
@@ -66,7 +74,15 @@ export default function WorkoutHistory() {
 
     return (
       <div style={s.container}>
-        <button style={s.backBtn} onClick={() => { setSelected(null); setDetail([]) }}>← History</button>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <button style={s.backBtn} onClick={() => { setSelected(null); setDetail([]) }}>← History</button>
+          <button
+            style={s.deleteBtn}
+            onClick={() => { if (window.confirm('Delete this session?')) deleteLog(selected) }}
+          >
+            Delete
+          </button>
+        </div>
         <div style={s.detailName}>{selected.name}</div>
         <div style={s.detailDate}>{fmtDate(selected.date)}</div>
 
@@ -180,7 +196,8 @@ const s = {
   emptySub:   { fontSize:'14px', color:'var(--text-tertiary)', textAlign:'center' },
 
   // Detail view
-  backBtn:    { background:'none', border:'none', color:'var(--accent)', fontSize:'15px', cursor:'pointer', padding:0, alignSelf:'flex-start' },
+  backBtn:    { background:'none', border:'none', color:'var(--accent)', fontSize:'15px', cursor:'pointer', padding:0 },
+  deleteBtn:  { background:'none', border:'none', color:'var(--red, #cc3333)', fontSize:'14px', fontWeight:'600', cursor:'pointer', padding:0 },
   detailName: { fontSize:'22px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.03em', marginTop:'8px' },
   detailDate: { fontSize:'13px', color:'var(--text-tertiary)', marginBottom:'4px' },
   statRow:    { display:'grid', gridTemplateColumns:'repeat(3, 1fr)', background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', overflow:'hidden' },
