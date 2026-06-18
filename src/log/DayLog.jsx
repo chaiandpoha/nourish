@@ -72,12 +72,14 @@ function saveNote(userId, date, meal, text) {
 }
 
 export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
-  const [logs,           setLogs]           = useState([])
-  const [loading,        setLoading]        = useState(true)
-  const [showCopyPicker, setShowCopyPicker] = useState(false)
-  const [copyDates,      setCopyDates]      = useState(null) // null=not loaded yet
-  const [note,           setNote]           = useState('')
-  const [editingNote,    setEditingNote]    = useState(false)
+  const [logs,              setLogs]              = useState([])
+  const [loading,           setLoading]           = useState(true)
+  const [showCopyPicker,    setShowCopyPicker]    = useState(false)
+  const [copyStep,          setCopyStep]          = useState('date') // 'date' | 'meal'
+  const [copyDates,         setCopyDates]         = useState(null)   // null=not loaded yet
+  const [copySelectedDate,  setCopySelectedDate]  = useState(null)   // {date, label, byMeal}
+  const [note,              setNote]              = useState('')
+  const [editingNote,       setEditingNote]       = useState(false)
   // Past dates default to breakfast; today uses saved pref or time-based slot
   const [activeTab, setActiveTab] = useState(() =>
     (!date || date === localDate()) ? (readMealPref() || timeSlot()) : 'breakfast'
@@ -128,10 +130,15 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [loadLogs])
 
+  function closeCopyPicker() {
+    setShowCopyPicker(false)
+    setCopyStep('date')
+    setCopySelectedDate(null)
+  }
+
   function handleTabChange(meal) {
     setActiveTab(meal)
-    setShowCopyPicker(false)
-    setCopyDates(null)
+    closeCopyPicker()
     if (isToday) saveMealPref(meal)
   }
 
@@ -151,38 +158,48 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
   }
 
   async function openCopyPicker() {
-    if (showCopyPicker) { setShowCopyPicker(false); return }
+    if (showCopyPicker) { closeCopyPicker(); return }
     setShowCopyPicker(true)
-    if (copyDates !== null) return // already loaded for this slot
+    setCopyStep('date')
+    setCopySelectedDate(null)
+    if (copyDates !== null) return
     const today = getTargetDate()
     const result = []
     for (let i = 1; i <= 14; i++) {
       const src = nDaysAgo(today, i)
       const dayLogs = await getFoodLogForDate(user.id, src)
-      const slotLogs = dayLogs.filter(l => l.meal === activeTab)
-      if (slotLogs.length > 0) {
-        const d = new Date(src + 'T12:00:00')
-        const label = i === 1 ? 'Yesterday' : d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })
-        const names = slotLogs.map(l => l.foodName)
-        const preview = names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2}` : '')
-        result.push({ date: src, label, preview })
-      }
+      if (dayLogs.length === 0) continue
+      const d = new Date(src + 'T12:00:00')
+      const label = i === 1 ? 'Yesterday' : d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })
+      const byMeal = MEAL_SLOTS.reduce((acc, m) => {
+        const entries = dayLogs.filter(l => l.meal === m)
+        if (entries.length) {
+          const names = entries.map(l => l.name || l.foodName)
+          acc[m] = names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2}` : '')
+        }
+        return acc
+      }, {})
+      result.push({ date: src, label, byMeal })
     }
     setCopyDates(result)
   }
 
-  async function handleCopyFromDate(sourceDate) {
+  function handleSelectCopyDate(item) {
+    setCopySelectedDate(item)
+    setCopyStep('meal')
+  }
+
+  async function handleCopyFromMeal(sourceDate, sourceMeal) {
     if (!user) return
     const today = getTargetDate()
     const sourceLogs = await getFoodLogForDate(user.id, sourceDate)
-    const slotLogs = sourceLogs.filter(l => l.meal === activeTab)
+    const slotLogs = sourceLogs.filter(l => l.meal === sourceMeal)
     if (!slotLogs.length) return
     for (const log of slotLogs) {
       const { id, ...entry } = log
-      await addFoodLogEntry(user.id, { ...entry, date: today })
+      await addFoodLogEntry(user.id, { ...entry, date: today, meal: activeTab })
     }
-    setShowCopyPicker(false)
-    setCopyDates(null)
+    closeCopyPicker()
     loadLogs()
   }
 
@@ -307,23 +324,60 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
           </button>
         )}
 
-        {/* Copy-from picker — expands inline within the card */}
+        {/* Copy-from picker — 2-step: pick date → pick meal */}
         {showCopyPicker && (
           <div style={s.copyPickerSection}>
-            {copyDates === null ? (
-              <div style={s.copyEmpty}>Loading…</div>
-            ) : copyDates.length === 0 ? (
-              <div style={s.copyEmpty}>No previous {activeTab} entries in the last 14 days</div>
-            ) : copyDates.map(item => (
-              <button
-                key={item.date}
-                style={s.copyDateRow}
-                onClick={() => handleCopyFromDate(item.date)}
-              >
-                <span style={s.copyDateLabel}>{item.label}</span>
-                <span style={s.copyDatePreview}>{item.preview}</span>
-              </button>
-            ))}
+            {/* Step 1: date list */}
+            {copyStep === 'date' && (
+              copyDates === null ? (
+                <div style={s.copyEmpty}>Loading…</div>
+              ) : copyDates.length === 0 ? (
+                <div style={s.copyEmpty}>No food logged in the last 14 days</div>
+              ) : copyDates.map(item => (
+                <button
+                  key={item.date}
+                  style={s.copyDateRow}
+                  onClick={() => handleSelectCopyDate(item)}
+                >
+                  <span style={s.copyDateLabel}>{item.label}</span>
+                  <span style={s.copyDatePreview}>
+                    {Object.keys(item.byMeal).map(m => MEAL_LABELS[m]).join(' · ')}
+                  </span>
+                  <span style={s.copyChevron}>›</span>
+                </button>
+              ))
+            )}
+
+            {/* Step 2: meal list for selected date */}
+            {copyStep === 'meal' && copySelectedDate && (
+              <>
+                <button style={s.copyBackBtn} onClick={() => { setCopyStep('date'); setCopySelectedDate(null) }}>
+                  ← {copySelectedDate.label}
+                </button>
+                <div style={s.copyMealHint}>Copy into → {MEAL_LABELS[activeTab]}</div>
+                {MEAL_SLOTS.map(m => {
+                  const preview = copySelectedDate.byMeal[m]
+                  const disabled = !preview
+                  return (
+                    <button
+                      key={m}
+                      style={{ ...s.copyDateRow, ...(disabled ? s.copyDateRowDisabled : {}) }}
+                      disabled={disabled}
+                      onClick={() => !disabled && handleCopyFromMeal(copySelectedDate.date, m)}
+                    >
+                      <span style={s.copyMealIcon}>{MEAL_ICONS[m]}</span>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={s.copyDateLabel}>{MEAL_LABELS[m]}</div>
+                        {preview
+                          ? <div style={s.copyDatePreview}>{preview}</div>
+                          : <div style={{ ...s.copyDatePreview, fontStyle:'italic' }}>Nothing logged</div>
+                        }
+                      </div>
+                    </button>
+                  )
+                })}
+              </>
+            )}
           </div>
         )}
 
@@ -535,11 +589,16 @@ const s = {
   noteInput:      { width:'100%', boxSizing:'border-box', background:'transparent', border:'none', outline:'none', fontSize:'13px', color:'var(--text-secondary)', lineHeight:'1.5', resize:'none', fontFamily:'inherit' },
   noteAdd:        { display:'block', width:'100%', textAlign:'left', padding:'8px 14px', background:'none', border:'none', borderTop:'0.5px solid var(--border-subtle)', fontSize:'12px', color:'var(--text-tertiary)', cursor:'pointer', fontFamily:'inherit' },
   copyBtn:        { background:'none', border:'none', color:'var(--text-tertiary)', fontSize:'12px', cursor:'pointer', padding:0, fontWeight:'500' },
-  copyPickerSection:{ borderTop:'0.5px solid var(--border-subtle)', maxHeight:'200px', overflowY:'auto' },
-  copyDateRow:    { display:'flex', alignItems:'baseline', gap:'10px', width:'100%', padding:'10px 14px', background:'none', border:'none', borderBottom:'0.5px solid var(--border-subtle)', cursor:'pointer', textAlign:'left' },
-  copyDateLabel:  { fontSize:'13px', fontWeight:'600', color:'var(--text-primary)', flexShrink:0 },
-  copyDatePreview:{ fontSize:'12px', color:'var(--text-tertiary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
-  copyEmpty:      { padding:'12px 14px', fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center' },
+  copyPickerSection:   { borderTop:'0.5px solid var(--border-subtle)', maxHeight:'260px', overflowY:'auto' },
+  copyDateRow:         { display:'flex', alignItems:'center', gap:'10px', width:'100%', padding:'10px 14px', background:'none', border:'none', borderBottom:'0.5px solid var(--border-subtle)', cursor:'pointer', textAlign:'left' },
+  copyDateRowDisabled: { opacity:0.35, cursor:'default' },
+  copyDateLabel:       { fontSize:'13px', fontWeight:'600', color:'var(--text-primary)', flexShrink:0 },
+  copyDatePreview:     { fontSize:'12px', color:'var(--text-tertiary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 },
+  copyChevron:         { fontSize:'16px', color:'var(--text-tertiary)', flexShrink:0 },
+  copyBackBtn:         { display:'block', width:'100%', textAlign:'left', padding:'9px 14px', background:'var(--bg-elevated)', border:'none', borderBottom:'0.5px solid var(--border-subtle)', fontSize:'13px', fontWeight:'600', color:'var(--accent)', cursor:'pointer', fontFamily:'inherit' },
+  copyMealHint:        { padding:'6px 14px', fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em', borderBottom:'0.5px solid var(--border-subtle)', background:'var(--bg-base)' },
+  copyMealIcon:        { fontSize:'16px', flexShrink:0 },
+  copyEmpty:           { padding:'12px 14px', fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center' },
   dayTotal:     { fontSize:'12px', color:'var(--text-secondary)', fontWeight:'600', fontFamily:'var(--font-mono)' },
 
   entryRow:     { display:'flex', alignItems:'center', padding:'10px 14px', borderTop:'0.5px solid var(--border-subtle)', cursor:'pointer', gap:'8px' },
