@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 import { generateId } from '../auth/crypto.js'
+import { searchExercises } from './ExerciseDB.js'
 
 function fmt(s) {
   if (!s && s !== 0) return '—'
@@ -25,6 +26,9 @@ export default function WorkoutHistory() {
   const [editing,    setEditing]    = useState(false)
   const [editDetail, setEditDetail] = useState([])
   const [saving,     setSaving]     = useState(false)
+  const [addingEx,   setAddingEx]   = useState(false)
+  const [exQuery,    setExQuery]    = useState('')
+  const [exResults,  setExResults]  = useState([])
   const unit = localStorage.getItem('workoutUnit') || 'lbs'
 
   useEffect(() => { if (user) loadLogs() }, [user])
@@ -100,6 +104,27 @@ export default function WorkoutHistory() {
     }))
   }
 
+  function removeExercise(ei) {
+    setEditDetail(prev => prev.filter((_, idx) => idx !== ei))
+  }
+
+  function addExercise(ex) {
+    if (editDetail.some(e => e.exerciseId === ex.id)) { setAddingEx(false); setExQuery(''); setExResults([]); return }
+    setEditDetail(prev => [...prev, {
+      name: ex.name,
+      exerciseId: ex.id,
+      sets: [],
+    }])
+    setAddingEx(false)
+    setExQuery('')
+    setExResults([])
+  }
+
+  function searchEx(q) {
+    setExQuery(q)
+    setExResults(q.trim() ? searchExercises(q, 8) : [])
+  }
+
   function addSet(ei) {
     setEditDetail(prev => prev.map((ex, eidx) => {
       if (eidx !== ei) return ex
@@ -111,11 +136,11 @@ export default function WorkoutHistory() {
           id: generateId(),
           userId: user.id,
           workoutLogId: selected.id,
-          exerciseId: last.exerciseId || null,
+          exerciseId: last.exerciseId || ex.exerciseId || null,
           exerciseName: ex.name,
-          weight: last.weight || '',
-          reps: last.reps || '',
-          rpe: last.rpe || '',
+          weight: last.weight ?? '',
+          reps: last.reps ?? '',
+          rpe: last.rpe ?? '',
           done: true,
           updatedAt: new Date().toISOString(),
         }],
@@ -206,8 +231,13 @@ export default function WorkoutHistory() {
         )}
 
         {displayDetail.map((ex, ei) => (
-          <div key={ex.name} style={s.exCard}>
-            <div style={s.exName}>{ex.name}</div>
+          <div key={ex.name + ei} style={s.exCard}>
+            <div style={s.exNameRow}>
+              <span style={s.exName}>{ex.name}</span>
+              {editing && (
+                <button style={s.removeExBtn} onClick={() => removeExercise(ei)}>Remove</button>
+              )}
+            </div>
             <div style={s.setList}>
               {ex.sets.map((set, si) =>
                 editing ? (
@@ -254,6 +284,40 @@ export default function WorkoutHistory() {
             </div>
           </div>
         ))}
+
+        {editing && (
+          <button style={s.addExerciseBtn} onClick={() => setAddingEx(true)}>+ Add Exercise</button>
+        )}
+
+        {addingEx && (
+          <div style={s.exOverlay}>
+            <div style={s.exOverlayInner}>
+              <div style={s.exOverlayHeader}>
+                <button style={s.backBtn} onClick={() => { setAddingEx(false); setExQuery(''); setExResults([]) }}>← Cancel</button>
+                <span style={s.exOverlayTitle}>Add Exercise</span>
+              </div>
+              <input
+                style={s.exSearch}
+                placeholder="Search exercise…"
+                value={exQuery}
+                autoFocus
+                onChange={e => searchEx(e.target.value)}
+              />
+              {exResults.map(ex => (
+                <button key={ex.id} style={s.exRow} onClick={() => addExercise(ex)}>
+                  <div style={s.exRowName}>{ex.name}</div>
+                  <div style={s.exRowMeta}>{ex.muscle} · {ex.equipment}</div>
+                </button>
+              ))}
+              {exResults.length === 0 && exQuery.length > 0 && (
+                <p style={s.exHint}>No results for "{exQuery}"</p>
+              )}
+              {exResults.length === 0 && exQuery.length === 0 && (
+                <p style={s.exHint}>Start typing to search exercises</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -337,7 +401,19 @@ const s = {
   prChip:       { fontSize:'12px', fontWeight:'600', color:'var(--accent)', background:'var(--accent-dim)', padding:'5px 10px', borderRadius:'var(--r-full)' },
 
   exCard:       { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', padding:'14px 16px', display:'flex', flexDirection:'column', gap:'10px' },
+  exNameRow:    { display:'flex', alignItems:'center', justifyContent:'space-between' },
   exName:       { fontSize:'15px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.01em' },
+  removeExBtn:  { background:'none', border:'none', color:'var(--red, #cc3333)', fontSize:'12px', fontWeight:'600', cursor:'pointer', padding:'2px 0' },
+  addExerciseBtn: { padding:'13px', background:'var(--bg-surface)', border:'1px dashed var(--border-strong)', borderRadius:'var(--r-xl)', color:'var(--accent)', fontSize:'14px', fontWeight:'600', cursor:'pointer' },
+  exOverlay:    { position:'fixed', inset:0, background:'var(--bg-base)', zIndex:200, overflowY:'auto' },
+  exOverlayInner: { display:'flex', flexDirection:'column', gap:'0', padding:'16px' },
+  exOverlayHeader: { display:'flex', alignItems:'center', gap:'12px', marginBottom:'8px' },
+  exOverlayTitle: { fontSize:'18px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.02em' },
+  exSearch:     { padding:'12px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', fontSize:'15px', color:'var(--text-primary)', outline:'none', width:'100%', boxSizing:'border-box', marginBottom:'8px' },
+  exRow:        { display:'flex', flexDirection:'column', gap:'2px', padding:'12px 0', background:'transparent', border:'none', borderBottom:'0.5px solid var(--border-subtle)', cursor:'pointer', textAlign:'left', width:'100%' },
+  exRowName:    { fontSize:'15px', color:'var(--text-primary)', fontWeight:'500' },
+  exRowMeta:    { fontSize:'12px', color:'var(--text-tertiary)', textTransform:'capitalize' },
+  exHint:       { fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center', padding:'24px 0' },
   setList:      { display:'flex', flexDirection:'column', gap:'6px' },
 
   // Read-only set chip

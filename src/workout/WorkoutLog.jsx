@@ -72,7 +72,7 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
   const [restTotal,  setRestTotal]  = useState(DEFAULT_REST)
   const [restActive, setRestActive] = useState(false)
   const [extraEx,    setExtraEx]    = useState([])
-  const [swapped,    setSwapped]    = useState(new Set()) // IDs of programme exercises swapped out
+  const [swapped,    setSwapped]    = useState(new Map()) // originalId → newExercise data
   const [swapTarget, setSwapTarget] = useState(null)
   const [addingEx,   setAddingEx]   = useState(false)
   const [exQuery,    setExQuery]    = useState('')
@@ -93,9 +93,11 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
   const draftSaved      = useRef(!!draftLogId)
 
   // Merge saved programme exercises with full ExerciseDB data (restores cues, yt, equipment, etc.)
-  const exercises   = [
-    ...(day?.exercises || []).filter(ex => !swapped.has(ex.id)),
-    ...extraEx,
+  // Swapped programme exercises are replaced in-place; truly extra exercises follow.
+  const swappedValues = new Set([...swapped.values()].map(v => v.id))
+  const exercises = [
+    ...(day?.exercises || []).map(ex => swapped.has(ex.id) ? swapped.get(ex.id) : ex),
+    ...extraEx.filter(ex => !swappedValues.has(ex.id)),
   ].map(ex => ({
     ...getExerciseById(ex.id),
     ...ex,
@@ -367,17 +369,25 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
   }
 
   function swapExercise(oldEx, newEx) {
+    const replacement = { ...newEx, sets: oldEx.sets, reps: oldEx.reps, weight: oldEx.weight }
     const isProgrammeEx = (day?.exercises || []).some(e => e.id === oldEx.id)
+
     if (isProgrammeEx) {
-      // Mark the programme exercise as swapped out, add replacement to extraEx
-      setSwapped(prev => new Set([...prev, oldEx.id]))
-      setExtraEx(prev => [...prev, { ...newEx, sets: oldEx.sets, reps: oldEx.reps, weight: oldEx.weight }])
+      // Swap a programme exercise in-place
+      setSwapped(prev => { const m = new Map(prev); m.set(oldEx.id, replacement); return m })
     } else {
-      // Already in extraEx — replace in place
-      setExtraEx(prev => [
-        ...prev.filter(e => e.id !== oldEx.id),
-        { ...newEx, sets: oldEx.sets, reps: oldEx.reps, weight: oldEx.weight },
-      ])
+      // Check if oldEx is itself a previously-swapped-in exercise
+      const swapEntry = [...swapped.entries()].find(([, v]) => v.id === oldEx.id)
+      if (swapEntry) {
+        // Re-swap: update the map entry so position is preserved
+        setSwapped(prev => { const m = new Map(prev); m.set(swapEntry[0], replacement); return m })
+      } else {
+        // Truly extra exercise — replace in extraEx
+        setExtraEx(prev => [
+          ...prev.filter(e => e.id !== oldEx.id),
+          replacement,
+        ])
+      }
     }
     setSets(s => {
       const c = { ...s }
@@ -389,6 +399,7 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
   }
 
   function addExercise(ex) {
+    if (exercises.some(e => e.id === ex.id)) { setAddingEx(false); setExQuery(''); return }
     setExtraEx(prev => [...prev, { ...ex, sets: 3, reps: 10, weight: 0 }])
     setAddingEx(false)
     setExQuery('')
@@ -529,7 +540,7 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
         <button style={st.backBtn} onClick={() => { setSwapTarget(null); setExQuery('') }}>← Back</button>
         <div style={st.swapTitle}>Swap: {swapTarget.name}</div>
         {alternates.map(alt => (
-          <button key={alt.id} style={st.listRow} onClick={() => swapExercise(swapTarget, alt)}>
+          <button key={'alt-' + alt.id} style={st.listRow} onClick={() => swapExercise(swapTarget, alt)}>
             <ExThumb exercise={alt} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={st.listName}>{alt.name}</div>
@@ -541,7 +552,7 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
         <input style={st.searchInput} placeholder="Or search any exercise…"
           value={exQuery} onChange={e => setExQuery(e.target.value)} />
         {exResults.map(ex => (
-          <button key={ex.id} style={st.listRow} onClick={() => swapExercise(swapTarget, ex)}>
+          <button key={'search-' + ex.id} style={st.listRow} onClick={() => swapExercise(swapTarget, ex)}>
             <ExThumb exercise={ex} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={st.listName}>{ex.name}</div>
