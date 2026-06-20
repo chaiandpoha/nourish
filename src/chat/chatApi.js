@@ -130,7 +130,7 @@ function buildContext(totals, goals, meal, settings, workoutData, contextData) {
   const batches = (contextData?.batches || []).filter(b => b.macrosPer100g)
   const batchesSection = batches.length
     ? `\nOpen batches (prepared, ready to log):\n` + batches.map(b =>
-        `- ${b.name}: ${Math.round(b.macrosPer100g.protein || 0)}g P, ${Math.round(b.macrosPer100g.calories || 0)} kcal per 100g`
+        `- ${sanitizeText(b.name, 80)}: ${Math.round(b.macrosPer100g.protein || 0)}g P, ${Math.round(b.macrosPer100g.calories || 0)} kcal per 100g`
       ).join('\n')
     : ''
 
@@ -141,12 +141,12 @@ function buildContext(totals, goals, meal, settings, workoutData, contextData) {
         const lbl = r.servingLabel || `${s}g`
         const p   = Math.round((r.per100g.protein  || 0) * s / 100)
         const cal = Math.round((r.per100g.calories || 0) * s / 100)
-        return `- ${r.name} (${lbl}): ${p}g P, ${cal} kcal`
+        return `- ${sanitizeText(r.name, 80)} (${lbl}): ${p}g P, ${cal} kcal`
       }).join('\n')
     : ''
 
   const topFoodsSection = contextData?.topFoods?.length
-    ? `\nFoods logged most in the last 3 weeks: ${contextData.topFoods.join(', ')}`
+    ? `\nFoods logged most in the last 3 weeks: ${contextData.topFoods.map(f => sanitizeText(f, 60)).join(', ')}`
     : ''
 
   return `Time: ${timeOfDay} (${hour}:00) | Meal slot: ${meal || 'general'}
