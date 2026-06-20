@@ -14,7 +14,7 @@ import { AI } from '../config.js'
 // mode='ingredient'     — skips DB, returns food directly via onSaved
 export default function LabelScanner({ onSaved, onCancel, userId, householdId, mode = 'save' }) {
   const [screen,    setScreen]    = useState('pick')   // pick | review | saving
-  const [extracted, setExtracted] = useState(null)
+  const [, setExtracted] = useState(null)
   const [edited,    setEdited]    = useState(null)
   const [error,     setError]     = useState('')
   const [loading,   setLoading]   = useState(false)

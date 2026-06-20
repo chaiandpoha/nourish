@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth.jsx'
-import { db } from '../db/indexedDB.js'
+import { db } from '../db/db.js'
 import { sumMacros } from '../food/macroCalc.js'
 import DaySummary from './DaySummary.jsx'
 import { localDate } from '../log/DayLog.jsx'

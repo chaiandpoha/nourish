@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Invalid JSON" })
   }
 
-  const { userId, type, messages, system, model, maxTokens, tools } = body
+  const { userId, type, messages, system, model, maxTokens } = body
 
   if (!userId)                                          return res.status(400).json({ error: "userId required" })
   if (!type || !["chat","vision"].includes(type))       return res.status(400).json({ error: "invalid type" })
@@ -97,7 +97,6 @@ export default async function handler(req, res) {
     messages,
   }
   if (system) anthropicBody.system = system
-  if (tools)  anthropicBody.tools  = tools
 
   try {
     const anthropicRes = await fetch(ANTHROPIC_API_URL, {

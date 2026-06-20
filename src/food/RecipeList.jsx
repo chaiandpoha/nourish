@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { db } from '../db/indexedDB.js'
+import { db } from '../db/db.js'
 import RecipeBuilder from './RecipeBuilder.jsx'
 import { deleteFood, pushLocalFoodsToHousehold } from './FoodDB.js'
 import { MACRO_COLORS } from '../config.js'
@@ -21,7 +21,7 @@ export default function RecipeList({ householdId }) {
   async function syncFromCloud(localRecipes) {
     if (!householdId) return
     try {
-      const { sbFetchHouseholdFoods } = await import('../db/supabase.js')
+      const { sbFetchHouseholdFoods } = await import('../db/db.js')
       const remote = await sbFetchHouseholdFoods(householdId)
       const localById = new Map(localRecipes.map(f => [f.id, f]))
       let deletedIds = new Set()

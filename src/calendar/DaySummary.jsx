@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
-import { db } from '../db/indexedDB.js'
-import { sumMacros } from '../food/macroCalc.js'
+import { db } from '../db/db.js'
 import { MACRO_COLORS } from '../config.js'
 import DayLog from '../log/DayLog.jsx'
 import MealEntry from '../log/MealEntry.jsx'
@@ -29,7 +28,6 @@ export default function DaySummary({ date, onBack }) {
 
   const { workoutLogs, weight, suppLog } = extra || {}
   const supplements = user?.supplements || []
-  const goals       = user?.macroGoals  || {}
 
   async function toggleSupplement(name, currentLog) {
     const done = { ...(currentLog?.done || {}), [name]: !(currentLog?.done?.[name]) }

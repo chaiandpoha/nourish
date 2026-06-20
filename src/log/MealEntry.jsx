@@ -109,7 +109,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
     Promise.all([
       getActiveBatches(user.id, user.householdId),
       getRecentFoods(user.id),
-      import('../db/indexedDB.js').then(({ db }) => db.foods.where('source').equals('recipe').toArray()),
+      import('../db/db.js').then(({ db }) => db.foods.where('source').equals('recipe').toArray()),
     ]).then(([b, r, rec]) => {
       setBatches(b)
       setRecents(r)
@@ -122,11 +122,11 @@ export default function MealEntry({ date, onLogged, inline = false }) {
         pushLocalFoodsToHousehold(user.householdId).catch(e => console.error('push household foods:', e))
       })
       // Fetch household batches so User B can see batches created by User A
-      import('../db/supabase.js').then(({ sbFetchBatches }) =>
+      import('../db/db.js').then(({ sbFetchBatches }) =>
         sbFetchBatches(user.householdId)
       ).then(async remote => {
         if (!remote?.length) return
-        const { db } = await import('../db/indexedDB.js')
+        const { db } = await import('../db/db.js')
         const localRecords = await db.batches.bulkGet(remote.map(b => b.id))
         const toSave = remote.filter((r, i) => {
           const local = localRecords[i]
@@ -617,7 +617,7 @@ function parseServingUnit(label) {
 }
 
 // ─── Inline Food Entry ────────────────────────────────────────────────────────
-function FoodEntryInline({ food, batch, meal, onAdd, onBack, onEditRecipe, initialAmount, initialUnit }) {
+function FoodEntryInline({ food, batch, _meal, onAdd, onBack, onEditRecipe, initialAmount, initialUnit }) {
   const { user } = useAuth()
   const isManual = food?.id === "manual"
   const isBatch  = !!batch

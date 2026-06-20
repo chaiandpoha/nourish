@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
-import { db } from '../db/indexedDB.js'
+import { db } from '../db/db.js'
 import { localDate } from '../log/DayLog.jsx'
 import { flushDirtyToSupabase } from '../db/db.js'
 

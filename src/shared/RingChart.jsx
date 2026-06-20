@@ -8,7 +8,6 @@ export default function RingChart({ current, goal, size = 120 }) {
   const pct         = goal > 0 ? Math.min(1, current / goal) : 0
   const offset      = circumference - pct * circumference
   const over        = current > goal
-  const remaining   = Math.max(0, goal - current)
   const center      = size / 2
   const strokeWidth = size > 100 ? 8 : 6
 

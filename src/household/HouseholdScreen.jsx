@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
-import { db } from '../db/indexedDB.js'
 import {
+  db,
   sbCreateHousehold, sbJoinHousehold, sbFetchHousehold,
   sbUpdateHousehold, sbLeaveHousehold, sbSaveProfile, sbFetchUserHousehold,
   sbClearMemberHousehold,
-} from '../db/supabase.js'
+} from '../db/db.js'
 import { pushLocalFoodsToHousehold, pushLocalBatchesToHousehold } from '../food/FoodDB.js'
 import { HOUSEHOLD } from '../config.js'
 
@@ -34,7 +34,7 @@ function HouseholdSetup({ user, onDone }) {
 
       // Try 2: read household_id directly from the Supabase profile row
       if (!hid) {
-        const { sbFetchProfile } = await import('../db/supabase.js')
+        const { sbFetchProfile } = await import('../db/db.js')
         const sp = await sbFetchProfile(user.email).catch(() => null)
         hid = sp?.householdId || null
       }
@@ -206,7 +206,7 @@ function HouseholdManager({ user, onDone }) {
         members: household.members.filter(m => !eqEmail(m.email, email)),
       })
       // Clear the removed member's householdId so they lose access immediately
-      sbClearMemberHousehold(email).catch(() => {})
+      await sbClearMemberHousehold(email)
       setHousehold(updated)
     } catch (e) {
       setError(e.message)

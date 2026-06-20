@@ -2,7 +2,7 @@
 // Queries USDA + NIN + saved/scanned foods from IndexedDB
 // No API calls — fully local, instant results
 
-import { db } from '../db/indexedDB.js'
+import { db } from '../db/db.js'
 import usdaFoodsData from '../data/usda_foods.json'
 import ninFoodsData  from '../data/nin_foods.json'
 import { localDate } from '../log/DayLog.jsx'
@@ -302,7 +302,7 @@ export async function saveFood(food, householdId) {
   // Sync to Supabase in the background — failure is safe, dirty:1 means
   // the background sync or next flushDirtyToSupabase will retry
   if (householdId) {
-    const { sbSaveFood } = await import('../db/supabase.js')
+    const { sbSaveFood } = await import('../db/db.js')
     sbSaveFood(entry, householdId)
       .then(() => db.foods.update(entry.id, { dirty: 0 }))
       .catch(e => console.warn('Food sync will retry on next flush:', e.message))
@@ -328,7 +328,7 @@ export async function deleteFood(id, householdId) {
   // Recipes: only delete locally — other household members should keep access.
   // Non-recipe foods (labels, scanned): also remove from Supabase.
   if (householdId && food?.source !== 'recipe') {
-    const { sbDeleteFood } = await import('../db/supabase.js')
+    const { sbDeleteFood } = await import('../db/db.js')
     await sbDeleteFood(id).catch(e => console.warn('Supabase food delete error:', e))
   }
 }
@@ -337,7 +337,7 @@ export async function deleteFood(id, householdId) {
 export async function fetchHouseholdFoods(householdId) {
   if (!householdId) return
   try {
-    const { sbFetchHouseholdFoods } = await import('../db/supabase.js')
+    const { sbFetchHouseholdFoods } = await import('../db/db.js')
     const foods = await sbFetchHouseholdFoods(householdId)
     if (!foods.length) return
     // Never restore foods this user explicitly deleted
@@ -373,7 +373,7 @@ export async function pushLocalFoodsToHousehold(householdId) {
       .where('source').anyOf(['saved', 'scanned', 'recipe'])
       .toArray()
     if (!personal.length) return { pushed: 0, error: null }
-    const { sbSaveFood } = await import('../db/supabase.js')
+    const { sbSaveFood } = await import('../db/db.js')
     let pushed = 0
     let lastError = null
     for (const food of personal) {
@@ -401,7 +401,7 @@ export async function pushLocalBatchesToHousehold(householdId, email) {
     // Only push batches already marked as shared — never auto-promote personal batches
     const shared = batches.filter(b => b.shared === 1 || b.shared === true)
     if (!shared.length) return
-    const { sbPushAllBatches } = await import('../db/supabase.js')
+    const { sbPushAllBatches } = await import('../db/db.js')
     await sbPushAllBatches(shared, email, householdId)
   } catch (e) {
     console.warn('pushLocalBatchesToHousehold error:', e)

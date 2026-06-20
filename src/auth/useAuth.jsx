@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { sha256, hashPin, isLegacyPinHash, deriveKey, generateId } from './crypto.js'
-import { db } from '../db/indexedDB.js'
+import { db } from '../db/db.js'
 import { initStorage, teardownStorage, flushDirtyToSupabase } from '../db/db.js'
 import { AUTH } from '../config.js'
 
@@ -18,6 +18,27 @@ export function AuthProvider({ children }) {
   const [isLoading,     setIsLoading]     = useState(true)
   const [pinAttempts,   setPinAttempts]   = useState(0)
   const [lockoutUntil,  setLockoutUntil]  = useState(null)
+
+  function _pinKey(userId) { return `nourish_pin_lockout_${userId}` }
+  function _loadLockout(userId) {
+    try {
+      const raw = JSON.parse(localStorage.getItem(_pinKey(userId)) || 'null')
+      if (!raw) return { attempts: 0, until: null }
+      if (raw.until && Date.now() >= raw.until) {
+        localStorage.removeItem(_pinKey(userId))
+        return { attempts: 0, until: null }
+      }
+      return raw
+    } catch { return { attempts: 0, until: null } }
+  }
+  function _saveLockout(userId, attempts, until) {
+    try {
+      localStorage.setItem(_pinKey(userId), JSON.stringify({ attempts, until }))
+    } catch {}
+  }
+  function _clearLockout(userId) {
+    try { localStorage.removeItem(_pinKey(userId)) } catch {}
+  }
   const [encryptionKey, setEncryptionKey] = useState(null)
 
   const autoLockTimer  = useRef(null)
@@ -63,8 +84,14 @@ export function AuthProvider({ children }) {
     if (!profile) throw new Error('Profile not found')
 
     if (!profile.skipPin && profile.pinHash) {
-      if (lockoutUntil && Date.now() < lockoutUntil) {
-        const seconds = Math.ceil((lockoutUntil - Date.now()) / 1000)
+      // Load persisted lockout so a page reload can't bypass it
+      const persisted = _loadLockout(userId)
+      const currentUntil = persisted.until
+      const currentAttempts = persisted.attempts
+      if (currentUntil && Date.now() < currentUntil) {
+        const seconds = Math.ceil((currentUntil - Date.now()) / 1000)
+        setLockoutUntil(currentUntil)
+        setPinAttempts(currentAttempts)
         throw new Error(`Locked out. Try again in ${seconds}s`)
       }
 
@@ -83,13 +110,17 @@ export function AuthProvider({ children }) {
       }
 
       if (!pinMatches) {
-        const attempts = pinAttempts + 1
+        const attempts = currentAttempts + 1
         setPinAttempts(attempts)
+        let until = null
         if (attempts >= AUTH.maxPinAttempts) {
           const lockSeconds = AUTH.lockoutBaseSeconds * Math.pow(2, attempts - AUTH.maxPinAttempts)
-          setLockoutUntil(Date.now() + lockSeconds * 1000)
+          until = Date.now() + lockSeconds * 1000
+          setLockoutUntil(until)
+          _saveLockout(userId, attempts, until)
           throw new Error(`Too many attempts. Locked for ${lockSeconds}s`)
         }
+        _saveLockout(userId, attempts, null)
         throw new Error(`Incorrect PIN. ${AUTH.maxPinAttempts - attempts} attempts remaining`)
       }
     }
@@ -98,46 +129,10 @@ export function AuthProvider({ children }) {
     await completeLogin(profile, key)
     setPinAttempts(0)
     setLockoutUntil(null)
+    _clearLockout(userId)
     return profile
   }
 
-  async function loginWithBiometric(userId, passphrase) {
-    const profile = await db.users.get(userId)
-    if (!profile?.biometricCredentialId) throw new Error('No biometric registered')
-    try {
-      await navigator.credentials.get({
-        publicKey: {
-          challenge:        crypto.getRandomValues(new Uint8Array(32)),
-          allowCredentials: [{ id: base64ToBuffer(profile.biometricCredentialId), type: 'public-key' }],
-          userVerification: 'required',
-          timeout:          60000,
-        }
-      })
-    } catch (e) {
-      throw new Error('Biometric failed — use PIN instead')
-    }
-    const key = await deriveKey(passphrase || 'nourish-no-encryption', profile.encryptionSalt)
-    await completeLogin(profile, key)
-    return profile
-  }
-
-  async function registerBiometric(userId) {
-    const profile = await db.users.get(userId)
-    if (!profile) throw new Error('Profile not found')
-    const credential = await navigator.credentials.create({
-      publicKey: {
-        challenge:        crypto.getRandomValues(new Uint8Array(32)),
-        rp:               { name: 'Nourish', id: window.location.hostname },
-        user:             { id: new TextEncoder().encode(userId), name: profile.email || userId, displayName: profile.name },
-        pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
-        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
-        timeout: 60000,
-      }
-    })
-    const credentialId = bufferToBase64(credential.rawId)
-    await db.users.update(userId, { biometricCredentialId: credentialId, dirty: 1, updatedAt: new Date().toISOString() })
-    return credentialId
-  }
 
   async function completeLogin(profile, key) {
     setEncryptionKey(key)
@@ -154,7 +149,6 @@ export function AuthProvider({ children }) {
         skipPin:        profile.skipPin         || false,
         householdId:    profile.householdId     || null,
         encryptionSalt: profile.encryptionSalt,
-        isAdmin:        profile.isAdmin         || false,
         macroGoals:     profile.macroGoals      || null,
         supplements:    profile.supplements     || [],
         aiInstructions: profile.aiInstructions  || null,
@@ -224,7 +218,7 @@ export function AuthProvider({ children }) {
 
     // 2. Try Supabase profile restore (works on new devices)
     if (!profile) {
-      const { sbFetchProfile } = await import('../db/supabase.js')
+      const { sbFetchProfile } = await import('../db/db.js')
       const sp = await sbFetchProfile(normalEmail).catch(() => null)
       if (sp) {
         profile = sp
@@ -235,7 +229,7 @@ export function AuthProvider({ children }) {
     // 3. Profile found but householdId missing — look it up two ways
     if (profile && !profile.householdId) {
       try {
-        const { sbFetchUserHousehold, sbFetchProfile } = await import('../db/supabase.js')
+        const { sbFetchUserHousehold, sbFetchProfile } = await import('../db/db.js')
         // Try members-array query first, then fall back to the profile's household_id column
         let hid = await sbFetchUserHousehold(normalEmail).catch(() => null)
         if (!hid) {
@@ -245,7 +239,7 @@ export function AuthProvider({ children }) {
         if (hid) {
           profile = { ...profile, householdId: hid }
           await db.users.put(profile)
-          import('../db/supabase.js').then(({ sbSaveProfile }) => sbSaveProfile(profile)).catch(() => {})
+          import('../db/db.js').then(({ sbSaveProfile }) => sbSaveProfile(profile)).catch(() => {})
         }
       } catch (e) {
         console.warn('Household lookup failed:', e)
@@ -259,7 +253,6 @@ export function AuthProvider({ children }) {
         if (backup?.email === normalEmail && backup?.id && backup?.encryptionSalt) {
           profile = {
             ...backup,
-            biometricCredentialId: null,
             updatedAt:             new Date().toISOString(),
             dirty:                 1,
           }
@@ -274,7 +267,7 @@ export function AuthProvider({ children }) {
     // 5. Email is in a household — definitely existing user, create stub to skip onboarding
     if (!profile) {
       try {
-        const { sbFetchUserHousehold } = await import('../db/supabase.js')
+        const { sbFetchUserHousehold } = await import('../db/db.js')
         const hid = await sbFetchUserHousehold(normalEmail)
         if (hid) {
           const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
@@ -316,7 +309,7 @@ export function AuthProvider({ children }) {
     return { ...profile, _isNew: isNew }
   }
 
-  async function createProfile({ name, email, pin, passphrase, avatarInitials, height, startWeight, macroGoals, supplements, skipPin, isAdmin, householdId }) {
+  async function createProfile({ name, email, pin, _passphrase, avatarInitials, height, startWeight, macroGoals, supplements, skipPin, isAdmin, householdId }) {
     const id             = generateId()
     const encryptionSalt = generateId()
     const pinHash        = (skipPin || !pin) ? null : await hashPin(pin, encryptionSalt)
@@ -331,7 +324,6 @@ export function AuthProvider({ children }) {
       isAdmin:         isAdmin || false,
       encryptionSalt,
       healthSyncToken: generateId(),
-      biometricCredentialId: null,
       height,
       startWeight,
       householdId:     householdId || null,
@@ -342,7 +334,6 @@ export function AuthProvider({ children }) {
         autoLockMinutes:      skipPin ? 0 : 15,
         shareFoodNamesWithAI: true,
         shareMedNamesWithAI:  false,
-        wifiOnlyPhotos:       true,
       },
       createdAt:  new Date().toISOString(),
       updatedAt:  new Date().toISOString(),
@@ -350,7 +341,7 @@ export function AuthProvider({ children }) {
     }
 
     await db.users.put(profile)
-    import('../db/supabase.js').then(({ sbSaveProfile }) => sbSaveProfile(profile)).catch(() => {})
+    import('../db/db.js').then(({ sbSaveProfile }) => sbSaveProfile(profile)).catch(() => {})
 
     return profile
   }
@@ -374,7 +365,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user, isLocked, isLoading, encryptionKey, pinAttempts, lockoutUntil,
-    loginWithPin, loginWithBiometric, loginWithGoogle, registerBiometric, createProfile, resetPin, lock, logout, refreshUser,
+    loginWithPin, loginWithGoogle, createProfile, resetPin, lock, logout, refreshUser,
   }
 
   return (
@@ -382,15 +373,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-function bufferToBase64(buffer) {
-  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
-}
-
-function base64ToBuffer(base64) {
-  const binary = atob(base64)
-  const buffer = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) buffer[i] = binary.charCodeAt(i)
-  return buffer.buffer
 }

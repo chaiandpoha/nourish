@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, Component } from 'react'
+import { useEffect, useState, useCallback, Component } from 'react'
 import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/useAuth.jsx'
 import { BannerProvider, useBanners } from './shared/Banner.jsx'
@@ -7,7 +7,7 @@ import AdminLogin from './auth/AdminLogin.jsx'
 import Onboarding from './auth/Onboarding.jsx'
 import BottomNav from './shared/BottomNav.jsx'
 import { runMigrations } from './db/migrations.js'
-import { db } from './db/indexedDB.js'
+import { db } from './db/db.js'
 import { parseHealthClipboard } from './utils/healthSync.js'
 import { saveRemindersToCloud, saveUser, queueResync } from './db/db.js'
 import { generateId } from './auth/crypto.js'
@@ -21,7 +21,6 @@ import WorkoutLog from './workout/WorkoutLog.jsx'
 import WorkoutCharts from './workout/WorkoutCharts.jsx'
 import MuscleVolume from './workout/MuscleVolume.jsx'
 import WorkoutHistory from './workout/WorkoutHistory.jsx'
-import ProgressPhotos from './progress/ProgressPhotos.jsx'
 import Measurements from './progress/Measurements.jsx'
 import InstallPrompt from './shared/InstallPrompt.jsx'
 import MealEntry from './log/MealEntry.jsx'
@@ -224,7 +223,11 @@ function AuthCallbackScreen() {
 function ProtectedApp() {
   const { user } = useAuth()
   const { pathname } = useLocation()
-  const today = localDate()
+  const [today, setToday] = useState(localDate)
+  useEffect(() => {
+    const t = setInterval(() => setToday(localDate()), 60_000)
+    return () => clearInterval(t)
+  }, [])
 
   function handleGlobalLogged() {
     window.dispatchEvent(new CustomEvent('nourish:food-logged'))
@@ -313,7 +316,7 @@ function HealthClipboardSync() {
     async function syncFromSupabase() {
       if (!user.healthSyncToken) return
       try {
-        const { sbFetchHealthSync } = await import('./db/supabase.js')
+        const { sbFetchHealthSync } = await import('./db/db.js')
         const data = await sbFetchHealthSync(user.healthSyncToken)
         if (!data?.steps || !data?.date) return
         const dataDate = normalizeDate(data.date)
@@ -536,7 +539,7 @@ function SettingsScreen() {
   const [saved, setSaved] = useState(false)
 
   async function saveInstructions() {
-    const { db } = await import('./db/indexedDB.js')
+    const { db } = await import('./db/db.js')
     await db.users.update(user.id, {
       aiInstructions: instructions,
       dirty: 1,
@@ -554,7 +557,6 @@ function SettingsScreen() {
     { id:'health',       label:'Health'    },
     { id:'progress',     label:'Progress'  },
     { id:'body',         label:'Body'      },
-    { id:'photos',       label:'Photos'    },
     { id:'ai',           label:'AI'        },
     { id:'admin',        label:'Admin'     },
   ]
@@ -610,10 +612,6 @@ function SettingsScreen() {
 
       {tab === 'body' && (
         <Measurements />
-      )}
-
-      {tab === 'photos' && (
-        <ProgressPhotos userId={user?.id} />
       )}
 
       {tab === 'admin' && user?.isAdmin && (
@@ -768,7 +766,7 @@ function HealthSyncSettings({ user, onSaved }) {
         await db.users.update(user.id, { healthSyncToken: token, dirty: 1, updatedAt: new Date().toISOString() })
         setSyncToken(token)
         // Persist to Supabase and refresh user in memory so HealthClipboardSync picks it up
-        import('./db/supabase.js').then(({ sbSaveProfile }) => sbSaveProfile({ ...user, healthSyncToken: token })).catch(() => {})
+        import('./db/db.js').then(({ sbSaveProfile }) => sbSaveProfile({ ...user, healthSyncToken: token })).catch(() => {})
         onSaved?.()
       })
     }
@@ -778,7 +776,7 @@ function HealthSyncSettings({ user, onSaved }) {
     if (!syncToken) return
     setSyncStatus('checking')
     try {
-      const { sbFetchHealthSync } = await import('./db/supabase.js')
+      const { sbFetchHealthSync } = await import('./db/db.js')
       const data = await sbFetchHealthSync(syncToken)
       setSyncStatus(data || 'none')
     } catch {
@@ -1095,7 +1093,7 @@ function MergeDuplicateProfile({ currentUserId }) {
     const tables = [
       'foodLogs','workoutLogs','workoutSets','programmes',
       'weightLog','bloodWork','supplementLog','moodLog',
-      'progressPhotos','mealTemplates','reminders','measurements','stepsLog',
+      'mealTemplates','reminders','measurements','stepsLog',
     ]
     const now = new Date().toISOString()
     for (const t of tables) {
@@ -1345,7 +1343,7 @@ function ExportData({ userId }) {
         return localDate(d)
       })()
 
-      const { db } = await import('./db/indexedDB.js')
+      const { db } = await import('./db/db.js')
       const logs = await db.foodLogs
         .where('[userId+date]')
         .between([userId, startDate], [userId, today], true, true)

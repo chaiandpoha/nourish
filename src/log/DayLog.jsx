@@ -14,11 +14,6 @@ export function localDate(d = new Date()) {
   return d.toLocaleDateString('en-CA') // always YYYY-MM-DD in local tz
 }
 
-function yesterday(dateStr) {
-  const [y, m, dy] = dateStr.split('-').map(Number)
-  return new Date(y, m - 1, dy - 1).toLocaleDateString('en-CA')
-}
-
 function nDaysAgo(dateStr, n) {
   const [y, m, d] = dateStr.split('-').map(Number)
   return new Date(y, m - 1, d - n).toLocaleDateString('en-CA')
@@ -233,7 +228,7 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
     const slotLogs = sourceLogs.filter(l => l.meal === sourceMeal)
     if (!slotLogs.length) return
     for (const log of slotLogs) {
-      const { id, ...entry } = log
+      const { id: _id, ...entry } = log
       await addFoodLogEntry(user.id, { ...entry, date: today, meal: activeTab })
     }
     closeCopyPicker()
@@ -495,7 +490,7 @@ function FoodEntryRow({ entry, onDelete, onEdit }) {
     setGramsStr(String(entry.grams))
     setAdjMode(false)
     if (isBatch && entry.batchId) {
-      const { db } = await import('../db/indexedDB.js')
+      const { db } = await import('../db/db.js')
       const batch  = await db.batches.get(entry.batchId)
       if (batch?.ingredients?.length) {
         const batchTotal = batch.ingredients.reduce((s, i) => s + (i.grams || 0), 0)

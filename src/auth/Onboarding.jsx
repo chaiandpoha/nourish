@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useAuth } from './useAuth.jsx'
-import { db } from '../db/indexedDB.js'
 import { saveUser } from '../db/db.js'
 
 const TOTAL_STEPS = 3
@@ -57,7 +56,7 @@ export default function Onboarding({ onComplete }) {
   )
 }
 
-function StepBodyStats({ data, update, next, back, error, setError, userName }) {
+function StepBodyStats({ data, update, next, _back, error, _setError, userName }) {
   function validate() {
     // Both fields optional — skip validation, allow continue
     next()

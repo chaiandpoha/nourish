@@ -64,7 +64,7 @@ export default function InstallPrompt() {
     setInstalling(true)
     try {
       deferredPrompt.prompt()
-      const { outcome } = await deferredPrompt.userChoice
+      await deferredPrompt.userChoice
       setDeferredPrompt(null)
       setShow(false)
       localStorage.setItem(DISMISS_KEY, '1')

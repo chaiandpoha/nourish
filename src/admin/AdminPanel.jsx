@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
-import { db } from '../db/indexedDB.js'
+import { db, sbFetchBatches, sbCloseBatch, sbDeleteBatch } from '../db/db.js'
 import { sha256 } from '../auth/crypto.js'
-import { sbFetchBatches, sbCloseBatch, sbDeleteBatch } from '../db/supabase.js'
-import { localDate } from '../log/DayLog.jsx'
 import DebugPanel from './DebugPanel.jsx'
 
 export default function AdminPanel() {
@@ -51,8 +49,6 @@ export default function AdminPanel() {
     setBatches(allBatches)
 
     // Calculate usage per user
-    const today    = localDate()
-    const thisMonth = today.slice(0, 7)
     const usageMap  = {}
 
     for (const u of allUsers) {
@@ -84,7 +80,7 @@ export default function AdminPanel() {
     const tables = [
       'foodLogs','workoutLogs','workoutSets','programmes',
       'weightLog','bloodWork','supplementLog','moodLog',
-      'progressPhotos','mealTemplates','reminders','measurements',
+      'mealTemplates','reminders','measurements',
     ]
     for (const t of tables) {
       if (db[t]) await db[t].where('userId').equals(userId).delete()
@@ -98,7 +94,7 @@ export default function AdminPanel() {
     const tables = [
       'foodLogs','workoutLogs','workoutSets','programmes',
       'weightLog','bloodWork','supplementLog','moodLog',
-      'progressPhotos','mealTemplates','reminders','measurements','stepsLog',
+      'mealTemplates','reminders','measurements','stepsLog',
     ]
     const now = new Date().toISOString()
     for (const t of tables) {
@@ -518,7 +514,7 @@ function FactoryReset() {
         'users','foods','batches',
         'foodLogs','weightLog','supplementLog','moodLog','bloodWork',
         'workoutLogs','workoutSets','programmes','mealTemplates',
-        'reminders','progressPhotos','measurements','syncState',
+        'reminders','measurements','syncState',
       ]
       for (const t of tables) {
         if (db[t]) await db[t].clear()

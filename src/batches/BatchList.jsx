@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
-import { db } from '../db/indexedDB.js'
+import { db, addFoodLogEntry, sbFetchBatches, sbCloseBatch, sbReopenBatch } from '../db/db.js'
 import { calcPortionMacros } from './batchCalc.js'
-import { addFoodLogEntry } from '../db/db.js'
-import { sbFetchBatches, sbCloseBatch, sbReopenBatch } from '../db/supabase.js'
 import BatchBuilder from './BatchBuilder.jsx'
 import { localDate } from '../log/DayLog.jsx'
 

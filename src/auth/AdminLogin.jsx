@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from './useAuth.jsx'
-import { db } from '../db/indexedDB.js'
+import { db } from '../db/db.js'
 
 const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
 

@@ -6,7 +6,7 @@ import { RingWithMacros } from '../shared/RingChart.jsx'
 import StreakStrip from '../shared/StreakStrip.jsx'
 import DayLog, { localDate } from '../log/DayLog.jsx'
 import { getDayMacros } from '../db/db.js'
-import { db } from '../db/indexedDB.js'
+import { db } from '../db/db.js'
 import { seedFoodDatabase } from '../food/FoodDB.js'
 import { Skeleton, SkeletonCard, SkeletonRow } from '../shared/Skeleton.jsx'
 import SyncStatus from '../shared/SyncStatus.jsx'
@@ -204,7 +204,7 @@ export default function Home() {
   async function syncFromCloud() {
     if (!user?.healthSyncToken) return { ok: false, msg: 'No sync token — visit Settings → iPhone Health Sync first' }
     try {
-      const { sbFetchHealthSync } = await import('../db/supabase.js')
+      const { sbFetchHealthSync } = await import('../db/db.js')
       const data = await sbFetchHealthSync(user.healthSyncToken)
       if (!data?.steps || !data?.date) return { ok: false, msg: 'No data in cloud yet — run your shortcut first' }
       const dataDate = normalizeDate(data.date)

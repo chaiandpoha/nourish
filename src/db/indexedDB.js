@@ -123,17 +123,6 @@ db.version(DB_VERSION).stores({
     'updatedAt',
   ].join(', '),
 
-  // ── Progress photos metadata ─────────────────────────────────────────────
-  // Image stored as dataUrl in IndexedDB; driveFileId is a legacy unused field
-  progressPhotos: [
-    '++id',
-    'userId',
-    'weekStart',     // YYYY-MM-DD of Monday that week
-    'driveFileId',
-    'dirty',
-    'uploadedAt',
-  ].join(', '),
-
   // ── Meal templates ───────────────────────────────────────────────────────
   mealTemplates: [
     '&id',
@@ -214,6 +203,11 @@ db.version(10).stores({
   users: '&id, name, email, driveFileId, householdId, createdAt',
 })
 
+// Version 11 — drop progressPhotos table (feature removed)
+db.version(11).stores({
+  progressPhotos: null,
+})
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Mark a record dirty — will be picked up by next Supabase flush */
@@ -255,7 +249,7 @@ export async function wipeUserData(userId) {
   const userTables = [
     'foodLogs', 'workoutLogs', 'workoutSets', 'programmes',
     'weightLog', 'bloodWork', 'supplementLog', 'moodLog',
-    'progressPhotos', 'mealTemplates', 'syncState', 'reminders',
+    'mealTemplates', 'syncState', 'reminders',
     'measurements', 'waterLog', 'stepsLog',
   ]
   await Promise.all(

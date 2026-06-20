@@ -210,7 +210,7 @@ export async function sbFetchProfile(email) {
     macroGoals:      data.macro_goals     || { calories:2000, protein:150, carbs:200, fat:65, fibre:30 },
     supplements:     data.supplements     || [],
     aiInstructions:  data.ai_instructions || null,
-    settings:        data.settings        || { autoLockMinutes:0, shareFoodNamesWithAI:true, shareMedNamesWithAI:false, wifiOnlyPhotos:true },
+    settings:        data.settings        || { autoLockMinutes:0, shareFoodNamesWithAI:true, shareMedNamesWithAI:false },
     householdId:     data.household_id    || null,
     encryptionSalt:  data.encryption_salt || null,
     healthSyncToken: data.health_sync_token || null,

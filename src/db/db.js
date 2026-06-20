@@ -2,8 +2,33 @@
 // All features import from here — never import indexedDB or supabase directly
 
 import { db, getDirtyRecords, clearDirty } from './indexedDB.js'
+export { clearDirty }
 import { localDate } from '../log/DayLog.jsx'
 import { MACRO_KEYS } from '../config.js'
+import {
+  sbPushUserData, sbSaveProfile, sbSaveFood, sbDeleteFood, sbFetchAllUserData,
+  sbFetchBatches, sbSaveBatch, sbCloseBatch, sbReopenBatch, sbDeleteBatch, sbPushAllBatches,
+  sbFetchHouseholdFoods,
+  sbCreateHousehold, sbJoinHousehold, sbFetchHousehold,
+  sbUpdateHousehold, sbLeaveHousehold, sbFetchUserHousehold,
+  sbClearMemberHousehold, sbFetchProfile,
+  sbFetchHealthSync, sbUpsertHealthSync,
+  sbFetchAllUserHouseholds,
+} from './supabase.js'
+
+// ─── Re-exports for feature code ─────────────────────────────────────────────
+// Feature files import everything from db.js — never from indexedDB or supabase directly
+export { db }
+export {
+  sbFetchBatches, sbSaveBatch, sbCloseBatch, sbReopenBatch, sbDeleteBatch, sbPushAllBatches,
+  sbSaveFood, sbDeleteFood,
+  sbFetchHouseholdFoods,
+  sbCreateHousehold, sbJoinHousehold, sbFetchHousehold,
+  sbUpdateHousehold, sbLeaveHousehold, sbSaveProfile, sbFetchUserHousehold,
+  sbClearMemberHousehold, sbFetchProfile,
+  sbFetchHealthSync, sbUpsertHealthSync,
+  sbFetchAllUserHouseholds, sbFetchAllUserData,
+}
 
 const SYNC_INTERVAL_MS = 30_000
 
@@ -68,8 +93,6 @@ export async function flushDirtyToSupabase(userId) {
   if (_isSyncing || _isRestoring) return
   _isSyncing = true
   try {
-    const { sbPushUserData, sbSaveProfile } = await import('./supabase.js')
-
     const MONTHLY = [
       'foodLogs', 'workoutLogs', 'workoutSets', 'weightLog',
       'supplementLog', 'stepsLog', 'measurements', 'bloodWork', 'moodLog',
@@ -133,7 +156,6 @@ export async function flushDirtyToSupabase(userId) {
         .filter(f => f.dirty === 1)
         .toArray().catch(() => [])
       if (dirtyFoods.length) {
-        const { sbSaveFood } = await import('./supabase.js')
         await Promise.allSettled(dirtyFoods.map(food =>
           sbSaveFood(food, profile.householdId)
             .then(() => db.foods.update(food.id, { dirty: 0 }))
@@ -200,7 +222,6 @@ export function queueResync(table, userId, monthKey = 'all') {
 
 export async function restoreFromSupabase(userId) {
   try {
-    const { sbFetchAllUserData } = await import('./supabase.js')
     const rows = await sbFetchAllUserData(userId)
     if (!rows.length) return 0
     let total = 0
@@ -245,8 +266,6 @@ async function _safeBulkRestore(tableName, records) {
 
 export async function pushAllLocalDataToSupabase(userId) {
   try {
-    const { sbPushUserData } = await import('./supabase.js')
-
     const MONTHLY = [
       'foodLogs', 'workoutLogs', 'workoutSets', 'weightLog',
       'supplementLog', 'stepsLog', 'measurements', 'bloodWork', 'moodLog',
@@ -381,7 +400,7 @@ export async function getUser(userId) {
 export async function saveUser(user) {
   const updated = { ...user, dirty: 1, updatedAt: new Date().toISOString() }
   await db.users.put(updated)
-  import('./supabase.js').then(({ sbSaveProfile }) => sbSaveProfile(updated)).catch(() => {})
+  sbSaveProfile(updated).catch(() => {})
 }
 
 export async function getAllUsers() {

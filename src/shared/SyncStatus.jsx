@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { db } from '../db/indexedDB.js'
+import { db } from '../db/db.js'
 import { getLastSyncTime } from '../db/db.js'
 import { useAuth } from '../auth/useAuth.jsx'
 

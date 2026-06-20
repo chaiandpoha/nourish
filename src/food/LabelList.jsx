@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { db } from '../db/indexedDB.js'
+import { db, sbFetchHouseholdFoods } from '../db/db.js'
 import { saveFood, deleteFood } from './FoodDB.js'
-import { sbFetchHouseholdFoods } from '../db/supabase.js'
 import { MACRO_COLORS } from '../config.js'
 
 export default function LabelList({ householdId }) {

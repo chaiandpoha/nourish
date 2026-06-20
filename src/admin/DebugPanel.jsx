@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
-import { db } from '../db/indexedDB.js'
+import { db } from '../db/db.js'
 import {
   flushDirtyToSupabase,
   pushAllLocalDataToSupabase,
@@ -85,7 +85,7 @@ export default function DebugPanel() {
     // ── 3. Supabase profile ──────────────────────────────────────────────────
     log('Checking Supabase profile…')
     try {
-      const { sbFetchProfile } = await import('../db/supabase.js')
+      const { sbFetchProfile } = await import('../db/db.js')
       const sbProfile = await sbFetchProfile(user.email)
       if (sbProfile) {
         res.sbProfile = { found: true, name: sbProfile.name, householdId: sbProfile.householdId, email: sbProfile.email }
@@ -102,7 +102,7 @@ export default function DebugPanel() {
     // ── 4. Supabase user_data ────────────────────────────────────────────────
     log('Fetching Supabase user_data…')
     try {
-      const { sbFetchAllUserData } = await import('../db/supabase.js')
+      const { sbFetchAllUserData } = await import('../db/db.js')
       const rows = await sbFetchAllUserData(user.id)
       res.sbData = {}
       let sbTotal = 0
@@ -123,7 +123,7 @@ export default function DebugPanel() {
     if (user.householdId) {
       log('Checking Supabase batches…')
       try {
-        const { sbFetchBatches } = await import('../db/supabase.js')
+        const { sbFetchBatches } = await import('../db/db.js')
         const sbBatches = await sbFetchBatches(user.householdId)
         const localBatches = await db.batches.toArray()
         res.sbBatches = {
@@ -144,7 +144,7 @@ export default function DebugPanel() {
       // ── 6. Supabase household_foods vs local ─────────────────────────────
       log('Checking household foods…')
       try {
-        const { sbFetchHouseholdFoods } = await import('../db/supabase.js')
+        const { sbFetchHouseholdFoods } = await import('../db/db.js')
         const sbFoods    = await sbFetchHouseholdFoods(user.householdId)
         const localFoods = await db.foods.where('source').anyOf(['saved','scanned','recipe']).toArray()
         res.sbFoods = {
@@ -272,7 +272,7 @@ export default function DebugPanel() {
     if (!user.householdId) { log('No current household — skipping', false); return }
     log('Recovering recipes from all past households…')
     try {
-      const { sbFetchAllUserHouseholds, sbFetchHouseholdFoods, sbSaveFood } = await import('../db/supabase.js')
+      const { sbFetchAllUserHouseholds, sbFetchHouseholdFoods, sbSaveFood } = await import('../db/db.js')
       const allHids = await sbFetchAllUserHouseholds(user.email)
       log(`Found ${allHids.length} household(s) for ${user.email}`)
       let totalFoods = 0
@@ -298,7 +298,7 @@ export default function DebugPanel() {
   async function doClearDirtyFlags() {
     log('Clearing all dirty flags (mark as synced)…')
     try {
-      const { clearDirty } = await import('../db/indexedDB.js')
+      const { clearDirty } = await import('../db/db.js')
       for (const t of ALL_TABLES) {
         if (!db[t]) continue
         const dirty = await db[t].where('userId').equals(user.id).and(r => r.dirty === 1).toArray()

@@ -19,7 +19,6 @@ export default function Measurements() {
   const [saved,   setSaved]   = useState(false)
 
   const today = localDate()
-  const thisMonth = today.slice(0, 7)
   const [entryDate, setEntryDate] = useState(today)
 
   useEffect(() => {

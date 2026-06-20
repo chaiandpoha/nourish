@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
-import { db } from '../db/indexedDB.js'
+import { db } from '../db/db.js'
 import { searchExercises } from './ExerciseDB.js'
 
 export default function WorkoutCharts() {

@@ -1,7 +1,7 @@
 // Macro calculation helpers
 // Single source of truth for all gram-to-macro conversions
 
-import { MACRO_KEYS } from '../config.js'
+import { MACRO_KEYS, EVENING_HOUR, FIBRE_LOW_THRESHOLD } from '../config.js'
 
 // ─── Core calculation ─────────────────────────────────────────────────────────
 
@@ -165,9 +165,9 @@ export function calcWeeklyStats(days, goals) {
  */
 export function isFibreLow(totals, goals) {
   const h = new Date().getHours()
-  if (h < 19) return false // only flag after 7pm
+  if (h < EVENING_HOUR) return false
   const fibreGoal = goals.fibre || 30
-  return (totals.fibre || 0) < fibreGoal * 0.5
+  return (totals.fibre || 0) < fibreGoal * FIBRE_LOW_THRESHOLD
 }
 
 // ─── Unit conversion ──────────────────────────────────────────────────────────

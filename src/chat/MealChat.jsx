@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
 import { sendChatMessage } from './chatApi.js'
 import { getDayMacros, addFoodLogEntry } from '../db/db.js'
-import { db } from '../db/indexedDB.js'
+import { db } from '../db/db.js'
 import { MACRO_COLORS } from '../config.js'
 import { localDate } from '../log/DayLog.jsx'
 

@@ -16,12 +16,15 @@ export function getUserName() {
 export function initiateOAuthFlow() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
   if (!clientId) throw new Error('VITE_GOOGLE_CLIENT_ID not set')
+  const state = crypto.randomUUID()
+  sessionStorage.setItem('oauth_state', state)
   const params = new URLSearchParams({
     client_id:     clientId,
     redirect_uri:  REDIRECT_URI,
     response_type: 'token',
     scope:         SCOPES,
     prompt:        'select_account',
+    state,
   })
   window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params
 }
@@ -31,6 +34,14 @@ export function parseOAuthCallback() {
   const params = new URLSearchParams(hash)
   const token  = params.get('access_token')
   if (!token) throw new Error('No access token in OAuth callback')
+
+  const returnedState = params.get('state')
+  const expectedState = sessionStorage.getItem('oauth_state')
+  sessionStorage.removeItem('oauth_state')
+  if (!expectedState || returnedState !== expectedState) {
+    throw new Error('OAuth state mismatch — possible CSRF attack')
+  }
+
   const expiresIn = parseInt(params.get('expires_in') || '3600')
   _accessToken = token
   sessionStorage.setItem('auth_access_token',        token)

@@ -4,7 +4,7 @@ const MIGRATIONS = [
   {
     version: 1,
     description: 'Initial schema — food seed deferred to Phase 2',
-    run: async (db) => {
+    run: async (_db) => {
       console.log('Migration 1: food database will be seeded in Phase 2')
     },
   },

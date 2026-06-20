@@ -27,9 +27,12 @@ npx vitest run src/db/__tests__/db.test.js
 All app data lives in **IndexedDB via Dexie** (`src/db/indexedDB.js`). **Supabase** is the cloud backup/sync layer. The golden rule: features read/write IndexedDB, and a background sync layer pushes dirty records to Supabase.
 
 - `src/db/indexedDB.js` — Dexie schema (all tables, versioned migrations). Each record has a `dirty: 0|1` flag and `updatedAt` timestamp.
-- `src/db/db.js` — The storage adapter all features import from. Never import `indexedDB.js` or `supabase.js` directly in feature code. Exports `initStorage`, `flushDirtyToSupabase`, CRUD helpers for each domain.
-- `src/db/supabase.js` — Raw Supabase calls. Only `db.js` calls these.
-- `src/db/migrations.js` — App-level data migrations (separate from Dexie schema versions). Runs on every startup via `runMigrations()` in `App.jsx`.
+- `src/db/db.js` — **The single gateway all feature code imports from.** Never import `indexedDB.js` or `supabase.js` directly in feature code (static or dynamic). `db.js` re-exports the Dexie `db` instance, all CRUD helpers, and all Supabase functions needed by features.
+- `src/db/supabase.js` — Raw Supabase client and calls. **Only `db.js` imports this file** — never import it directly in feature code.
+- `src/db/migrations.js` — App-level data migrations (separate from Dexie schema versions). Runs on every startup via `runMigrations()` in `App.jsx`. This is a db-layer file and may import from `indexedDB.js` directly.
+- `src/food/FoodDB.js` — Food-specific storage helpers (search, save, delete, household sync). Feature code imports food operations from here. This file imports `db` from `db.js` (not `indexedDB.js` directly).
+
+**Import rule**: feature code (components, hooks, utilities outside `src/db/`) imports from `db.js` or `FoodDB.js` — never from `indexedDB.js` or `supabase.js` directly, including dynamic `import()` calls.
 
 Dirty records are flushed every 30 seconds and on tab hide. On first login on a new device, `restoreFromSupabase` pulls all cloud data down before enabling writes.
 
@@ -39,7 +42,7 @@ Google OAuth only. `src/auth/useAuth.jsx` is the `AuthProvider` / `useAuth` hook
 
 Auth flow: Google OAuth → `api/ai.js` is not involved → `src/db/authApi.js` parses the OAuth callback → `loginWithGoogle` in `useAuth` upserts the user in IndexedDB and calls `initStorage`.
 
-Optional PIN lock: stored as `pinHash` (SHA-256) in the user record. Auto-locks after inactivity or backgrounding (configurable via `AUTH` constants in `src/config.js`).
+Optional PIN lock: stored as `pinHash` (PBKDF2, 200k iterations) in the user record. Legacy SHA-256 hashes are auto-upgraded on next login. Auto-locks after inactivity or backgrounding (configurable via `AUTH` constants in `src/config.js`).
 
 ### Routing
 

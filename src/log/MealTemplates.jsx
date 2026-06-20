@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
-import { db } from '../db/indexedDB.js'
-import { addFoodLogEntry, queueResync, flushDirtyToSupabase } from '../db/db.js'
+import { db, addFoodLogEntry, queueResync, flushDirtyToSupabase } from '../db/db.js'
 import { generateId } from '../auth/crypto.js'
 import { sumMacros } from '../food/macroCalc.js'
 import { localDate } from './DayLog.jsx'
@@ -13,7 +12,6 @@ import { localDate } from './DayLog.jsx'
 export default function MealTemplates({ date, meal, onLogged, onClose }) {
   const [templates, setTemplates] = useState([])
   const [screen,    setScreen]    = useState('list') // list | create | log
-  const [selected,  setSelected]  = useState(null)
   const { user } = useAuth()
 
   useEffect(() => {

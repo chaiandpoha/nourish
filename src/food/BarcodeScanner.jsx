@@ -51,7 +51,7 @@ export default function BarcodeScanner({ onFound, onSaved, onCancel, householdId
         const { BrowserMultiFormatReader } = await import('@zxing/browser')
         const reader = new BrowserMultiFormatReader()
         zxingRef.current = reader
-        reader.decodeFromVideoElement(v, (result, err) => {
+        reader.decodeFromVideoElement(v, (result, _err) => {
           if (result && !doneRef.current) {
             doneRef.current = true
             stop()

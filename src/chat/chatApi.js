@@ -1,12 +1,12 @@
 // AI meal chat — builds context from user's day and calls Claude Haiku
 
 import { FIBRE_LOW_THRESHOLD, EVENING_HOUR, AI } from '../config.js'
-import { localDate } from '../log/DayLog.jsx'
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 
 function sanitizeText(str, maxLen = 500) {
   if (!str) return ''
+  // eslint-disable-next-line no-control-regex
   return String(str).replace(/[\x00-\x1f`${}[\]\\]/g, '').substring(0, maxLen)
 }
 
@@ -165,16 +165,6 @@ Privacy: ${settings?.shareFoodNamesWithAI !== false ? 'Food names may be shared'
 
 // ─── Send message ─────────────────────────────────────────────────────────────
 
-function checkClientRateLimit(userId, type) {
-  const date  = localDate()
-  const key   = `nourish_rate_${userId}_${type}_${date}`
-  const limit = type === 'vision' ? AI.dailyScanLimit : AI.dailyChatLimit
-  const count = parseInt(localStorage.getItem(key) || '0', 10)
-  if (count >= limit) return false
-  localStorage.setItem(key, String(count + 1))
-  return true
-}
-
 export async function sendChatMessage({
   messages,
   user,
@@ -186,13 +176,9 @@ export async function sendChatMessage({
   workoutData,
   contextData,
 }) {
-  if (userId && !checkClientRateLimit(userId, 'chat')) {
-    throw new Error(`Daily limit of ${AI.dailyChatLimit} messages reached`)
-  }
-
   // Load fresh user data to get latest aiInstructions
   try {
-    const { db } = await import('../db/indexedDB.js')
+    const { db } = await import('../db/db.js')
     const freshUser = await db.users.get(userId)
     if (freshUser) user = { ...user, ...freshUser }
   } catch {}

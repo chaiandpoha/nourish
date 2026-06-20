@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
-import { db } from '../db/indexedDB.js'
+import { db } from '../db/db.js'
 import { generateId } from '../auth/crypto.js'
 import { searchExercises, getAlternates, getExerciseById } from './ExerciseDB.js'
 import ExerciseVideo from './ExerciseVideo.jsx'

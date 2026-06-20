@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { searchFoods, saveFood, fetchHouseholdFoods } from './FoodDB.js'
-import { calcMacros, toGrams } from './macroCalc.js'
+import { calcMacros } from './macroCalc.js'
 import { generateId } from '../auth/crypto.js'
 import { MACRO_COLORS } from '../config.js'
 
@@ -136,7 +136,7 @@ export default function RecipeBuilder({ onSaved, onCancel, existingFood, househo
       const label = servingLabel.trim()
         ? `${Math.round(totalGrams)}g ${servingLabel.trim()}`
         : `${Math.round(totalGrams)}g serving`
-      const clean = parsed.map(({ gramsInput, unit, ...rest }) => rest)  // gramsInput/unit are UI-only
+      const clean = parsed.map(({ gramsInput: _g, unit: _u, ...rest }) => rest)  // gramsInput/unit are UI-only
       const food  = await saveFood({
         id:           existingFood?.id || generateId(),
         name:         name.trim(),
