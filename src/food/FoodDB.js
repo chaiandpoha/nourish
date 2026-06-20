@@ -49,6 +49,44 @@ const STAPLE_FOODS = [
   { id:'staples_032', name:'Mango, fresh',          per100g:{ calories:60,  protein:0.8, carbs:15,   fat:0.4,  fibre:1.6 }, servingSize:150, servingLabel:'1 medium' },
   { id:'staples_033', name:'Watermelon',            per100g:{ calories:30,  protein:0.6, carbs:7.6,  fat:0.2,  fibre:0.4 }, servingSize:280, servingLabel:'2 cups'   },
   { id:'staples_034', name:'Lemon juice',           per100g:{ calories:22,  protein:0.4, carbs:6.9,  fat:0.2,  fibre:0.3 }, servingSize:15,  servingLabel:'1 tbsp'   },
+  // V3 additions — desi grains, sandwiches, breakfast staples
+  // ── Dalia / Broken Wheat ──
+  { id:'staples_035', name:'Dalia / Broken Wheat, raw',            per100g:{ calories:346, protein:11.5, carbs:71,  fat:1.7,  fibre:9   }, servingSize:40,  servingLabel:'dry portion' },
+  { id:'staples_036', name:'Dalia / Wheat Porridge, cooked (water)',per100g:{ calories:83,  protein:2.8,  carbs:17,  fat:0.4,  fibre:2.2 }, servingSize:200, servingLabel:'1 bowl'   },
+  { id:'staples_037', name:'Dalia, cooked with milk',              per100g:{ calories:112, protein:4.5,  carbs:18,  fat:2.6,  fibre:1.8 }, servingSize:250, servingLabel:'1 bowl'   },
+  { id:'staples_038', name:'Dalia Khichdi (savory, cooked)',       per100g:{ calories:100, protein:3.5,  carbs:18,  fat:2,    fibre:2   }, servingSize:200, servingLabel:'1 bowl'   },
+  // ── Ragi / Finger Millet dishes ──
+  { id:'staples_039', name:'Ragi Roti',                            per100g:{ calories:222, protein:7.3,  carbs:43,  fat:1.5,  fibre:5   }, servingSize:50,  servingLabel:'1 roti'   },
+  { id:'staples_040', name:'Ragi Dosa',                            per100g:{ calories:135, protein:4,    carbs:25,  fat:2.5,  fibre:2   }, servingSize:70,  servingLabel:'1 dosa'   },
+  { id:'staples_041', name:'Ragi Porridge / Kanji, cooked',        per100g:{ calories:75,  protein:2,    carbs:16,  fat:0.5,  fibre:1.5 }, servingSize:200, servingLabel:'1 bowl'   },
+  { id:'staples_042', name:'Ragi Mudde (cooked balls)',            per100g:{ calories:170, protein:4,    carbs:36,  fat:0.5,  fibre:3.5 }, servingSize:100, servingLabel:'2 mudde'  },
+  { id:'staples_043', name:'Ragi Ladoo',                           per100g:{ calories:432, protein:8,    carbs:67,  fat:16,   fibre:5   }, servingSize:30,  servingLabel:'1 ladoo'  },
+  // ── Other grains ──
+  { id:'staples_044', name:'Sattu (roasted chana flour)',          per100g:{ calories:413, protein:22.4, carbs:64,  fat:5.7,  fibre:7   }, servingSize:30,  servingLabel:'2 tbsp'   },
+  { id:'staples_045', name:'Muesli, dry',                          per100g:{ calories:363, protein:9.5,  carbs:65,  fat:6.5,  fibre:8   }, servingSize:50,  servingLabel:'½ cup'    },
+  { id:'staples_046', name:'Granola, plain',                       per100g:{ calories:388, protein:9.5,  carbs:63,  fat:12,   fibre:5   }, servingSize:50,  servingLabel:'½ cup'    },
+  { id:'staples_047', name:'Oatmeal, cooked (plain, no sugar)',    per100g:{ calories:71,  protein:2.5,  carbs:12,  fat:1.5,  fibre:1.7 }, servingSize:250, servingLabel:'1 bowl'   },
+  { id:'staples_048', name:'Overnight Oats (oats + milk)',         per100g:{ calories:118, protein:5.2,  carbs:18,  fat:2.8,  fibre:2   }, servingSize:250, servingLabel:'1 jar'    },
+  // ── Sandwiches ──
+  { id:'staples_049', name:'Sandwich, veg (brown bread)',          per100g:{ calories:177, protein:6,    carbs:29,  fat:4,    fibre:3   }, servingSize:150, servingLabel:'1 sandwich' },
+  { id:'staples_050', name:'Sandwich, paneer',                     per100g:{ calories:183, protein:9.4,  carbs:21,  fat:6,    fibre:2   }, servingSize:180, servingLabel:'1 sandwich' },
+  { id:'staples_051', name:'Sandwich, egg',                        per100g:{ calories:206, protein:8.8,  carbs:24,  fat:7.5,  fibre:2.5 }, servingSize:160, servingLabel:'1 sandwich' },
+  { id:'staples_052', name:'Sandwich, chicken',                    per100g:{ calories:197, protein:12,   carbs:21,  fat:6.5,  fibre:2   }, servingSize:180, servingLabel:'1 sandwich' },
+  { id:'staples_053', name:'Grilled Sandwich, veg cheese',         per100g:{ calories:245, protein:8,    carbs:30,  fat:10,   fibre:2.5 }, servingSize:160, servingLabel:'1 sandwich' },
+  { id:'staples_054', name:'Grilled Sandwich, chicken cheese',     per100g:{ calories:228, protein:14,   carbs:22,  fat:9,    fibre:2   }, servingSize:190, servingLabel:'1 sandwich' },
+  { id:'staples_055', name:'Toast, plain (white bread, 1 slice)',  per100g:{ calories:313, protein:10,   carbs:62,  fat:3.5,  fibre:3   }, servingSize:28,  servingLabel:'1 slice'  },
+  { id:'staples_056', name:'Toast, brown bread (1 slice)',         per100g:{ calories:259, protein:9,    carbs:48,  fat:3,    fibre:5   }, servingSize:32,  servingLabel:'1 slice'  },
+  // ── Desi snacks & dishes ──
+  { id:'staples_057', name:'Besan Chilla, plain (cooked)',         per100g:{ calories:185, protein:9.5,  carbs:22,  fat:6.5,  fibre:4   }, servingSize:70,  servingLabel:'1 chilla' },
+  { id:'staples_058', name:'Moong Dal Chilla (cooked)',            per100g:{ calories:162, protein:10,   carbs:20,  fat:4.5,  fibre:3.5 }, servingSize:70,  servingLabel:'1 chilla' },
+  { id:'staples_059', name:'Sabudana Khichdi',                     per100g:{ calories:192, protein:2.5,  carbs:38,  fat:4,    fibre:1.2 }, servingSize:150, servingLabel:'1 serving' },
+  { id:'staples_060', name:'Mixed Millet Roti (multi-millet)',     per100g:{ calories:218, protein:7,    carbs:42,  fat:2,    fibre:5   }, servingSize:50,  servingLabel:'1 roti'   },
+  // ── Fruits & beverages ──
+  { id:'staples_061', name:'Avocado',                              per100g:{ calories:160, protein:2,    carbs:9,   fat:15,   fibre:7   }, servingSize:75,  servingLabel:'½ avocado' },
+  { id:'staples_062', name:'Green Tea, brewed',                    per100g:{ calories:1,   protein:0,    carbs:0.2, fat:0,    fibre:0   }, servingSize:240, servingLabel:'1 cup'    },
+  { id:'staples_063', name:'Black Coffee (no milk/sugar)',         per100g:{ calories:2,   protein:0.3,  carbs:0,   fat:0,    fibre:0   }, servingSize:240, servingLabel:'1 cup'    },
+  { id:'staples_064', name:'Coconut Water, fresh',                 per100g:{ calories:19,  protein:0.7,  carbs:3.7, fat:0.2,  fibre:1   }, servingSize:240, servingLabel:'1 glass'  },
+  { id:'staples_065', name:'Pomegranate / Anar',                   per100g:{ calories:83,  protein:1.7,  carbs:19,  fat:1.2,  fibre:4   }, servingSize:100, servingLabel:'½ fruit'  },
 ]
 
 let _seeded = false
@@ -91,6 +129,11 @@ export async function seedFoodDatabase() {
           'nin_115','nin_117','nin_130','nin_136','nin_142','nin_143','nin_147','nin_157',
           'nin_171','nin_172','nin_185','nin_191','nin_211','nin_212']
         await db.foods.bulkDelete(dupeIds)
+      }
+      const hasStaplesV3 = await db.foods.get('staples_035')
+      if (!hasStaplesV3) {
+        const v3 = STAPLE_FOODS.filter(f => parseInt(f.id.split('_')[1]) >= 35)
+        await db.foods.bulkPut(v3.map(f => ({ ...f, source: 'nin', tags: [] })))
       }
       return true
     }
