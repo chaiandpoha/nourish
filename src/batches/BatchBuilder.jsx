@@ -72,6 +72,8 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
 
   // Tap any food or batch → added immediately at default grams, no confirm step
   function addFood(food) {
+    // Prevent duplicate ingredients from rapid double-taps
+    if (ingredients.some(i => i.name === food.name && i.per100g === food.per100g)) return
     const defaultGrams = food.servingSize || 100
     setIngredients(prev => [...prev, {
       id:      generateId(),

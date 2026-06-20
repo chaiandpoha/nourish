@@ -109,7 +109,7 @@ export async function flushDirtyToSupabase(userId) {
     // Personal batches (solo users without a household) — push via user_data table
     // Household batches are pushed immediately in BatchBuilder via sbSaveBatch
     const profile = await db.users.get(userId).catch(() => null)
-    if (!profile?.householdId) {
+    if (profile && !profile.householdId) {
       const dirtyBatches = await db.batches.where('userId').equals(userId).and(b => b.dirty === 1).toArray().catch(() => [])
       if (dirtyBatches.length) {
         const allBatches = await db.batches.where('userId').equals(userId).toArray().catch(() => [])
@@ -119,7 +119,7 @@ export async function flushDirtyToSupabase(userId) {
     }
 
     // Personal foods — solo users only (household users sync via household_foods table)
-    if (!profile?.householdId) {
+    if (profile && !profile.householdId) {
       const foods = await db.foods
         .where('source').anyOf(['saved', 'scanned', 'recipe'])
         .toArray().catch(() => [])
@@ -323,7 +323,12 @@ export async function addFoodLogEntry(userId, entry) {
 }
 
 export async function deleteFoodLogEntry(id) {
-  const record = await db.foodLogs.get(id).catch(() => null)
+  let record
+  try {
+    record = await db.foodLogs.get(id)
+  } catch (e) {
+    console.warn('[db] deleteFoodLogEntry: pre-read failed, cloud sync may be incomplete', e)
+  }
   await db.foodLogs.delete(id)
   if (record?.userId && record?.date) {
     queueResync('foodLogs', record.userId, record.date.slice(0, 7))

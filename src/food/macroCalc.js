@@ -10,7 +10,7 @@ import { MACRO_KEYS } from '../config.js'
  * Uses per100g values from the food object.
  */
 export function calcMacros(food, grams) {
-  if (!food?.per100g || !grams) return emptyMacros()
+  if (!food?.per100g || !grams || !isFinite(grams)) return emptyMacros()
   const ratio = grams / 100
   const result = {}
   for (const key of MACRO_KEYS) {
@@ -27,7 +27,7 @@ export function calcMacros(food, grams) {
  * Batch stores macrosPer100g — same formula.
  */
 export function calcBatchMacros(batch, grams) {
-  if (!batch?.macrosPer100g || !grams) return emptyMacros()
+  if (!batch?.macrosPer100g || !grams || !isFinite(grams)) return emptyMacros()
   const ratio = grams / 100
   const result = {}
   for (const key of MACRO_KEYS) {
@@ -44,7 +44,7 @@ export function calcBatchMacros(batch, grams) {
  * yieldGrams: total cooked weight
  */
 export function calcBatchMacrosPer100g(ingredients, yieldGrams) {
-  if (!ingredients?.length || !yieldGrams) return emptyMacros()
+  if (!ingredients?.length || yieldGrams <= 0) return emptyMacros()
 
   // Sum total macros across all ingredients
   const totals = emptyMacros()

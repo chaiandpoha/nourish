@@ -509,6 +509,21 @@ export default function MealEntry({ date, onLogged, inline = false }) {
                 )}
 
                 {displayList.map(food => {
+                  if (food._isBatch) {
+                    const p100 = food.macrosPer100g || {}
+                    return (
+                      <button key={food.id} style={s.foodRow} onClick={() => selectItem(null, food)}>
+                        <div style={s.foodInfo}>
+                          <div style={{ ...s.foodName, fontWeight: '600' }}>{food.name}</div>
+                          <div style={s.foodMeta}>
+                            {`${p100.calories || 0} kcal · ${p100.protein || 0}g P per 100g`}
+                            <span style={s.tagPersonal}> · Batch</span>
+                          </div>
+                        </div>
+                        <span style={s.chevron}>›</span>
+                      </button>
+                    )
+                  }
                   const isPersonal = food.source === 'saved' || food.source === 'scanned' || food.source === 'recipe'
                   const sourceTag  = food.source === 'scanned' ? 'Your label'
                                    : food.source === 'saved'   ? 'Yours'

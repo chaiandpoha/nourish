@@ -236,24 +236,39 @@ export async function getRecentFoods(userId, limit = 10) {
     .between([userId, cutoff], [userId, today], true, true)
     .toArray()
 
-  // Count frequency per foodId
-  const freq = {}
+  // Count frequency per foodId and batchId separately
+  const foodFreq  = {}
+  const batchFreq = {}
   for (const log of logs) {
-    if (!log.foodId) continue
-    freq[log.foodId] = (freq[log.foodId] || 0) + 1
+    if (log.foodId)  foodFreq[log.foodId]   = (foodFreq[log.foodId]   || 0) + 1
+    if (log.batchId) batchFreq[log.batchId] = (batchFreq[log.batchId] || 0) + 1
   }
 
-  // Fetch food details for top IDs
-  const sorted = Object.entries(freq)
+  // Fetch top foods and recent batches in parallel
+  const topFoodIds = Object.entries(foodFreq)
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
     .map(([id]) => id)
 
-  const foods = await Promise.all(
-    sorted.map(id => db.foods.get(id))
-  )
+  const [foods, batches] = await Promise.all([
+    Promise.all(topFoodIds.map(id => db.foods.get(id))),
+    Object.keys(batchFreq).length
+      ? db.batches.bulkGet(Object.keys(batchFreq))
+      : Promise.resolve([]),
+  ])
 
-  return foods.filter(Boolean)
+  // Tag batch items so MealEntry can call selectItem(null, batch) for them
+  const recentBatches = batches
+    .filter(Boolean)
+    .map(b => ({ ...b, _isBatch: true }))
+
+  return [...foods.filter(Boolean), ...recentBatches]
+    .sort((a, b) => {
+      const fa = a._isBatch ? (batchFreq[a.id] || 0) : (foodFreq[a.id] || 0)
+      const fb = b._isBatch ? (batchFreq[b.id] || 0) : (foodFreq[b.id] || 0)
+      return fb - fa
+    })
+    .slice(0, limit)
 }
 
 // ─── Get food by ID ───────────────────────────────────────────────────────────

@@ -29,7 +29,9 @@ export default function AuthGate({ children }) {
     }
   }, [isLoading, user])
 
-  if (isLoading || autoLoggingIn) return <SplashScreen />
+  // Prevent flash of login screen when auto-login is about to start
+  const willAutoLogin = !sessionStorage.getItem('nourish_logged_out') && !!getUserEmail()
+  if (isLoading || autoLoggingIn || (!user && willAutoLogin)) return <SplashScreen />
   if (!user) return <GoogleSignInScreen error={error} interrupted={interrupted} />
   return children
 }

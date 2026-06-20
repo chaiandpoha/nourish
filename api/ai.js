@@ -34,6 +34,11 @@ function validateMessages(messages) {
     if (typeof m.content !== "string" && !Array.isArray(m.content)) return "invalid message content"
     if (typeof m.content === "string" && m.content.length > MAX_MSG_LENGTH)
       return "message too long"
+    if (Array.isArray(m.content)) {
+      if (m.content.length > 20) return "too many content blocks"
+      const textLen = m.content.reduce((s, b) => s + (typeof b?.text === "string" ? b.text.length : 0), 0)
+      if (textLen > MAX_MSG_LENGTH) return "message too long"
+    }
   }
   return null
 }
@@ -77,8 +82,11 @@ export default async function handler(req, res) {
   // Cap tokens regardless of what client sends
   const safeTokens = Math.min(parseInt(maxTokens) || 1000, MAX_TOKENS_CAP)
 
-  // Server-side rate limit
-  if (!checkRateLimit(userId, type)) {
+  // Server-side rate limit — key on IP so client-supplied userId can't be spoofed
+  const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+    || req.headers['x-real-ip']
+    || 'unknown'
+  if (!checkRateLimit(clientIp, type)) {
     const limit = type === "vision" ? DAILY_SCAN_LIMIT : DAILY_CHAT_LIMIT
     return res.status(429).json({ error: `Daily limit of ${limit} ${type} requests reached` })
   }

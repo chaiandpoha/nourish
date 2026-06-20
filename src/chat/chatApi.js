@@ -181,7 +181,7 @@ export async function sendChatMessage({
   workoutData,
   contextData,
 }) {
-  if (!checkClientRateLimit(userId || 'anon', 'chat')) {
+  if (userId && !checkClientRateLimit(userId, 'chat')) {
     throw new Error(`Daily limit of ${AI.dailyChatLimit} messages reached`)
   }
 

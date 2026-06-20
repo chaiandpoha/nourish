@@ -100,8 +100,8 @@ export default function MealChat({ onClose }) {
     } catch {}
   }
 
-  async function handleSend() {
-    const text = input.trim()
+  async function handleSend(override) {
+    const text = (typeof override === 'string' ? override : input).trim()
     if (!text || loading) return
 
     const userMsg = { role: 'user', content: text }
@@ -232,10 +232,7 @@ export default function MealChat({ onClose }) {
                 <button
                   key={prompt}
                   style={s.quickPrompt}
-                  onClick={() => {
-                    setInput(prompt)
-                    setTimeout(() => handleSend(), 50)
-                  }}
+                  onClick={() => handleSend(prompt)}
                 >
                   {prompt}
                 </button>

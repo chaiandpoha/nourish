@@ -21,17 +21,16 @@ export function AuthProvider({ children }) {
   const [encryptionKey, setEncryptionKey] = useState(null)
 
   const autoLockTimer  = useRef(null)
+  const lockRef        = useRef(null)
   const activityEvents = ['touchstart', 'mousedown', 'keydown']
 
-  useEffect(() => {
-    setIsLoading(false)
-  }, [])
+  useEffect(() => { setIsLoading(false) }, [])
 
   const resetAutoLockTimer = useCallback(() => {
     if (autoLockTimer.current) clearTimeout(autoLockTimer.current)
     const minutes = user?.settings?.autoLockMinutes ?? AUTH.autoLockMinutes
     if (minutes === 0) return
-    autoLockTimer.current = setTimeout(() => lock(), minutes * 60 * 1000)
+    autoLockTimer.current = setTimeout(() => lockRef.current?.(), minutes * 60 * 1000)
   }, [user])
 
   useEffect(() => {
@@ -51,7 +50,7 @@ export function AuthProvider({ children }) {
         hiddenAt = Date.now()
       } else if (hiddenAt) {
         const minutesAway = (Date.now() - hiddenAt) / 1000 / 60
-        if (minutesAway >= AUTH.backgroundLockMinutes) lock()
+        if (minutesAway >= AUTH.backgroundLockMinutes) lockRef.current?.()
         hiddenAt = null
       }
     }
@@ -186,8 +185,13 @@ export function AuthProvider({ children }) {
     window.location.reload()
   }
 
-  function lock() {
-    if (user) flushDirtyToSupabase(user.id).catch(() => {})
+  async function lock() {
+    if (user) {
+      await Promise.race([
+        flushDirtyToSupabase(user.id),
+        new Promise(r => setTimeout(r, 3000)),
+      ]).catch(() => {})
+    }
     setUser(null)
     setEncryptionKey(null)
     setIsLocked(true)
@@ -351,6 +355,8 @@ export function AuthProvider({ children }) {
     const updated = await db.users.get(user.id)
     if (updated) setUser(updated)
   }
+
+  lockRef.current = lock
 
   const value = {
     user, isLocked, isLoading, encryptionKey, pinAttempts, lockoutUntil,
