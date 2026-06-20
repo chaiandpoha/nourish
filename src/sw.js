@@ -23,7 +23,7 @@ registerRoute(
   new CacheFirst({
     cacheName: 'google-fonts-cache',
     plugins: [
-      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }),
+      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 }),
       new CacheableResponsePlugin({ statuses: [0, 200] }),
     ],
   })

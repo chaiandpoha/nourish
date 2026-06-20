@@ -3,7 +3,7 @@
 
 // ─── Hashing ──────────────────────────────────────────────────────────────────
 
-/** SHA-256 hash — returns hex string. Used for PIN hashing. */
+/** SHA-256 hash — returns hex string. Kept for migration of legacy PIN hashes. */
 export async function sha256(text) {
   const encoder = new TextEncoder()
   const data    = encoder.encode(text)
@@ -11,6 +11,28 @@ export async function sha256(text) {
   return Array.from(new Uint8Array(hash))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('')
+}
+
+/**
+ * PBKDF2 PIN hash — returns base64 string.
+ * Use encryptionSalt as the per-user salt so each hash is unique.
+ */
+export async function hashPin(pin, salt) {
+  const encoder     = new TextEncoder()
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', encoder.encode(pin), { name: 'PBKDF2' }, false, ['deriveBits']
+  )
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: encoder.encode(salt), iterations: 200000, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  )
+  return btoa(String.fromCharCode(...new Uint8Array(bits)))
+}
+
+/** Returns true if the stored hash looks like a legacy SHA-256 hex hash. */
+export function isLegacyPinHash(hash) {
+  return typeof hash === 'string' && hash.length === 64 && /^[0-9a-f]+$/.test(hash)
 }
 
 // ─── Key derivation ───────────────────────────────────────────────────────────

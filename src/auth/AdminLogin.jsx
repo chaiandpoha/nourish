@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useAuth } from './useAuth.jsx'
 import { db } from '../db/indexedDB.js'
 
-const ADMIN_PASS  = import.meta.env.VITE_ADMIN_PASS  || 'nourish-admin'
 const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase()
 
 export default function AdminLogin() {
@@ -13,9 +12,24 @@ export default function AdminLogin() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (password !== ADMIN_PASS) { setError('Incorrect password'); return }
     setLoading(true)
     setError('')
+    try {
+      const authRes = await fetch('/api/admin-auth', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ password }),
+      })
+      if (!authRes.ok) {
+        setError('Incorrect password')
+        setLoading(false)
+        return
+      }
+    } catch {
+      setError('Could not reach server — try again')
+      setLoading(false)
+      return
+    }
     try {
       const { initiateOAuthFlow } = await import('../db/authApi.js')
       const users = await db.users.toArray()

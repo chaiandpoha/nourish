@@ -187,10 +187,11 @@ export async function sbSaveProfile(profile) {
 
 export async function sbClearMemberHousehold(email) {
   if (!supabase || !email) return
-  await supabase
+  const { error } = await supabase
     .from('profiles')
     .update({ household_id: null, updated_at: new Date().toISOString() })
     .eq('email', email.toLowerCase())
+  if (error) throw new Error(error.message)
 }
 
 export async function sbFetchProfile(email) {
@@ -256,7 +257,9 @@ function fromHouseholdRow(row) {
 export async function sbCreateHousehold(name, adminEmail, adminName) {
   if (!supabase) throw new Error('Supabase not configured')
   const id      = crypto.randomUUID()
-  const code    = Math.random().toString(36).slice(2, 8).toUpperCase()
+  const chars   = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const rand    = crypto.getRandomValues(new Uint8Array(8))
+  const code    = Array.from(rand).map(b => chars[b % chars.length]).join('')
   const members = [{ email: adminEmail, name: adminName, joinedAt: new Date().toISOString() }]
   const { data, error } = await supabase
     .from('households')

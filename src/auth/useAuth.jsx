@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
-import { sha256, deriveKey, generateId } from './crypto.js'
+import { sha256, hashPin, isLegacyPinHash, deriveKey, generateId } from './crypto.js'
 import { db } from '../db/indexedDB.js'
 import { initStorage, teardownStorage, flushDirtyToSupabase } from '../db/db.js'
 import { AUTH } from '../config.js'
@@ -67,8 +67,22 @@ export function AuthProvider({ children }) {
         const seconds = Math.ceil((lockoutUntil - Date.now()) / 1000)
         throw new Error(`Locked out. Try again in ${seconds}s`)
       }
-      const pinHash = await sha256(pin)
-      if (pinHash !== profile.pinHash) {
+
+      let pinMatches = false
+      if (isLegacyPinHash(profile.pinHash)) {
+        // Legacy SHA-256 hash — verify then auto-upgrade to PBKDF2
+        const legacyHash = await sha256(pin)
+        if (legacyHash === profile.pinHash) {
+          pinMatches = true
+          const upgraded = await hashPin(pin, profile.encryptionSalt)
+          await db.users.update(profile.id, { pinHash: upgraded, dirty: 1, updatedAt: new Date().toISOString() })
+        }
+      } else {
+        const computed = await hashPin(pin, profile.encryptionSalt)
+        pinMatches = computed === profile.pinHash
+      }
+
+      if (!pinMatches) {
         const attempts = pinAttempts + 1
         setPinAttempts(attempts)
         if (attempts >= AUTH.maxPinAttempts) {
@@ -130,22 +144,21 @@ export function AuthProvider({ children }) {
     setUser(profile)
     setIsLocked(false)
 
-    // Persist a minimal profile backup to localStorage — survives IndexedDB rebuilds
+    // Persist a minimal profile backup to localStorage — survives IndexedDB rebuilds.
+    // Excludes pinHash and healthSyncToken to limit exposure if localStorage is read.
     try {
       localStorage.setItem('nourish_profile_backup', JSON.stringify({
-        id:              profile.id,
-        email:           profile.email,
-        name:            profile.name,
-        pinHash:         profile.pinHash          || null,
-        skipPin:         profile.skipPin          || false,
-        householdId:     profile.householdId      || null,
-        encryptionSalt:  profile.encryptionSalt,
-        isAdmin:         profile.isAdmin          || false,
-        macroGoals:      profile.macroGoals       || null,
-        supplements:     profile.supplements      || [],
-        aiInstructions:  profile.aiInstructions   || null,
-        settings:        profile.settings         || null,
-        healthSyncToken: profile.healthSyncToken  || null,
+        id:             profile.id,
+        email:          profile.email,
+        name:           profile.name,
+        skipPin:        profile.skipPin         || false,
+        householdId:    profile.householdId     || null,
+        encryptionSalt: profile.encryptionSalt,
+        isAdmin:        profile.isAdmin         || false,
+        macroGoals:     profile.macroGoals      || null,
+        supplements:    profile.supplements     || [],
+        aiInstructions: profile.aiInstructions  || null,
+        settings:       profile.settings        || null,
       }))
     } catch {}
 
@@ -178,9 +191,10 @@ export function AuthProvider({ children }) {
     setIsLocked(true)
     teardownStorage()
     if (autoLockTimer.current) clearTimeout(autoLockTimer.current)
-    // Clear persisted identity so the user must sign in again explicitly
+    // Clear all persisted auth data so the next user starts clean
     localStorage.removeItem('nourish_user_email')
     localStorage.removeItem('nourish_user_name')
+    localStorage.removeItem('nourish_profile_backup')
     sessionStorage.setItem('nourish_logged_out', 'true')
     window.location.reload()
   }
@@ -304,8 +318,8 @@ export function AuthProvider({ children }) {
 
   async function createProfile({ name, email, pin, passphrase, avatarInitials, height, startWeight, macroGoals, supplements, skipPin, isAdmin, householdId }) {
     const id             = generateId()
-    const pinHash        = (skipPin || !pin) ? null : await sha256(pin)
     const encryptionSalt = generateId()
+    const pinHash        = (skipPin || !pin) ? null : await hashPin(pin, encryptionSalt)
 
     const profile = {
       id,
@@ -346,7 +360,7 @@ export function AuthProvider({ children }) {
     if (!profile) throw new Error('Profile not found')
     const recoveryHash = await sha256(recoveryKey)
     if (recoveryHash !== profile.recoveryKeyHash) throw new Error('Invalid recovery key')
-    const newPinHash = await sha256(newPin)
+    const newPinHash = await hashPin(newPin, profile.encryptionSalt)
     await db.users.update(userId, { pinHash: newPinHash, dirty: 1, updatedAt: new Date().toISOString() })
   }
 

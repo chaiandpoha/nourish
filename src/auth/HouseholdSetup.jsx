@@ -1,7 +1,5 @@
 import { useState } from "react"
 
-const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS || 'nourish-admin'
-
 export default function HouseholdSetup({ onJoined, onCancel }) {
   const [inputCode,  setInputCode]  = useState("")
   const [error,      setError]      = useState("")
@@ -17,10 +15,21 @@ export default function HouseholdSetup({ onJoined, onCancel }) {
     return "NOURISH-" + raw.slice(0,4) + "-" + raw.slice(4,8) + "-" + raw.slice(8,12)
   }
 
-  function handleAdminAuth(e) {
+  async function handleAdminAuth(e) {
     e.preventDefault()
-    if (adminPass !== ADMIN_PASS) {
-      setPassError("Incorrect admin password")
+    setPassError("")
+    try {
+      const authRes = await fetch('/api/admin-auth', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ password: adminPass }),
+      })
+      if (!authRes.ok) {
+        setPassError("Incorrect admin password")
+        return
+      }
+    } catch {
+      setPassError("Could not reach server — try again")
       return
     }
     const newCode = generateCode()

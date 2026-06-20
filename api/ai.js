@@ -113,13 +113,13 @@ export default async function handler(req, res) {
     const data = await anthropicRes.json()
 
     if (!anthropicRes.ok) {
-      return res.status(anthropicRes.status).json({
-        error: data?.error?.message || "Anthropic API error"
-      })
+      console.error("Anthropic error:", anthropicRes.status, JSON.stringify(data))
+      return res.status(502).json({ error: "AI service error" })
     }
 
     return res.status(200).json(data)
   } catch (err) {
-    return res.status(502).json({ error: "Failed to reach Anthropic: " + err.message })
+    console.error("Anthropic fetch error:", err)
+    return res.status(502).json({ error: "Failed to reach AI service" })
   }
 }
