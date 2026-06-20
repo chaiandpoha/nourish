@@ -80,6 +80,7 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
   const [copySelectedDate,  setCopySelectedDate]  = useState(null)   // {date, label, byMeal}
   const [copyCustomDate,    setCopyCustomDate]    = useState('')      // YYYY-MM-DD input value
   const [copyCustomLoading, setCopyCustomLoading] = useState(false)
+  const [copyCustomError,   setCopyCustomError]   = useState('')
   const [note,              setNote]              = useState('')
   const [editingNote,       setEditingNote]       = useState(false)
   // Past dates default to breakfast; today uses saved pref or time-based slot
@@ -132,11 +133,21 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [loadLogs])
 
+  // Reset copy-picker cache whenever the target date changes (CalendarView navigation)
+  useEffect(() => {
+    setCopyDates(null)
+    setShowCopyPicker(false)
+    setCopyStep('date')
+    setCopySelectedDate(null)
+    setCopyCustomDate('')
+  }, [date])
+
   function closeCopyPicker() {
     setShowCopyPicker(false)
     setCopyStep('date')
     setCopySelectedDate(null)
     setCopyCustomDate('')
+    setCopyCustomError('')
   }
 
   function handleTabChange(meal) {
@@ -195,6 +206,7 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
   async function handleCustomDatePick(dateStr) {
     if (!dateStr || !user) return
     setCopyCustomLoading(true)
+    setCopyCustomError('')
     const dayLogs = await getFoodLogForDate(user.id, dateStr)
     setCopyCustomLoading(false)
     const d = new Date(dateStr + 'T12:00:00')
@@ -207,7 +219,10 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
       }
       return acc
     }, {})
-    if (Object.keys(byMeal).length === 0) return // nothing logged that day
+    if (Object.keys(byMeal).length === 0) {
+      setCopyCustomError(`Nothing logged on ${label}`)
+      return
+    }
     handleSelectCopyDate({ date: dateStr, label, byMeal })
   }
 
@@ -377,7 +392,7 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
                     max={nDaysAgo(getTargetDate(), 1)}
                     style={s.copyCustomInput}
                     value={copyCustomDate}
-                    onChange={e => setCopyCustomDate(e.target.value)}
+                    onChange={e => { setCopyCustomDate(e.target.value); setCopyCustomError('') }}
                   />
                   <button
                     style={{ ...s.copyCustomBtn, opacity: copyCustomLoading ? 0.5 : 1 }}
@@ -387,6 +402,9 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
                     {copyCustomLoading ? '…' : '→'}
                   </button>
                 </div>
+                {copyCustomError && (
+                  <div style={s.copyCustomError}>{copyCustomError}</div>
+                )}
               </>
             )}
 
@@ -645,6 +663,7 @@ const s = {
   copyCustomLabel:     { fontSize:'12px', color:'var(--text-tertiary)', flexShrink:0 },
   copyCustomInput:     { flex:1, padding:'5px 8px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'13px', color:'var(--text-primary)', outline:'none', minWidth:0 },
   copyCustomBtn:       { padding:'5px 12px', background:'var(--accent)', border:'none', borderRadius:'var(--r-sm)', color:'#fff', fontSize:'14px', fontWeight:'700', cursor:'pointer', flexShrink:0 },
+  copyCustomError:     { padding:'4px 14px 8px', fontSize:'12px', color:'var(--red)' },
   dayTotal:     { fontSize:'12px', color:'var(--text-secondary)', fontWeight:'600', fontFamily:'var(--font-mono)' },
 
   entryRow:     { display:'flex', alignItems:'center', padding:'10px 14px', borderTop:'0.5px solid var(--border-subtle)', cursor:'pointer', gap:'8px' },
