@@ -275,9 +275,8 @@ export default function Home() {
 
       {/* ── Greeting ──────────────────────────────────────────────── */}
       <div style={{ padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div>
-          <div style={{ fontSize:'11px', fontWeight:'600', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'1px' }}>{greeting}</div>
-          <div style={{ fontSize:'24px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.03em', lineHeight:'1.1' }}>{user?.name?.split(' ')[0]}</div>
+        <div style={{ fontSize:'17px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.02em' }}>
+          {greeting}, <span style={{ color:'var(--accent)' }}>{user?.name?.split(' ')[0]}</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
           <SyncStatus />
@@ -331,9 +330,11 @@ export default function Home() {
             const over = goal > 0 && val > goal
             return (
               <div key={key}>
-                <div style={{ fontSize:'9px', fontWeight:'700', color:'var(--text-tertiary)', letterSpacing:'0.05em', textTransform:'uppercase', marginBottom:'4px' }}>{label}</div>
-                <div style={{ fontSize:'17px', fontWeight:'700', color: over ? color : 'var(--text-primary)', letterSpacing:'-0.02em', lineHeight:'1', fontFamily:'var(--font-mono)', marginBottom:'2px' }}>{val}</div>
-                <div style={{ fontSize:'9px', color:'var(--text-tertiary)', marginBottom:'6px' }}>/{goal}g</div>
+                <div style={{ fontSize:'9px', fontWeight:'700', color:'var(--text-tertiary)', letterSpacing:'0.05em', textTransform:'uppercase', marginBottom:'5px' }}>{label}</div>
+                <div style={{ display:'flex', alignItems:'baseline', gap:'1px', marginBottom:'6px' }}>
+                  <span style={{ fontSize:'17px', fontWeight:'700', color: over ? color : 'var(--text-primary)', letterSpacing:'-0.02em', lineHeight:'1', fontFamily:'var(--font-mono)' }}>{val}</span>
+                  <span style={{ fontSize:'10px', color:'var(--text-tertiary)', fontWeight:'400' }}>/{goal}g</span>
+                </div>
                 <div style={{ height:'3px', background:'var(--bg-elevated)', borderRadius:'2px', overflow:'hidden' }}>
                   <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius:'2px', transition:'width 0.5s ease' }} />
                 </div>
