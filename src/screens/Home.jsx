@@ -288,35 +288,44 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Compact split: ring left + 2×2 macro grid right */}
-        <div style={{ display:'flex', alignItems:'center', gap:'16px', position:'relative', zIndex:1 }}>
-          <HeroRing current={Math.round(totals.calories)} goal={goals.calories || 0} size={92} />
-
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px 20px', flex:1 }}>
-            {[
-              { key:'protein', label:'Protein' },
-              { key:'carbs',   label:'Carbs'   },
-              { key:'fat',     label:'Fat'     },
-              { key:'fibre',   label:'Fibre'   },
-            ].map(({ key, label }) => {
-              const val  = Math.round(totals?.[key] || 0)
-              const goal = goals?.[key] || 0
-              const pct  = goal > 0 ? Math.min(100, (val / goal) * 100) : 0
-              return (
-                <div key={key}>
-                  <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:'4px' }}>
-                    <span style={{ fontSize:'8px', fontWeight:'700', color:'rgba(255,255,255,0.45)', letterSpacing:'0.1em', textTransform:'uppercase' }}>{label}</span>
-                    <span style={{ fontSize:'13px', fontWeight:'700', color:'rgba(255,255,255,0.9)', fontFamily:'var(--font-mono)', letterSpacing:'-0.01em' }}>
-                      {val}<span style={{ fontSize:'9px', color:'rgba(255,255,255,0.3)', fontWeight:'400' }}>/{goal}g</span>
-                    </span>
-                  </div>
-                  <div style={{ height:'3px', background:'rgba(255,255,255,0.12)', borderRadius:'2px', overflow:'hidden' }}>
-                    <div style={{ height:'100%', width:`${pct}%`, background:'rgba(255,255,255,0.55)', borderRadius:'2px', transition:'width 0.5s ease' }} />
-                  </div>
-                </div>
-              )
-            })}
+        {/* Calorie total + full-width bar */}
+        <div style={{ position:'relative', zIndex:1, marginBottom:'16px' }}>
+          <div style={{ display:'flex', alignItems:'baseline', gap:'8px', marginBottom:'8px' }}>
+            <span style={{ fontSize:'42px', fontWeight:'200', color:'#fff', letterSpacing:'-0.04em', lineHeight:'1', fontFamily:'var(--font-sans)' }}>
+              {Math.round(totals.calories).toLocaleString()}
+            </span>
+            <span style={{ fontSize:'13px', color:'rgba(255,255,255,0.42)', fontWeight:'400', letterSpacing:'-0.01em' }}>
+              / {(goals.calories || 0).toLocaleString()} kcal
+            </span>
           </div>
+          <div style={{ height:'3px', background:'rgba(255,255,255,0.1)', borderRadius:'2px', overflow:'hidden' }}>
+            <div style={{ height:'100%', width:`${Math.min(100, ((totals.calories) / (goals.calories || 1)) * 100)}%`, background:'rgba(255,255,255,0.7)', borderRadius:'2px', transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)' }} />
+          </div>
+        </div>
+
+        {/* 4-column macro strip */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'0 8px', position:'relative', zIndex:1 }}>
+          {[
+            { key:'protein', label:'Protein', color:'#6ee7b7' },
+            { key:'carbs',   label:'Carbs',   color:'#fcd34d' },
+            { key:'fat',     label:'Fat',     color:'#f9a8d4' },
+            { key:'fibre',   label:'Fibre',   color:'#93c5fd' },
+          ].map(({ key, label, color }) => {
+            const val  = Math.round(totals?.[key] || 0)
+            const goal = goals?.[key] || 0
+            const pct  = goal > 0 ? Math.min(100, (val / goal) * 100) : 0
+            return (
+              <div key={key}>
+                <div style={{ fontSize:'9px', fontWeight:'500', color:'rgba(255,255,255,0.42)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:'5px' }}>{label}</div>
+                <div style={{ fontSize:'18px', fontWeight:'600', color:'#fff', letterSpacing:'-0.03em', lineHeight:'1', fontFamily:'var(--font-mono)', marginBottom:'7px' }}>
+                  {val}<span style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', fontWeight:'400', letterSpacing:'0' }}>g</span>
+                </div>
+                <div style={{ height:'2px', background:'rgba(255,255,255,0.1)', borderRadius:'1px', overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius:'1px', transition:'width 0.5s ease' }} />
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 
@@ -509,7 +518,7 @@ const styles = {
   },
   hero: {
     background: 'linear-gradient(160deg, var(--hero-from) 0%, var(--hero-via1) 45%, var(--hero-via2) 80%, var(--hero-to) 100%)',
-    padding:    '10px 20px 16px',
+    padding:    '12px 20px 20px',
     position:   'relative',
     overflow:   'hidden',
     flexShrink: 0,
