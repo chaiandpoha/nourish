@@ -288,23 +288,40 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Calorie total + full-width bar */}
-        <div style={{ position:'relative', zIndex:1, marginBottom:'16px' }}>
-          <div style={{ display:'flex', alignItems:'baseline', gap:'8px', marginBottom:'8px' }}>
-            <span style={{ fontSize:'42px', fontWeight:'200', color:'#fff', letterSpacing:'-0.04em', lineHeight:'1', fontFamily:'var(--font-sans)' }}>
-              {Math.round(totals.calories).toLocaleString()}
-            </span>
-            <span style={{ fontSize:'13px', color:'rgba(255,255,255,0.42)', fontWeight:'400', letterSpacing:'-0.01em' }}>
-              / {(goals.calories || 0).toLocaleString()} kcal
-            </span>
+        {/* Calorie row: big number + "left" pill */}
+        <div style={{ position:'relative', zIndex:1, marginBottom:'10px' }}>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:'10px' }}>
+            <div>
+              <div style={{ fontSize:'9px', fontWeight:'600', color:'rgba(255,255,255,0.42)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'4px' }}>Calories</div>
+              <div style={{ display:'flex', alignItems:'baseline', gap:'6px' }}>
+                <span style={{ fontSize:'42px', fontWeight:'200', color:'#fff', letterSpacing:'-0.04em', lineHeight:'1', fontFamily:'var(--font-sans)' }}>
+                  {Math.round(totals.calories).toLocaleString()}
+                </span>
+                <span style={{ fontSize:'12px', color:'rgba(255,255,255,0.38)', fontWeight:'400' }}>
+                  / {(goals.calories || 0).toLocaleString()} kcal
+                </span>
+              </div>
+            </div>
+            {/* "Left" pill */}
+            {(goals.calories || 0) > 0 && (
+              <div style={{ background:'rgba(255,255,255,0.12)', borderRadius:'12px', padding:'8px 14px', textAlign:'center', flexShrink:0, backdropFilter:'blur(8px)' }}>
+                <div style={{ fontSize:'18px', fontWeight:'600', color:'#fff', letterSpacing:'-0.02em', lineHeight:'1' }}>
+                  {Math.max(0, (goals.calories || 0) - Math.round(totals.calories)).toLocaleString()}
+                </div>
+                <div style={{ fontSize:'9px', fontWeight:'600', color:'rgba(255,255,255,0.5)', letterSpacing:'0.08em', textTransform:'uppercase', marginTop:'2px' }}>left</div>
+              </div>
+            )}
           </div>
           <div style={{ height:'3px', background:'rgba(255,255,255,0.1)', borderRadius:'2px', overflow:'hidden' }}>
-            <div style={{ height:'100%', width:`${Math.min(100, ((totals.calories) / (goals.calories || 1)) * 100)}%`, background:'rgba(255,255,255,0.7)', borderRadius:'2px', transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)' }} />
+            <div style={{ height:'100%', width:`${Math.min(100, (totals.calories / (goals.calories || 1)) * 100)}%`, background:'rgba(255,255,255,0.7)', borderRadius:'2px', transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)' }} />
           </div>
         </div>
 
+        {/* Divider */}
+        <div style={{ height:'0.5px', background:'rgba(255,255,255,0.12)', margin:'14px 0', position:'relative', zIndex:1 }} />
+
         {/* 4-column macro strip */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'0 8px', position:'relative', zIndex:1 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'0 6px', position:'relative', zIndex:1 }}>
           {[
             { key:'protein', label:'Protein', color:'#6ee7b7' },
             { key:'carbs',   label:'Carbs',   color:'#fcd34d' },
@@ -314,14 +331,16 @@ export default function Home() {
             const val  = Math.round(totals?.[key] || 0)
             const goal = goals?.[key] || 0
             const pct  = goal > 0 ? Math.min(100, (val / goal) * 100) : 0
+            const over = goal > 0 && val > goal
             return (
               <div key={key}>
-                <div style={{ fontSize:'9px', fontWeight:'500', color:'rgba(255,255,255,0.42)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:'5px' }}>{label}</div>
-                <div style={{ fontSize:'18px', fontWeight:'600', color:'#fff', letterSpacing:'-0.03em', lineHeight:'1', fontFamily:'var(--font-mono)', marginBottom:'7px' }}>
-                  {val}<span style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', fontWeight:'400', letterSpacing:'0' }}>g</span>
+                <div style={{ fontSize:'9px', fontWeight:'600', color:'rgba(255,255,255,0.42)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:'5px' }}>{label}</div>
+                <div style={{ fontSize:'20px', fontWeight:'600', color: over ? color : '#fff', letterSpacing:'-0.03em', lineHeight:'1', fontFamily:'var(--font-mono)', marginBottom:'3px' }}>
+                  {val}
                 </div>
+                <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.32)', fontWeight:'400', marginBottom:'7px' }}>/{goal}g</div>
                 <div style={{ height:'2px', background:'rgba(255,255,255,0.1)', borderRadius:'1px', overflow:'hidden' }}>
-                  <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius:'1px', transition:'width 0.5s ease' }} />
+                  <div style={{ height:'100%', width:`${pct}%`, background: over ? color : color, opacity: over ? 1 : 0.75, borderRadius:'1px', transition:'width 0.5s ease' }} />
                 </div>
               </div>
             )
