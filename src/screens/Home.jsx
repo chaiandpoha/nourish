@@ -288,51 +288,48 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Calorie row */}
-        <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:'10px', position:'relative', zIndex:1 }}>
-          <div style={{ display:'flex', alignItems:'baseline', gap:'6px' }}>
-            <span style={{ fontSize:'38px', fontWeight:'200', color:'#fff', letterSpacing:'-0.04em', lineHeight:'1', fontFamily:'var(--font-sans)' }}>
+        {/* Calorie + left — single compact row */}
+        <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:'8px', position:'relative', zIndex:1 }}>
+          <div style={{ display:'flex', alignItems:'baseline', gap:'5px' }}>
+            <span style={{ fontSize:'34px', fontWeight:'200', color:'#fff', letterSpacing:'-0.04em', lineHeight:'1', fontFamily:'var(--font-sans)' }}>
               {Math.round(totals.calories).toLocaleString()}
             </span>
-            <span style={{ fontSize:'12px', color:'rgba(255,255,255,0.38)', fontWeight:'400' }}>kcal</span>
+            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.35)', fontWeight:'400' }}>/ {(goals.calories||0).toLocaleString()} kcal</span>
           </div>
-          {(goals.calories || 0) > 0 && (
-            <div style={{ display:'flex', alignItems:'baseline', gap:'4px' }}>
-              <span style={{ fontSize:'15px', fontWeight:'600', color:'rgba(255,255,255,0.72)', letterSpacing:'-0.02em' }}>
-                {Math.max(0, (goals.calories || 0) - Math.round(totals.calories)).toLocaleString()}
-              </span>
-              <span style={{ fontSize:'10px', color:'rgba(255,255,255,0.38)', fontWeight:'500', textTransform:'uppercase', letterSpacing:'0.06em' }}>left</span>
-            </div>
+          {(goals.calories||0) > 0 && (
+            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.5)', fontWeight:'500' }}>
+              <span style={{ fontSize:'14px', fontWeight:'600', color:'rgba(255,255,255,0.8)', letterSpacing:'-0.02em' }}>
+                {Math.max(0,(goals.calories||0)-Math.round(totals.calories)).toLocaleString()}
+              </span>{' '}left
+            </span>
           )}
         </div>
 
-        {/* Calorie progress bar */}
-        <div style={{ height:'2px', background:'rgba(255,255,255,0.1)', borderRadius:'2px', overflow:'hidden', marginBottom:'14px', position:'relative', zIndex:1 }}>
-          <div style={{ height:'100%', width:`${Math.min(100, (totals.calories / (goals.calories || 1)) * 100)}%`, background:'rgba(255,255,255,0.65)', borderRadius:'2px', transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)' }} />
+        {/* Calorie bar */}
+        <div style={{ height:'2px', background:'rgba(255,255,255,0.1)', borderRadius:'2px', overflow:'hidden', marginBottom:'12px', position:'relative', zIndex:1 }}>
+          <div style={{ height:'100%', width:`${Math.min(100,(totals.calories/(goals.calories||1))*100)}%`, background:'rgba(255,255,255,0.65)', borderRadius:'2px', transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)' }} />
         </div>
 
-        {/* Horizontal macro rows (option 2 style) */}
-        <div style={{ display:'flex', flexDirection:'column', gap:'9px', position:'relative', zIndex:1 }}>
+        {/* 4-col macro grid */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'0 4px', position:'relative', zIndex:1 }}>
           {[
-            { key:'protein', label:'P', color:'#6ee7b7' },
-            { key:'carbs',   label:'C', color:'#fcd34d' },
-            { key:'fat',     label:'F', color:'#f9a8d4' },
-            { key:'fibre',   label:'Fi', color:'#93c5fd' },
+            { key:'protein', label:'Protein', color:'#6ee7b7' },
+            { key:'carbs',   label:'Carbs',   color:'#fcd34d' },
+            { key:'fat',     label:'Fat',     color:'#f9a8d4' },
+            { key:'fibre',   label:'Fibre',   color:'#93c5fd' },
           ].map(({ key, label, color }) => {
             const val  = Math.round(totals?.[key] || 0)
             const goal = goals?.[key] || 0
-            const pct  = goal > 0 ? Math.min(100, (val / goal) * 100) : 0
+            const pct  = goal > 0 ? Math.min(100,(val/goal)*100) : 0
             const over = goal > 0 && val > goal
             return (
-              <div key={key} style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-                <span style={{ fontSize:'10px', fontWeight:'700', color:'rgba(255,255,255,0.45)', letterSpacing:'0.04em', textTransform:'uppercase', width:'14px', flexShrink:0 }}>{label}</span>
-                <div style={{ flex:1, height:'3px', background:'rgba(255,255,255,0.1)', borderRadius:'2px', overflow:'hidden' }}>
-                  <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius:'2px', transition:'width 0.5s ease' }} />
+              <div key={key}>
+                <div style={{ fontSize:'8px', fontWeight:'600', color:'rgba(255,255,255,0.38)', letterSpacing:'0.05em', textTransform:'uppercase', marginBottom:'3px' }}>{label}</div>
+                <div style={{ fontSize:'16px', fontWeight:'700', color: over ? color : '#fff', letterSpacing:'-0.02em', lineHeight:'1', fontFamily:'var(--font-mono)', marginBottom:'2px' }}>{val}</div>
+                <div style={{ fontSize:'9px', color:'rgba(255,255,255,0.28)', fontWeight:'400', marginBottom:'5px' }}>/{goal}g</div>
+                <div style={{ height:'2px', background:'rgba(255,255,255,0.1)', borderRadius:'1px', overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius:'1px', transition:'width 0.5s ease' }} />
                 </div>
-                <span style={{ fontSize:'13px', fontWeight:'700', color: over ? color : '#fff', fontFamily:'var(--font-mono)', letterSpacing:'-0.02em', flexShrink:0, minWidth:'36px', textAlign:'right' }}>
-                  {val}<span style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', fontWeight:'400' }}>g</span>
-                </span>
-                <span style={{ fontSize:'10px', color:'rgba(255,255,255,0.28)', fontWeight:'400', flexShrink:0, minWidth:'32px' }}>/{goal}g</span>
               </div>
             )
           })}
@@ -528,7 +525,7 @@ const styles = {
   },
   hero: {
     background: 'linear-gradient(160deg, var(--hero-from) 0%, var(--hero-via1) 45%, var(--hero-via2) 80%, var(--hero-to) 100%)',
-    padding:    '12px 20px 20px',
+    padding:    '10px 20px 14px',
     position:   'relative',
     overflow:   'hidden',
     flexShrink: 0,
