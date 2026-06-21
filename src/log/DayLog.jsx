@@ -6,7 +6,8 @@ import { MACRO_COLORS } from '../config.js'
 import { Skeleton, SkeletonCard } from '../shared/Skeleton.jsx'
 import { BreakfastIcon, LunchIcon, DinnerIcon, SnackIcon } from '../shared/Icons.jsx'
 
-const MEAL_SLOTS  = ['breakfast', 'lunch', 'dinner', 'snack']
+const MEAL_SLOTS      = ['breakfast', 'lunch', 'dinner', 'snack']
+const MEAL_TIME_ORDER = ['breakfast', 'lunch', 'snack', 'dinner']
 const MEAL_ICONS  = { breakfast: BreakfastIcon, lunch: LunchIcon, dinner: DinnerIcon, snack: SnackIcon }
 const MEAL_COLORS = { breakfast: '#f59e0b', lunch: 'var(--accent)', dinner: '#6366f1', snack: '#f97316' }
 const MEAL_BG     = { breakfast: 'rgba(245,158,11,0.12)', lunch: 'rgba(74,124,106,0.12)', dinner: 'rgba(99,102,241,0.12)', snack: 'rgba(249,115,22,0.12)' }
@@ -89,7 +90,11 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
     if (date && date !== localDate()) return 'breakfast'
     const h = new Date().getHours()
     if (h >= 19) return 'dinner'
-    return readMealPref() || timeSlot()
+    const current = timeSlot()
+    const saved   = readMealPref()
+    // Only respect saved pref if it's at the same time-of-day position or later
+    if (saved && MEAL_TIME_ORDER.indexOf(saved) >= MEAL_TIME_ORDER.indexOf(current)) return saved
+    return current
   })
   const { user } = useAuth()
 
@@ -119,8 +124,10 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
         setActiveTab('dinner')
         saveMealPref('dinner')
       } else {
-        const saved = readMealPref()
-        if (!saved) {
+        const current = timeSlot()
+        const saved   = readMealPref()
+        // If no saved pref, or saved pref is behind the current time slot, advance
+        if (!saved || MEAL_TIME_ORDER.indexOf(saved) < MEAL_TIME_ORDER.indexOf(current)) {
           const smart = smartMealSlot(byMeal)
           setActiveTab(smart)
           saveMealPref(smart)
