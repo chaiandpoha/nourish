@@ -114,27 +114,27 @@
 }
 
 [data-color="pink"] {
-  --bg-base:        #fdf5f8;
+  --bg-base:        #fff5f8;
   --bg-surface:     #ffffff;
-  --bg-elevated:    #f9edf3;
-  --bg-hover:       #fdf0f5;
-  --bg-nav:         rgba(253,245,248,0.88);
+  --bg-elevated:    #fde8f0;
+  --bg-hover:       #fff0f5;
+  --bg-nav:         rgba(255,245,248,0.88);
 
-  --border-subtle:  #f0dce6;
-  --border-default: #e8cfd9;
-  --border-strong:  #d8b5c5;
+  --border-subtle:  #fbd0e0;
+  --border-default: #f7bdd1;
+  --border-strong:  #f0a0be;
 
-  /* Deep rose — passes 4.5:1 contrast on white */
-  --accent:         #b84d6a;
-  --accent-dim:     rgba(184,77,106,0.10);
-  --accent-glow:    rgba(184,77,106,0.08);
+  /* Soft rose — readable on white while keeping the baby-pink feel */
+  --accent:         #d4648a;
+  --accent-dim:     rgba(212,100,138,0.12);
+  --accent-glow:    rgba(212,100,138,0.08);
 
   --text-inverse:   #ffffff;
 
-  /* Keep all text tokens identical to default for legibility */
-  --text-primary:   #1c1814;
-  --text-secondary: #b0a89e;
-  --text-tertiary:  #c8c0b4;
+  /* Keep text tokens dark for legibility on pale pink surfaces */
+  --text-primary:   #2a1a20;
+  --text-secondary: #b8a0a8;
+  --text-tertiary:  #d0b8c2;
 }
 
 /* ─── Reset ──────────────────────────────────────────────────────────────────── */

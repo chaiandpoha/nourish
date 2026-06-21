@@ -1338,7 +1338,7 @@ const COLOR_THEMES = [
   {
     id:      'pink',
     label:   'Rose',
-    swatch:  ['#b84d6a', '#f9edf3', '#fdf5f8'],
+    swatch:  ['#fbd0e0', '#d4648a', '#fff5f8'],
   },
 ]
 
