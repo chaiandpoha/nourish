@@ -292,7 +292,7 @@ export default function Home() {
           <div>
             <div style={{ fontSize:'10px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'3px' }}>Calories</div>
             <div style={{ display:'flex', alignItems:'baseline', gap:'5px' }}>
-              <span style={{ fontSize:'32px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.04em', lineHeight:'1' }}>
+              <span style={{ fontSize:'26px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.03em', lineHeight:'1' }}>
                 {Math.round(totals.calories).toLocaleString()}
               </span>
               <span style={{ fontSize:'12px', color:'var(--text-tertiary)', fontWeight:'400' }}>/ {(goals.calories||0).toLocaleString()}</span>
@@ -300,7 +300,7 @@ export default function Home() {
           </div>
           {(goals.calories||0) > 0 && (
             <div style={{ textAlign:'right' }}>
-              <div style={{ fontSize:'20px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.03em', lineHeight:'1' }}>
+              <div style={{ fontSize:'18px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.03em', lineHeight:'1' }}>
                 {Math.max(0,(goals.calories||0)-Math.round(totals.calories)).toLocaleString()}
               </div>
               <div style={{ fontSize:'9px', fontWeight:'600', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:'2px' }}>kcal left</div>
