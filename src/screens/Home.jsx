@@ -340,12 +340,9 @@ export default function Home() {
         <div style={{ position:'absolute', top:'-60px', right:'-50px', width:'180px', height:'180px', borderRadius:'50%', background:'rgba(255,255,255,0.03)', pointerEvents:'none' }} />
         <div style={{ position:'absolute', bottom:'-40px', left:'-20px', width:'140px', height:'140px', borderRadius:'50%', background:'rgba(255,255,255,0.025)', pointerEvents:'none' }} />
 
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'20px', position:'relative', zIndex:1 }}>
-          <div>
-            <div style={{ fontSize:'10px', fontWeight:'600', color:'rgba(255,255,255,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'3px' }}>{dateLabel}</div>
-            <div style={{ fontSize:'19px', fontWeight:'300', color:'rgba(255,255,255,0.9)', letterSpacing:'-0.02em', fontFamily:'var(--font-serif)', fontStyle:'italic', lineHeight:'1.2' }}>
-              {greeting}, <span style={{ color:'rgba(255,255,255,0.75)' }}>{user?.name}</span>
-            </div>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px', position:'relative', zIndex:1 }}>
+          <div style={{ fontSize:'13px', fontWeight:'300', color:'rgba(255,255,255,0.72)', letterSpacing:'-0.01em', fontFamily:'var(--font-serif)', fontStyle:'italic' }}>
+            {greeting}, <span style={{ color:'rgba(255,255,255,0.92)', fontWeight:'400' }}>{user?.name?.split(' ')[0]}</span>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:'4px' }}>
             <SyncStatus />
@@ -387,62 +384,45 @@ export default function Home() {
 
       <div style={styles.content}>
 
-      {/* 2×2 Stat grid */}
-      <div style={styles.statGrid}>
-        <button style={{ ...styles.statCard, ...styles.statCardBtn }} onClick={openWeightEdit}>
-          <div style={{ ...styles.statIconChip, background: 'rgba(74,124,106,0.12)', color: 'var(--accent)' }}>
-            <WeightIcon size={16} />
+      {/* Compact stat strip */}
+      <div style={{ background:'var(--bg-surface)', boxShadow:'var(--shadow-sm)', borderRadius:'var(--r-xl)', display:'flex', alignItems:'stretch' }}>
+
+        <button onClick={openWeightEdit} style={styles.stripBtn}>
+          <div style={{ color:'var(--accent)' }}><WeightIcon size={13} /></div>
+          <div style={styles.stripVal}>
+            {weight ? (weightUnit === 'lbs' ? Math.round(weight * 2.20462 * 10) / 10 : weight) : '—'}
+            {weight && <span style={styles.stripUnit}> {weightUnit}</span>}
           </div>
-          <div style={styles.statLabel}>Weight</div>
-          {weight ? (
-            <div style={styles.statVal}>
-              {weightUnit === 'lbs' ? Math.round(weight * 2.20462 * 10) / 10 : weight}
-              <span style={styles.statUnit}> {weightUnit}</span>
-            </div>
-          ) : (
-            <div style={styles.statEmpty}>Tap to log</div>
-          )}
+          <div style={styles.stripLabel}>Weight</div>
         </button>
 
-        <button style={{ ...styles.statCard, ...styles.statCardBtn }} onClick={openStepsEdit}>
-          <div style={{ ...styles.statIconChip, background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
-            <StepsIcon size={16} />
-          </div>
-          <div style={styles.statLabel}>Steps</div>
-          {stepsData?.steps ? (
-            <>
-              <div style={styles.statVal}>{stepsData.steps.toLocaleString()}</div>
-              <div style={styles.progressTrack}>
-                <div style={{ ...styles.progressFill, width: `${stepPct * 100}%`, background: 'var(--accent)' }} />
-              </div>
-              <div style={styles.progressLabel}>
-                {stepPct >= 1 ? 'Goal reached!' : `${stepGoal.toLocaleString()} goal`}
-              </div>
-            </>
-          ) : (
-            <div style={styles.statEmpty}>Tap to log</div>
-          )}
+        <div style={styles.stripDivider} />
+
+        <button onClick={openStepsEdit} style={styles.stripBtn}>
+          <div style={{ color:'#f59e0b' }}><StepsIcon size={13} /></div>
+          <div style={styles.stripVal}>{stepsData?.steps ? stepsData.steps.toLocaleString() : '—'}</div>
+          <div style={styles.stripLabel}>Steps</div>
         </button>
 
-        <div style={styles.statCard}>
-          <div style={{ ...styles.statIconChip, background: 'rgba(139,92,246,0.12)', color: '#8b5cf6' }}>
-            <DumbbellIcon size={16} />
-          </div>
-          <div style={styles.statLabel}>Workout</div>
-          <WorkoutStat userId={user?.id} date={today} />
+        <div style={styles.stripDivider} />
+
+        <div style={styles.stripBtn}>
+          <div style={{ color:'#8b5cf6' }}><DumbbellIcon size={13} /></div>
+          <WorkoutStat userId={user?.id} date={today} compact />
+          <div style={styles.stripLabel}>Workout</div>
         </div>
 
-        <button style={{ ...styles.statCard, ...styles.statCardBtn }} onClick={openStepsEdit}>
-          <div style={{ ...styles.statIconChip, background: 'rgba(239,68,68,0.12)', color: 'var(--red)' }}>
-            <FireIcon size={16} />
+        <div style={styles.stripDivider} />
+
+        <button onClick={openStepsEdit} style={styles.stripBtn}>
+          <div style={{ color:'var(--red)' }}><FireIcon size={13} /></div>
+          <div style={styles.stripVal}>
+            {stepsData?.caloriesBurned ? stepsData.caloriesBurned : '—'}
+            {stepsData?.caloriesBurned ? <span style={styles.stripUnit}> kcal</span> : null}
           </div>
-          <div style={styles.statLabel}>Cal Burned</div>
-          {stepsData?.caloriesBurned ? (
-            <div style={styles.statVal}>{stepsData.caloriesBurned}<span style={styles.statUnit}> kcal</span></div>
-          ) : (
-            <div style={styles.statEmpty}>Tap to add</div>
-          )}
+          <div style={styles.stripLabel}>Cal Burned</div>
         </button>
+
       </div>
 
 
@@ -602,7 +582,7 @@ export default function Home() {
 
 // ─── WorkoutStat ──────────────────────────────────────────────────────────────
 
-function WorkoutStat({ userId, date }) {
+function WorkoutStat({ userId, date, compact }) {
   const [workout, setWorkout] = useState(null)
 
   useEffect(() => {
@@ -615,6 +595,10 @@ function WorkoutStat({ userId, date }) {
       .then(setWorkout)
   }, [userId, date])
 
+  if (compact) {
+    const name = workout ? (workout.name || 'Done').split(' ')[0] : 'Rest'
+    return <div style={styles.stripVal}>{name}</div>
+  }
   if (!workout) return <div style={styles.statEmpty}>Rest day</div>
   return <div style={styles.statVal}><span style={{ fontSize:'16px' }}>{workout.name || 'Session'}</span></div>
 }
@@ -660,7 +644,7 @@ const styles = {
   },
   hero: {
     background: 'linear-gradient(160deg, var(--hero-from) 0%, var(--hero-via1) 45%, var(--hero-via2) 80%, var(--hero-to) 100%)',
-    padding:    '22px 20px 26px',
+    padding:    '10px 20px 16px',
     position:   'relative',
     overflow:   'hidden',
     flexShrink: 0,
@@ -691,46 +675,50 @@ const styles = {
     color:      'var(--accent)',
     fontWeight: '400',
   },
-  statGrid: {
-    display:             'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap:                 '8px',
-  },
-  statCard: {
-    background:   'var(--bg-surface)',
-    boxShadow:    'var(--shadow-sm)',
-    borderRadius: 'var(--r-xl)',
-    padding:      '14px 16px',
-  },
-  statCardBtn: {
-    cursor:      'pointer',
-    textAlign:   'left',
+  stripBtn: {
+    flex:                    1,
+    padding:                 '10px 4px',
+    display:                 'flex',
+    flexDirection:           'column',
+    alignItems:              'center',
+    gap:                     '2px',
+    background:              'none',
+    border:                  'none',
+    cursor:                  'pointer',
     WebkitTapHighlightColor: 'transparent',
   },
-  statIconChip: {
-    width:        '30px',
-    height:       '30px',
-    borderRadius: '8px',
-    display:      'flex',
-    alignItems:   'center',
-    justifyContent:'center',
-    marginBottom: '8px',
-    flexShrink:   0,
+  stripVal: {
+    fontSize:     '13px',
+    fontWeight:   '700',
+    color:        'var(--text-primary)',
+    letterSpacing:'-0.02em',
+    lineHeight:   '1.1',
   },
-  statLabel: {
-    fontSize:      '10px',
+  stripUnit: {
+    fontSize:   '10px',
+    fontWeight: '400',
+    color:      'var(--text-tertiary)',
+  },
+  stripLabel: {
+    fontSize:      '9px',
     fontWeight:    '600',
     color:         'var(--text-tertiary)',
     textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    marginBottom:  '6px',
+    letterSpacing: '0.07em',
+  },
+  stripDivider: {
+    width:      '1px',
+    alignSelf:  'center',
+    height:     '32px',
+    background: 'var(--border-subtle)',
+    flexShrink: 0,
   },
   statVal: {
-    fontSize:     '26px',
+    fontSize:     '17px',
     fontWeight:   '700',
     color:        'var(--text-primary)',
-    letterSpacing:'-0.03em',
-    lineHeight:   '1',
+    letterSpacing:'-0.02em',
+    lineHeight:   '1.1',
   },
   statUnit: {
     fontSize:   '12px',
@@ -744,11 +732,11 @@ const styles = {
     fontStyle: 'italic',
   },
   progressTrack: {
-    height:       '4px',
+    height:       '3px',
     background:   'var(--border-subtle)',
     borderRadius: '2px',
     overflow:     'hidden',
-    marginTop:    '10px',
+    marginTop:    '5px',
   },
   progressFill: {
     height:       '100%',
