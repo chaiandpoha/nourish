@@ -39,15 +39,18 @@ export function readMealPref() {
 
 export function timeSlot() {
   const h = new Date().getHours()
-  if (h < 12) return 'breakfast'
-  if (h < 16) return 'lunch'
+  if (h < 11) return 'breakfast'
+  if (h < 15) return 'lunch'
   if (h < 19) return 'snack'
   return 'dinner'
 }
 
 // Returns the best meal tab for + button: first unfilled from current-time order
 export function smartMealSlot(byMeal) {
-  const base  = timeSlot()
+  const base = timeSlot()
+  const h    = new Date().getHours()
+  // After 7 PM lock to dinner — don't cycle to snack or next-day meals
+  if (h >= 19) return base
   const order = MEAL_SLOTS
   const idx   = order.indexOf(base)
   if (!byMeal[base]?.length) return base
