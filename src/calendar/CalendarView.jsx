@@ -169,16 +169,19 @@ export default function CalendarView() {
                   cursor:      isFuture ? 'default' : 'pointer',
                 }}
               >
-                {/* Top row: day number + workout badge */}
+                {/* Top row: day number + badges */}
                 <div style={s.cellTop}>
                   <span style={{
                     ...s.dayNum,
                     color:      isToday ? 'var(--accent)' : 'var(--text-primary)',
                     fontWeight: isToday ? '700' : '600',
                   }}>{day}</span>
-                  {data?.hasWorkout && (
-                    <span style={s.workoutBadge}>W</span>
-                  )}
+                  <div style={s.badges}>
+                    {data?.hasWorkout  && <span style={s.badgeW}>W</span>}
+                    {data?.proteinHit  && <span style={s.badgeP}>P</span>}
+                    {data?.calOk       && <span style={s.badgeC}>C</span>}
+                    {data?.weight      && <span style={s.badgeWt}>wt</span>}
+                  </div>
                 </div>
 
                 {/* Calories */}
@@ -204,9 +207,12 @@ export default function CalendarView() {
 
       {/* Inline legend */}
       <div style={s.legend}>
-        <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'var(--accent-dim)', border:'1px solid var(--accent)' }} /><span>Protein hit</span></div>
-        <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'rgba(184,120,48,0.09)', border:'1px solid var(--amber)' }} /><span>Logged, missed</span></div>
-        <div style={s.legendItem}><span style={s.workoutBadge}>W</span><span>Workout</span></div>
+        <div style={s.legendItem}><span style={s.badgeW}>W</span><span>Workout</span></div>
+        <div style={s.legendItem}><span style={s.badgeP}>P</span><span>Protein</span></div>
+        <div style={s.legendItem}><span style={s.badgeC}>C</span><span>Calories</span></div>
+        <div style={s.legendItem}><span style={s.badgeWt}>wt</span><span>Weight</span></div>
+        <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'var(--accent-dim)', border:'1px solid var(--accent)' }} /><span>On track</span></div>
+        <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'rgba(184,120,48,0.09)', border:'1px solid var(--amber)' }} /><span>Logged</span></div>
       </div>
 
     </div>
@@ -235,9 +241,13 @@ const s = {
   loading:      { textAlign:'center', padding:'32px 0', fontSize:'14px', color:'var(--text-tertiary)' },
 
   cell:         { display:'flex', flexDirection:'column', alignItems:'stretch', padding:'5px 5px 0', minHeight:'58px', borderRadius:'var(--r-md)', gap:'2px', overflow:'hidden', WebkitTapHighlightColor:'transparent' },
-  cellTop:      { display:'flex', alignItems:'center', justifyContent:'space-between' },
-  dayNum:       { fontSize:'12px', lineHeight:'1' },
-  workoutBadge: { fontSize:'8px', fontWeight:'700', color:'var(--accent)', background:'var(--accent-dim)', borderRadius:'4px', padding:'1px 4px', letterSpacing:'0.02em' },
+  cellTop:      { display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'2px' },
+  dayNum:       { fontSize:'12px', lineHeight:'1', flexShrink:0 },
+  badges:       { display:'flex', flexWrap:'wrap', gap:'2px', justifyContent:'flex-end', flex:1 },
+  badgeW:       { fontSize:'7px', fontWeight:'700', color:'var(--accent)', background:'var(--accent-dim)', borderRadius:'3px', padding:'1px 3px' },
+  badgeP:       { fontSize:'7px', fontWeight:'700', color:'#10b981', background:'rgba(16,185,129,0.12)', borderRadius:'3px', padding:'1px 3px' },
+  badgeC:       { fontSize:'7px', fontWeight:'700', color:'#f59e0b', background:'rgba(245,158,11,0.12)', borderRadius:'3px', padding:'1px 3px' },
+  badgeWt:      { fontSize:'7px', fontWeight:'700', color:'#6366f1', background:'rgba(99,102,241,0.12)', borderRadius:'3px', padding:'1px 3px' },
   calNum:       { fontSize:'11px', fontWeight:'700', color:'var(--text-secondary)', letterSpacing:'-0.02em', textAlign:'center', flex:1, display:'flex', alignItems:'center', justifyContent:'center' },
   missed:       { fontSize:'11px', color:'var(--text-tertiary)', textAlign:'center', flex:1, display:'flex', alignItems:'center', justifyContent:'center' },
 
