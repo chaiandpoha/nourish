@@ -346,21 +346,24 @@ export default function Home() {
 
       <div style={styles.content}>
 
-      {/* Compact stat strip */}
-      <div style={{ background:'var(--bg-surface)', boxShadow:'var(--shadow-sm)', borderRadius:'var(--r-xl)', display:'flex', alignItems:'stretch' }}>
-
+      {/* Stat strip */}
+      <div style={{ display:'flex', gap:'8px' }}>
         {[
           { label:'Weight',  Icon:WeightIcon,   value: weight ? `${weightUnit === 'lbs' ? Math.round(weight*2.20462*10)/10 : weight} ${weightUnit}` : '—', onClick: openWeightEdit },
           { label:'Workout', Icon:DumbbellIcon, value: workout ? (workout.name || 'Done').split(' ')[0] : 'Rest', onClick: null },
-        ].map((stat, i) => (
+        ].map((stat) => (
           <button
             key={stat.label}
             onClick={stat.onClick}
-            style={{ ...styles.stripBtn, borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none', cursor: stat.onClick ? 'pointer' : 'default' }}
+            style={{ flex:1, display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', background:'var(--bg-surface)', boxShadow:'var(--shadow-sm)', borderRadius:'var(--r-xl)', border:'none', cursor: stat.onClick ? 'pointer' : 'default', WebkitTapHighlightColor:'transparent' }}
           >
-            <stat.Icon size={22} />
-            <div style={styles.stripVal}>{stat.value}</div>
-            <div style={styles.stripLabel}>{stat.label}</div>
+            <div style={{ width:'32px', height:'32px', borderRadius:'10px', background:'var(--bg-elevated)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--accent)', flexShrink:0 }}>
+              <stat.Icon size={16} />
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'1px', minWidth:0 }}>
+              <div style={{ fontSize:'11px', fontWeight:'500', color:'var(--text-tertiary)', letterSpacing:'0.01em' }}>{stat.label}</div>
+              <div style={{ fontSize:'14px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.02em', lineHeight:'1' }}>{stat.value}</div>
+            </div>
           </button>
         ))}
 
