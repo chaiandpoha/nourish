@@ -57,7 +57,8 @@ export default function CalendarView() {
       d.calories   = Math.round(totals.calories)
       d.protein    = Math.round(totals.protein)
       d.hasLogs    = d.logs.length > 0
-      d.hasWorkout = d.workouts.some(w => w.status === 'complete')
+      d.hasWorkout      = d.workouts.some(w => w.status === 'complete')
+      d.hasDraftWorkout = !d.hasWorkout && d.workouts.some(w => w.status === 'draft')
       d.proteinHit = d.hasLogs && d.protein >= (g.protein || 999)
       d.calPct     = g.calories > 0 ? Math.min(100, (d.calories / g.calories) * 100) : 0
       d.calOk      = g.calories > 0 && d.calories >= g.calories * 0.85 && d.calories <= g.calories * 1.1
@@ -169,13 +170,29 @@ export default function CalendarView() {
                   cursor:      isFuture ? 'default' : 'pointer',
                 }}
               >
-                {/* Top row: day number */}
+                {/* Top row: day number + workout icon */}
                 <div style={s.cellTop}>
                   <span style={{
                     ...s.dayNum,
                     color:      isToday ? 'var(--accent)' : 'var(--text-primary)',
                     fontWeight: isToday ? '700' : '600',
                   }}>{day}</span>
+                  {!isFuture && (data?.hasWorkout || data?.hasDraftWorkout) && (
+                    <div style={{ position:'relative', width:'14px', height:'10px', flexShrink:0 }}>
+                      <svg width="14" height="10" viewBox="0 0 28 14" fill={data.hasWorkout ? 'var(--accent)' : 'var(--text-tertiary)'}>
+                        <rect x="0"  y="4" width="5"  height="6" rx="1"/>
+                        <rect x="5"  y="1" width="3"  height="12" rx="1"/>
+                        <rect x="8"  y="6" width="12" height="2"/>
+                        <rect x="20" y="1" width="3"  height="12" rx="1"/>
+                        <rect x="23" y="4" width="5"  height="6" rx="1"/>
+                      </svg>
+                      {data.hasDraftWorkout && (
+                        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+                          <div style={{ width:'18px', height:'1.5px', background:'var(--text-secondary)', borderRadius:'1px', transform:'rotate(-35deg)' }} />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Calories */}
@@ -201,9 +218,29 @@ export default function CalendarView() {
 
       {/* Inline legend */}
       <div style={s.legend}>
+        <div style={s.legendItem}>
+          <svg width="14" height="10" viewBox="0 0 28 14" fill="var(--accent)">
+            <rect x="0" y="4" width="5" height="6" rx="1"/><rect x="5" y="1" width="3" height="12" rx="1"/>
+            <rect x="8" y="6" width="12" height="2"/><rect x="20" y="1" width="3" height="12" rx="1"/>
+            <rect x="23" y="4" width="5" height="6" rx="1"/>
+          </svg>
+          <span>Workout done</span>
+        </div>
+        <div style={s.legendItem}>
+          <div style={{ position:'relative', width:'14px', height:'10px' }}>
+            <svg width="14" height="10" viewBox="0 0 28 14" fill="var(--text-tertiary)">
+              <rect x="0" y="4" width="5" height="6" rx="1"/><rect x="5" y="1" width="3" height="12" rx="1"/>
+              <rect x="8" y="6" width="12" height="2"/><rect x="20" y="1" width="3" height="12" rx="1"/>
+              <rect x="23" y="4" width="5" height="6" rx="1"/>
+            </svg>
+            <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div style={{ width:'18px', height:'1.5px', background:'var(--text-secondary)', borderRadius:'1px', transform:'rotate(-35deg)' }} />
+            </div>
+          </div>
+          <span>Not finished</span>
+        </div>
         <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'var(--accent-dim)', border:'1px solid var(--accent)' }} /><span>Protein hit</span></div>
         <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'rgba(184,120,48,0.09)', border:'1px solid var(--amber)' }} /><span>Logged, missed</span></div>
-        <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)' }} /><span>No log</span></div>
       </div>
 
     </div>
