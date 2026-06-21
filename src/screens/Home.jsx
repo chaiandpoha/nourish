@@ -9,7 +9,7 @@ import { db } from '../db/db.js'
 import { seedFoodDatabase } from '../food/FoodDB.js'
 import { Skeleton, SkeletonCard } from '../shared/Skeleton.jsx'
 import SyncStatus from '../shared/SyncStatus.jsx'
-import { WeightIcon, StepsIcon, FireIcon, DumbbellIcon } from '../shared/Icons.jsx'
+import { WeightIcon, DumbbellIcon } from '../shared/Icons.jsx'
 
 function normalizeDate(raw) {
   if (!raw) return null
@@ -107,11 +107,6 @@ export default function Home() {
   const [greeting,     setGreeting]     = useState('')
   const [dateLabel,    setDateLabel]    = useState('')
   const [loading,      setLoading]      = useState(true)
-  const [editingSteps,  setEditingSteps]  = useState(false)
-  const [stepsInput,    setStepsInput]    = useState('')
-  const [calInput,      setCalInput]      = useState('')
-  const [syncing,       setSyncing]       = useState(false)
-  const [syncMsg,       setSyncMsg]       = useState('')
   const [editingWeight, setEditingWeight] = useState(false)
   const [weightInput,   setWeightInput]   = useState('')
   const [weightUnit,    setWeightUnit]    = useState(() => localStorage.getItem('weightUnit') || 'lbs')
@@ -247,82 +242,17 @@ export default function Home() {
     setEditingWeight(false)
   }
 
-  async function syncFromCloud() {
-    if (!user?.healthSyncToken) return { ok: false, msg: 'No sync token — visit Settings → iPhone Health Sync first' }
-    try {
-      const { sbFetchHealthSync } = await import('../db/db.js')
-      const data = await sbFetchHealthSync(user.healthSyncToken)
-      if (!data?.steps || !data?.date) return { ok: false, msg: 'No data in cloud yet — run your shortcut first' }
-      const dataDate = normalizeDate(data.date)
-      if (!dataDate) return { ok: false, msg: 'Unrecognised date format from shortcut — check your setup' }
-      const now = new Date().toISOString()
-      const existing = await db.stepsLog.where('[userId+date]').equals([user.id, dataDate]).first()
-      if (existing) {
-        await db.stepsLog.update(existing.id, { steps: data.steps, caloriesBurned: data.cal || 0, source: 'health', dirty: 1, updatedAt: now })
-      } else {
-        await db.stepsLog.add({ userId: user.id, date: dataDate, steps: data.steps, caloriesBurned: data.cal || 0, source: 'health', dirty: 1, updatedAt: now })
-      }
-      // Only update home screen display if data is for today
-      if (dataDate === today) {
-        const updated = await db.stepsLog.where('[userId+date]').equals([user.id, today]).first()
-        if (updated) setStepsData(updated)
-        return { ok: true, msg: `Synced — ${Number(data.steps).toLocaleString()} steps` }
-      }
-      return { ok: false, msg: `Shortcut last ran on ${dataDate} — today's data not yet posted` }
-    } catch (e) {
-      return { ok: false, msg: `Sync error: ${e.message}` }
-    }
-  }
-
-  async function syncFromClipboard() {
-    setSyncing(true)
-    setSyncMsg('')
-    const { ok, msg } = await syncFromCloud()
-    setSyncMsg(msg)
-    if (ok) setTimeout(() => setEditingSteps(false), 1200)
-    setSyncing(false)
-  }
-
-  function openStepsEdit() {
-    setStepsInput(stepsData?.steps ? String(stepsData.steps) : '')
-    setCalInput(stepsData?.caloriesBurned ? String(stepsData.caloriesBurned) : '')
-    setSyncMsg('')
-    setEditingSteps(true)
-  }
-
-  async function saveSteps() {
-    const steps = parseInt(stepsInput) || 0
-    const caloriesBurned = parseInt(calInput) || 0
-    const now = new Date().toISOString()
-    const existing = await db.stepsLog
-      .where('[userId+date]')
-      .equals([user.id, today])
-      .first()
-    if (existing) {
-      await db.stepsLog.update(existing.id, { steps, caloriesBurned, dirty:1, updatedAt:now })
-      setStepsData({ ...existing, steps, caloriesBurned })
-    } else {
-      const id = await db.stepsLog.add({ userId:user.id, date:today, steps, caloriesBurned, source:'manual', dirty:1, updatedAt:now })
-      setStepsData({ id, userId:user.id, date:today, steps, caloriesBurned })
-    }
-    setEditingSteps(false)
-  }
-
   function handleLogged() { setRefreshKey(k => k + 1) }
 
   useEffect(() => {
     window.addEventListener('nourish:food-logged', handleLogged)
-    window.addEventListener('nourish:steps-synced', handleLogged)
     return () => {
       window.removeEventListener('nourish:food-logged', handleLogged)
-      window.removeEventListener('nourish:steps-synced', handleLogged)
     }
   }, [])
 
   const suppCount = supplements.filter(s => suppDone[s]).length
   const goals     = user?.macroGoals || {}
-  const stepGoal  = user?.stepGoal || 10000
-  const stepPct   = stepsData?.steps ? Math.min(1, stepsData.steps / stepGoal) : 0
 
   if (loading) {
     return (
@@ -396,10 +326,8 @@ export default function Home() {
       <div style={{ background:'var(--bg-surface)', boxShadow:'var(--shadow-sm)', borderRadius:'var(--r-xl)', display:'flex', alignItems:'stretch' }}>
 
         {[
-          { label:'Weight',  Icon:WeightIcon,  value: weight ? `${weightUnit === 'lbs' ? Math.round(weight*2.20462*10)/10 : weight} ${weightUnit}` : '—', onClick: openWeightEdit },
-          { label:'Steps',   Icon:StepsIcon,   value: stepsData?.steps ? stepsData.steps.toLocaleString() : '—', onClick: openStepsEdit },
+          { label:'Weight',  Icon:WeightIcon,   value: weight ? `${weightUnit === 'lbs' ? Math.round(weight*2.20462*10)/10 : weight} ${weightUnit}` : '—', onClick: openWeightEdit },
           { label:'Workout', Icon:DumbbellIcon, value: workout ? (workout.name || 'Done').split(' ')[0] : 'Rest', onClick: null },
-          { label:'Burned',  Icon:FireIcon,    value: stepsData?.caloriesBurned ? `${stepsData.caloriesBurned} cal` : '—', onClick: openStepsEdit },
         ].map((stat, i) => (
           <button
             key={stat.label}
@@ -510,58 +438,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Steps sheet */}
-          {editingSteps && (
-            <div style={styles.sheetOverlay} onClick={() => setEditingSteps(false)}>
-              <div style={styles.sheet} onClick={e => e.stopPropagation()}>
-                <div style={styles.sheetHandle} />
-                <h3 style={styles.sheetTitle}>Today's Activity</h3>
-
-                <button
-                  style={{ ...styles.syncBtn, opacity: syncing ? 0.6 : 1 }}
-                  onClick={syncFromClipboard}
-                  disabled={syncing}
-                >
-                  {syncing ? 'Checking cloud…' : '⟳  Refresh from cloud'}
-                </button>
-                {syncMsg ? (
-                  <p style={{ fontSize:'13px', color: syncMsg.startsWith('Synced') ? 'var(--accent)' : 'var(--red)', margin:'-4px 0 0', lineHeight:'1.4' }}>{syncMsg}</p>
-                ) : (
-                  <p style={styles.sheetSub}>Your shortcut sends steps to the cloud automatically. Tap Refresh to pull the latest, or enter manually below.</p>
-                )}
-
-                <div style={styles.fieldRow}>
-                  <div style={styles.field}>
-                    <label style={lbl}>Steps</label>
-                    <input
-                      style={styles.input}
-                      type="number"
-                      inputMode="numeric"
-                      placeholder="e.g. 8000"
-                      value={stepsInput}
-                      onChange={e => setStepsInput(e.target.value)}
-                    />
-                  </div>
-                  <div style={styles.field}>
-                    <label style={lbl}>Calories Burned</label>
-                    <input
-                      style={styles.input}
-                      type="number"
-                      inputMode="numeric"
-                      placeholder="e.g. 350"
-                      value={calInput}
-                      onChange={e => setCalInput(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div style={styles.sheetActions}>
-                  <button style={styles.cancelBtn} onClick={() => setEditingSteps(false)}>Cancel</button>
-                  <button style={styles.saveBtn} onClick={saveSteps}>Save</button>
-                </div>
-              </div>
-            </div>
-          )}
         </>,
         document.body
       )}
