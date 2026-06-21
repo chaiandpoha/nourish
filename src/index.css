@@ -77,10 +77,10 @@
   --bg-nav: rgba(246,243,238,0.82);
 
   /* Hero gradient — overridden per color theme */
-  --hero-from: #152e22;
-  --hero-via1: #1f4233;
-  --hero-via2: #2d5e48;
-  --hero-to:   #3a6e56;
+  --hero-from: #2a5040;
+  --hero-via1: #376655;
+  --hero-via2: #457a67;
+  --hero-to:   #558e79;
 }
 
 /* ─── Color themes ───────────────────────────────────────────────────────────── */
