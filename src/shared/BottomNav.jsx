@@ -3,11 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { HomeIcon, FoodIcon, WorkoutIcon, CalendarIcon, SettingsIcon } from './Icons.jsx'
 
 const TABS = [
-  { path: '/',         label: 'Home',     Icon: HomeIcon,     color: '#4a7c6a', dim: 'rgba(74,124,106,0.13)'   },
-  { path: '/food',     label: 'Food',     Icon: FoodIcon,     color: '#f59e0b', dim: 'rgba(245,158,11,0.13)'   },
-  { path: '/workout',  label: 'Workout',  Icon: WorkoutIcon,  color: '#f97316', dim: 'rgba(249,115,22,0.13)'   },
-  { path: '/calendar', label: 'Calendar', Icon: CalendarIcon, color: '#6366f1', dim: 'rgba(99,102,241,0.13)'   },
-  { path: '/settings', label: 'Settings', Icon: SettingsIcon, color: '#64748b', dim: 'rgba(100,116,139,0.11)'  },
+  { path: '/',         label: 'Home',     Icon: HomeIcon     },
+  { path: '/food',     label: 'Food',     Icon: FoodIcon     },
+  { path: '/workout',  label: 'Workout',  Icon: WorkoutIcon  },
+  { path: '/calendar', label: 'Calendar', Icon: CalendarIcon },
+  { path: '/settings', label: 'Settings', Icon: SettingsIcon },
 ]
 
 export default function BottomNav() {
@@ -28,14 +28,13 @@ export default function BottomNav() {
     return location.pathname.startsWith(path)
   }
 
-  const navBg       = isKnicks ? '#006BB6' : 'var(--bg-surface)'
-  const navShadow   = isKnicks
+  const navBg        = isKnicks ? '#006BB6' : 'var(--bg-surface)'
+  const navShadow    = isKnicks
     ? '0 -1px 0 rgba(0,0,0,0.15), 0 -8px 24px rgba(0,60,120,0.25)'
     : '0 -1px 0 var(--border-subtle), 0 -8px 24px rgba(0,0,0,0.07)'
+  const activeColor  = isKnicks ? '#F58426' : 'var(--accent)'
+  const activeDim    = isKnicks ? 'rgba(245,132,38,0.18)' : 'var(--accent-dim)'
   const inactiveColor = isKnicks ? 'rgba(255,255,255,0.55)' : 'var(--text-secondary)'
-
-  function activeColor(tab) { return isKnicks ? '#F58426' : tab.color }
-  function activeDim(tab)   { return isKnicks ? 'rgba(245,132,38,0.18)' : tab.dim }
 
   return (
     <>
@@ -44,8 +43,6 @@ export default function BottomNav() {
       <nav style={{ ...styles.nav, background: navBg, boxShadow: navShadow }}>
         {TABS.map(tab => {
           const active = isActive(tab.path)
-          const aColor = activeColor(tab)
-          const aDim   = activeDim(tab)
           return (
             <button
               key={tab.path}
@@ -54,14 +51,14 @@ export default function BottomNav() {
             >
               <div style={{
                 ...styles.iconWrap,
-                background:  active ? aDim   : 'transparent',
-                color:       active ? aColor : inactiveColor,
+                background: active ? activeDim  : 'transparent',
+                color:      active ? activeColor : inactiveColor,
               }}>
                 <tab.Icon size={20} />
               </div>
               <span style={{
                 ...styles.label,
-                color:      active ? aColor : inactiveColor,
+                color:      active ? activeColor : inactiveColor,
                 fontWeight: active ? '600' : '500',
               }}>
                 {tab.label}

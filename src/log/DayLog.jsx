@@ -274,14 +274,14 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
           return (
             <button
               key={meal}
-              style={{ ...s.tab, ...(active ? { background: MEAL_COLORS[meal] } : {}) }}
+              style={{ ...s.tab, ...(active ? { background: 'var(--accent)' } : {}) }}
               onClick={() => handleTabChange(meal)}
             >
               <span style={{ ...s.tabLabel, ...(active ? { color:'#fff', fontWeight:'700' } : {}) }}>
                 {MEAL_LABELS[meal]}
               </span>
               {hasFood && (
-                <span style={{ ...s.tabKcal, ...(active ? { color:'rgba(255,255,255,0.75)' } : {}) }}>
+                <span style={{ ...s.tabKcal, ...(active ? { color:'rgba(255,255,255,0.72)' } : {}) }}>
                   {kcal}
                 </span>
               )}
