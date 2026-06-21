@@ -732,11 +732,11 @@ const styles = {
     paddingLeft:    '2px',
   },
   sectionTitle: {
-    fontSize:      '10px',
+    fontSize:      '11px',
     fontWeight:    '700',
-    color:         'var(--text-tertiary)',
+    color:         'var(--accent)',
     textTransform: 'uppercase',
-    letterSpacing: '0.1em',
+    letterSpacing: '0.08em',
   },
   sectionRight: {
     fontSize:   '12px',
@@ -758,11 +758,11 @@ const styles = {
     justifyContent: 'space-between',
   },
   suppCardTitle: {
-    fontSize:      '10px',
+    fontSize:      '11px',
     fontWeight:    '700',
-    color:         'var(--text-tertiary)',
+    color:         'var(--accent)',
     textTransform: 'uppercase',
-    letterSpacing: '0.1em',
+    letterSpacing: '0.08em',
   },
   suppCardCount: {
     fontSize:   '12px',
