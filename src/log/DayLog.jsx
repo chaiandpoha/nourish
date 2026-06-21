@@ -84,10 +84,13 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
   const [copyCustomError,   setCopyCustomError]   = useState('')
   const [note,              setNote]              = useState('')
   const [editingNote,       setEditingNote]       = useState(false)
-  // Past dates default to breakfast; today uses saved pref or time-based slot
-  const [activeTab, setActiveTab] = useState(() =>
-    (!date || date === localDate()) ? (readMealPref() || timeSlot()) : 'breakfast'
-  )
+  // Past dates default to breakfast; today uses time-based slot (dinner locked after 7 PM)
+  const [activeTab, setActiveTab] = useState(() => {
+    if (date && date !== localDate()) return 'breakfast'
+    const h = new Date().getHours()
+    if (h >= 19) return 'dinner'
+    return readMealPref() || timeSlot()
+  })
   const { user } = useAuth()
 
   // Compute target date fresh on each load — avoids stale "today" if app is
@@ -111,11 +114,17 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
         acc[m] = entries.filter(l => l.meal === m)
         return acc
       }, {})
-      const saved = readMealPref()
-      if (!saved) {
-        const smart = smartMealSlot(byMeal)
-        setActiveTab(smart)
-        saveMealPref(smart)
+      const h = new Date().getHours()
+      if (h >= 19) {
+        setActiveTab('dinner')
+        saveMealPref('dinner')
+      } else {
+        const saved = readMealPref()
+        if (!saved) {
+          const smart = smartMealSlot(byMeal)
+          setActiveTab(smart)
+          saveMealPref(smart)
+        }
       }
     }
   }, [user, getTargetDate])
