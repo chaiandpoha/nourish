@@ -274,17 +274,14 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
           return (
             <button
               key={meal}
-              style={{ ...s.tab, ...(active ? { background: MEAL_BG[meal], border: `1.5px solid ${MEAL_COLORS[meal]}` } : {}) }}
+              style={{ ...s.tab, ...(active ? { background: MEAL_COLORS[meal] } : {}) }}
               onClick={() => handleTabChange(meal)}
             >
-              <div style={{ width:'24px', height:'24px', borderRadius:'6px', background: MEAL_BG[meal], color: MEAL_COLORS[meal], display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <MealIcon size={13} />
-              </div>
-              <span style={{ ...s.tabLabel, ...(active ? { color: MEAL_COLORS[meal], fontWeight:'700' } : {}) }}>
+              <span style={{ ...s.tabLabel, ...(active ? { color:'#fff', fontWeight:'700' } : {}) }}>
                 {MEAL_LABELS[meal]}
               </span>
               {hasFood && (
-                <span style={{ ...s.tabKcal, color: active ? MEAL_COLORS[meal] : 'var(--text-secondary)' }}>
+                <span style={{ ...s.tabKcal, ...(active ? { color:'rgba(255,255,255,0.75)' } : {}) }}>
                   {kcal}
                 </span>
               )}
@@ -629,13 +626,9 @@ function FoodEntryRow({ entry, onDelete, onEdit }) {
 const s = {
   container:    { display:'flex', flexDirection:'column', gap:'8px' },
   tabRow:       { display:'flex', gap:'6px' },
-  tab:          { flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:'2px', padding:'8px 4px', background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', cursor:'pointer', minWidth:0 },
-  tabActive:    { background:'var(--accent)', border:'0.5px solid var(--accent)' },
-  tabIcon:      { fontSize:'14px', lineHeight:1 },
-  tabLabel:     { fontSize:'10px', fontWeight:'600', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' },
-  tabLabelActive:{ color:'var(--text-inverse)' },
-  tabKcal:      { fontSize:'10px', fontWeight:'700', color:'var(--accent)', fontFamily:'var(--font-mono)' },
-  tabKcalActive:{ color:'rgba(255,255,255,0.75)' },
+  tab:          { flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'1px', padding:'9px 6px', background:'var(--bg-elevated)', border:'none', borderRadius:'var(--r-lg)', cursor:'pointer', minWidth:0, WebkitTapHighlightColor:'transparent' },
+  tabLabel:     { fontSize:'11px', fontWeight:'600', color:'var(--text-secondary)', letterSpacing:'0.01em', whiteSpace:'nowrap' },
+  tabKcal:      { fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', fontFamily:'var(--font-mono)' },
 
   card:         { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', overflow:'hidden' },
   cardHeader:   { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 14px', borderBottom:'0.5px solid var(--border-subtle)' },
