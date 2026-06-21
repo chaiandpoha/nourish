@@ -481,7 +481,7 @@ const styles = {
   },
   batchMeta: {
     fontSize:        '12px',
-    color:           'var(--text-secondary)',
+    color:           'var(--text-primary)',
   },
   batchAge: {
     fontSize:        '11px',
@@ -521,7 +521,7 @@ const styles = {
   closeLink: {
     background:      'none',
     border:          'none',
-    color:           'var(--text-tertiary)',
+    color:           'var(--text-secondary)',
     fontSize:        '13px',
     cursor:          'pointer',
     padding:         0,

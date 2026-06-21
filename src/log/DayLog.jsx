@@ -665,7 +665,7 @@ const s = {
   entryRow:     { display:'flex', alignItems:'center', padding:'10px 14px', borderTop:'0.5px solid var(--border-subtle)', cursor:'pointer', gap:'8px' },
   entryInfo:    { flex:1, display:'flex', flexDirection:'column', gap:'2px', minWidth:0 },
   entryName:    { fontSize:'14px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' },
-  entryMeta:    { fontSize:'12px', color:'var(--text-tertiary)', lineHeight:'1.4' },
+  entryMeta:    { fontSize:'12px', color:'var(--text-secondary)', lineHeight:'1.4' },
   mp:           { color:'var(--macro-protein)', fontWeight:'600' },
   mc:           { color:'var(--macro-carbs)',   fontWeight:'600' },
   mf:           { color:'var(--macro-fat)',     fontWeight:'600' },

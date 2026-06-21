@@ -264,7 +264,7 @@ const s = {
   cardTop:         { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' },
   cardInfo:        { display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 },
   cardName:        { fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  cardMeta:        { fontSize: '12px', color: 'var(--text-tertiary)' },
+  cardMeta:        { fontSize: '12px', color: 'var(--text-secondary)' },
   cardActions:     { display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 },
   editBtn:         { padding: '5px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 'var(--r-md)', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: '600', cursor: 'pointer' },
   deleteBtn:       { width: '28px', height: '28px', background: 'none', border: 'none', color: 'var(--text-tertiary)', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
