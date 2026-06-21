@@ -169,19 +169,13 @@ export default function CalendarView() {
                   cursor:      isFuture ? 'default' : 'pointer',
                 }}
               >
-                {/* Top row: day number + badges */}
+                {/* Top row: day number */}
                 <div style={s.cellTop}>
                   <span style={{
                     ...s.dayNum,
                     color:      isToday ? 'var(--accent)' : 'var(--text-primary)',
                     fontWeight: isToday ? '700' : '600',
                   }}>{day}</span>
-                  <div style={s.badges}>
-                    {data?.hasWorkout  && <span style={s.badgeW} />}
-                    {data?.proteinHit  && <span style={s.badgeP} />}
-                    {data?.calOk       && <span style={s.badgeC} />}
-                    {data?.weight      && <span style={s.badgeWt} />}
-                  </div>
                 </div>
 
                 {/* Calories */}
@@ -207,12 +201,9 @@ export default function CalendarView() {
 
       {/* Inline legend */}
       <div style={s.legend}>
-        <div style={s.legendItem}><span style={s.badgeW} /><span>Workout</span></div>
-        <div style={s.legendItem}><span style={s.badgeP} /><span>Protein</span></div>
-        <div style={s.legendItem}><span style={s.badgeC} /><span>Calories</span></div>
-        <div style={s.legendItem}><span style={s.badgeWt} /><span>Weight</span></div>
-        <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'var(--accent-dim)', border:'1px solid var(--accent)' }} /><span>On track</span></div>
-        <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'rgba(184,120,48,0.09)', border:'1px solid var(--amber)' }} /><span>Logged</span></div>
+        <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'var(--accent-dim)', border:'1px solid var(--accent)' }} /><span>Protein hit</span></div>
+        <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'rgba(184,120,48,0.09)', border:'1px solid var(--amber)' }} /><span>Logged, missed</span></div>
+        <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)' }} /><span>No log</span></div>
       </div>
 
     </div>
@@ -241,13 +232,8 @@ const s = {
   loading:      { textAlign:'center', padding:'32px 0', fontSize:'14px', color:'var(--text-tertiary)' },
 
   cell:         { display:'flex', flexDirection:'column', alignItems:'stretch', padding:'5px 5px 0', minHeight:'58px', borderRadius:'var(--r-md)', gap:'2px', overflow:'hidden', WebkitTapHighlightColor:'transparent' },
-  cellTop:      { display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'2px' },
-  dayNum:       { fontSize:'12px', lineHeight:'1', flexShrink:0 },
-  badges:       { display:'flex', flexWrap:'wrap', gap:'3px', justifyContent:'flex-end', flex:1 },
-  badgeW:       { display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', background:'var(--accent)', flexShrink:0 },
-  badgeP:       { display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', background:'#10b981', flexShrink:0 },
-  badgeC:       { display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', background:'#f59e0b', flexShrink:0 },
-  badgeWt:      { display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', background:'#6366f1', flexShrink:0 },
+  cellTop:      { display:'flex', alignItems:'center', justifyContent:'space-between' },
+  dayNum:       { fontSize:'12px', lineHeight:'1' },
   calNum:       { fontSize:'11px', fontWeight:'700', color:'var(--text-secondary)', letterSpacing:'-0.02em', textAlign:'center', flex:1, display:'flex', alignItems:'center', justifyContent:'center' },
   missed:       { fontSize:'11px', color:'var(--text-tertiary)', textAlign:'center', flex:1, display:'flex', alignItems:'center', justifyContent:'center' },
 
@@ -256,5 +242,5 @@ const s = {
 
   legend:       { display:'flex', gap:'14px', flexWrap:'wrap', padding:'4px 2px' },
   legendItem:   { display:'flex', alignItems:'center', gap:'6px', fontSize:'11px', color:'var(--text-secondary)' },
-  legendSwatch: { width:'10px', height:'10px', borderRadius:'3px', flexShrink:0 },
+  legendSwatch: { width:'12px', height:'12px', borderRadius:'4px', flexShrink:0 },
 }
