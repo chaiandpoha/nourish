@@ -320,7 +320,7 @@ const r = {
   ingRight:     { display:'flex', alignItems:'center', gap:'4px', flexShrink:0 },
   ingInput:     { width:'60px', padding:'6px 8px', background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', fontSize:'15px', fontWeight:'600', color:'var(--text-primary)', outline:'none', textAlign:'right', fontFamily:'var(--font-mono)' },
   unitBtn:      { padding:'4px 7px', background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'11px', fontWeight:'600', color:'var(--text-tertiary)', cursor:'pointer' },
-  unitBtnActive:{ background:'var(--text-primary)', border:'1px solid var(--text-primary)', color:'var(--text-inverse)' },
+  unitBtnActive:{ background:'var(--accent)', border:'1px solid var(--accent)', color:'var(--text-inverse)' },
   totalRow:     { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'var(--bg-surface)' },
   totalLabel:   { fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em' },
   totalVal:     { fontSize:'13px', fontWeight:'600', color:'var(--text-primary)', fontFamily:'var(--font-mono)' },
@@ -331,5 +331,5 @@ const r = {
   error:        { fontSize:'13px', color:'var(--red)', margin:0 },
   actions:      { display:'flex', gap:'10px', marginTop:'4px' },
   cancelBtn:    { flex:1, padding:'14px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', color:'var(--text-secondary)', fontSize:'15px', fontWeight:'500', cursor:'pointer' },
-  saveBtn:      { flex:2, padding:'14px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer' },
+  saveBtn:      { flex:2, padding:'14px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer' },
 }

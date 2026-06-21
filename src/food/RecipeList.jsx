@@ -176,7 +176,7 @@ export default function RecipeList({ householdId }) {
 
 const s = {
   container: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  newBtn:    { padding: '13px', background: 'var(--text-primary)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '15px', fontWeight: '600', cursor: 'pointer', width: '100%' },
+  newBtn:    { padding: '13px', background:'var(--accent)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '15px', fontWeight: '600', cursor: 'pointer', width: '100%' },
   empty:     { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 0', gap: '6px' },
   emptyTitle:{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 },
   emptySub:  { fontSize: '13px', color: 'var(--text-tertiary)', textAlign: 'center', margin: 0, lineHeight: '1.5', maxWidth: '260px' },

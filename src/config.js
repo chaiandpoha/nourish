@@ -46,10 +46,10 @@ export const MACRO_COLORS = {
 export const MEAL_SLOTS = ['breakfast', 'lunch', 'dinner', 'snack']
 
 export const MEAL_SLOT_HOURS = {
-  breakfast: { start: 0,  end: 10 },
-  lunch:     { start: 10, end: 15 },
-  dinner:    { start: 15, end: 19 },
-  snack:     { start: 19, end: 24 },
+  breakfast: { start: 0,  end: 12 },
+  lunch:     { start: 12, end: 16 },
+  snack:     { start: 16, end: 19 },
+  dinner:    { start: 19, end: 24 },
 }
 
 // ─── Progress Photos ─────────────────────────────────────────────────────────

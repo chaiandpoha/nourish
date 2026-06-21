@@ -441,7 +441,7 @@ const styles = {
   saveBtn: {
     width:           '100%',
     padding:         '14px',
-    background:      'var(--text-primary)',
+    background:'var(--accent)',
     border:          'none',
     borderRadius:    'var(--r-lg)',
     color:           'var(--text-inverse)',

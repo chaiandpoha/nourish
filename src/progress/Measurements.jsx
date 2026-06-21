@@ -96,7 +96,7 @@ export default function Measurements() {
           style={{
             ...styles.saveBtn,
             opacity: (!hasAny || saving) ? 0.5 : 1,
-            background: saved ? 'var(--accent)' : 'var(--text-primary)',
+            background: 'var(--accent)',
           }}
           onClick={handleSave}
           disabled={!hasAny || saving}

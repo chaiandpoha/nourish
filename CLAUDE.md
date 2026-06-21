@@ -64,7 +64,9 @@ iOS Shortcut POSTs steps/calories to Supabase `health_sync` table using a per-us
 
 ### Key config
 
-`src/config.js` — all constants: macro keys, meal slots, AI model names, PIN/auth settings, DB name/version, feature flags. Import from here rather than hardcoding strings.
+`src/config.js` — all constants: macro keys, meal slots, AI model names, PIN/auth settings, DB name, feature flags. Import from here rather than hardcoding strings.
+
+`DB_VERSION` in `config.js` is the **base schema version (1)** used for the initial `db.version(1).stores({})` call. The actual current IndexedDB version is defined by the highest `db.version(N)` call in `indexedDB.js` (currently 11). Do not change `DB_VERSION` — add a new `db.version(N+1).stores({...})` block in `indexedDB.js` instead.
 
 ### Styling
 
@@ -76,4 +78,4 @@ Custom service worker at `src/sw.js`, injected by `vite-plugin-pwa` with `inject
 
 ### Tests
 
-Tests use Vitest + happy-dom + `fake-indexeddb`. Test setup is in `src/__tests__/setup.js`. The only test directory is `src/db/__tests__/`. There is also a Playwright UAT script (`uat.mjs`) with screenshots saved to `uat-screenshots/`.
+Tests use Vitest + happy-dom + `fake-indexeddb`. Test setup is in `src/__tests__/setup.js`. Test directories: `src/db/__tests__/` (sync/restore logic) and `src/food/__tests__/` (FoodDB helpers). There is also a Playwright UAT script (`uat.mjs`) with screenshots saved to `uat-screenshots/`.

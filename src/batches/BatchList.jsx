@@ -445,7 +445,7 @@ const styles = {
   createBtn: {
     marginTop:       '8px',
     padding:         '12px 24px',
-    background:      'var(--text-primary)',
+    background:'var(--accent)',
     border:          'none',
     borderRadius:    'var(--r-lg)',
     color:           'var(--text-inverse)',
@@ -496,7 +496,7 @@ const styles = {
   },
   logBtn: {
     padding:         '9px 16px',
-    background:      'var(--text-primary)',
+    background:'var(--accent)',
     border:          'none',
     borderRadius:    'var(--r-md)',
     color:           'var(--text-inverse)',
@@ -640,9 +640,9 @@ const styles = {
     cursor:          'pointer',
   },
   mealBtnActive: {
-    background:      'var(--text-primary)',
+    background:'var(--accent)',
     color:           'var(--text-inverse)',
-    border:          '0.5px solid var(--text-primary)',
+    border:'0.5px solid var(--accent)',
   },
   gramRow: {
     display:         'flex',
@@ -717,7 +717,7 @@ const styles = {
   logBtnFull: {
     flex:            2,
     padding:         '14px',
-    background:      'var(--text-primary)',
+    background:'var(--accent)',
     border:          'none',
     borderRadius:    'var(--r-lg)',
     color:           'var(--text-inverse)',

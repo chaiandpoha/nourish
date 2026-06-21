@@ -150,7 +150,7 @@ const s = {
   copyBtn:     { width:"100%", padding:"12px", background:"var(--accent-dim)", border:"none", borderRadius:"var(--r-lg)", color:"var(--accent)", fontSize:"15px", fontWeight:"600", cursor:"pointer" },
   input:       { width:"100%", padding:"14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-lg)", fontSize:"16px", color:"var(--text-primary)", outline:"none", textAlign:"center", letterSpacing:"2px", fontFamily:"var(--font-mono)", boxSizing:"border-box" },
   error:       { color:"var(--red)", fontSize:"13px", margin:0 },
-  primaryBtn:  { width:"100%", padding:"15px", background:"var(--text-primary)", border:"none", borderRadius:"var(--r-lg)", color:"var(--text-inverse)", fontSize:"16px", fontWeight:"600", cursor:"pointer" },
+  primaryBtn:  { width:"100%", padding:"15px", background:"var(--accent)", border:"none", borderRadius:"var(--r-lg)", color:"var(--text-inverse)", fontSize:"16px", fontWeight:"600", cursor:"pointer" },
   divider:     { width:"100%", display:"flex", alignItems:"center", gap:"12px" },
   dividerText: { fontSize:"13px", color:"var(--text-tertiary)", flexShrink:0 },
   ghostBtn:    { width:"100%", padding:"13px", background:"transparent", border:"1px solid var(--border-default)", borderRadius:"var(--r-lg)", color:"var(--text-secondary)", fontSize:"15px", cursor:"pointer" },

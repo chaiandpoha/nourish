@@ -67,6 +67,50 @@
   --sp-lg:  24px;
   --sp-xl:  32px;
   --sp-2xl: 48px;
+
+  /* Elevation */
+  --shadow-xs: 0 1px 2px rgba(28,24,20,0.04);
+  --shadow-sm: 0 1px 3px rgba(28,24,20,0.08), 0 1px 2px rgba(28,24,20,0.04);
+  --shadow-md: 0 4px 8px rgba(28,24,20,0.07), 0 2px 4px rgba(28,24,20,0.04);
+
+  /* Frosted glass nav */
+  --bg-nav: rgba(246,243,238,0.82);
+
+  /* Hero gradient — overridden per color theme */
+  --hero-from: #152e22;
+  --hero-via1: #1f4233;
+  --hero-via2: #2d5e48;
+  --hero-to:   #3a6e56;
+}
+
+/* ─── Color themes ───────────────────────────────────────────────────────────── */
+
+[data-color="knicks"] {
+  /* White base — no earthy tones */
+  --bg-base:        #ffffff;
+  --bg-surface:     #ffffff;
+  --bg-elevated:    #eef4fb;
+  --bg-hover:       #e2edf8;
+  --bg-nav:         rgba(255,255,255,0.92);
+
+  /* Blue-tinted borders */
+  --border-subtle:  #dae8f5;
+  --border-default: #c4d9ee;
+  --border-strong:  #a8c6e3;
+
+  /* Text inverse stays readable on blue/orange */
+  --text-inverse:   #ffffff;
+
+  /* Orange as primary action */
+  --accent:         #F58426;
+  --accent-dim:     rgba(245,132,38,0.12);
+  --accent-glow:    rgba(245,132,38,0.10);
+
+  /* Blue hero gradient */
+  --hero-from:      #003F82;
+  --hero-via1:      #004F9E;
+  --hero-via2:      #0062BF;
+  --hero-to:        #006BB6;
 }
 
 /* ─── Reset ──────────────────────────────────────────────────────────────────── */
@@ -117,16 +161,16 @@ h1, h2, h3, h4 {
   color:          var(--text-primary);
 }
 
-h1 { font-size: clamp(22px, 6vw, 28px); font-weight: 300; }
+h1 { font-size: clamp(22px, 6vw, 28px); font-weight: 300; letter-spacing: -0.03em; }
 h2 { font-size: clamp(18px, 5vw, 22px); }
 h3 { font-size: 17px; }
 h4 { font-size: 15px; }
 
 /* Section headers — small uppercase labels */
 .section-label {
-  font-size:      10px;
+  font-size:      11px;
   font-weight:    600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color:          var(--text-tertiary);
   font-family:    var(--font-sans);
@@ -192,7 +236,7 @@ button:disabled {
   background:      var(--text-primary);
   color:           var(--text-inverse);
   font-size:       16px;
-  font-weight:     500;
+  font-weight:     600;
   letter-spacing:  -0.01em;
   border-radius:   var(--r-lg);
   text-align:      center;
@@ -230,7 +274,7 @@ button:disabled {
   background:     var(--accent);
   color:          #fff;
   font-size:      16px;
-  font-weight:    500;
+  font-weight:    600;
   border-radius:  var(--r-lg);
   text-align:     center;
 }
@@ -321,7 +365,7 @@ input[type="number"]::-webkit-outer-spin-button {
 /* ─── Cards ──────────────────────────────────────────────────────────────────── */
 .card {
   background:    var(--bg-surface);
-  border:        0.5px solid var(--border-subtle);
+  box-shadow:    var(--shadow-sm);
   border-radius: var(--r-xl);
   padding:       var(--sp-md) var(--sp-lg);
 }
@@ -555,6 +599,10 @@ hr, .divider {
     --accent-dim:          #192923;
     --accent-glow:         rgba(90, 156, 136, 0.12);
     --bg-btn-primary-hover:#e0ddd6;
+    --shadow-xs:           0 1px 2px rgba(0,0,0,0.20);
+    --shadow-sm:           0 1px 3px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.16);
+    --shadow-md:           0 4px 8px rgba(0,0,0,0.28), 0 2px 4px rgba(0,0,0,0.18);
+    --bg-nav:              rgba(19,18,16,0.85);
   }
 }
 
@@ -576,6 +624,9 @@ hr, .divider {
   --accent-dim:          #192923;
   --accent-glow:         rgba(90, 156, 136, 0.12);
   --bg-btn-primary-hover:#e0ddd6;
+  --shadow-xs:           0 1px 2px rgba(0,0,0,0.20);
+  --shadow-sm:           0 1px 3px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.16);
+  --shadow-md:           0 4px 8px rgba(0,0,0,0.28), 0 2px 4px rgba(0,0,0,0.18);
 }
 
 /* Manual light override — forces light even on dark-preferring system */

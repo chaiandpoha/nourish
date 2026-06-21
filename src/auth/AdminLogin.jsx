@@ -31,13 +31,24 @@ export default function AdminLogin() {
       return
     }
     try {
-      const { initiateOAuthFlow } = await import('../db/authApi.js')
       const users = await db.users.toArray()
 
       if (users.length === 0) {
-        // No local profile — sign in with Google to create one
-        initiateOAuthFlow()
-        return // page redirects to Google, setLoading stays true intentionally
+        // No local profile — create a minimal admin record without OAuth
+        const id = 'admin-local'
+        await db.users.put({
+          id,
+          email:     ADMIN_EMAIL || 'admin@local',
+          name:      'Admin',
+          isAdmin:   true,
+          skipPin:   true,
+          dirty:     0,
+          updatedAt: new Date().toISOString(),
+        })
+        sessionStorage.removeItem('nourish_logged_out')
+        await loginWithPin(id, '', 'nourish-no-encryption')
+        window.location.hash = '#/'
+        return
       }
 
       // Profile exists — log in directly
@@ -97,6 +108,6 @@ const s = {
   form:      { display:'flex', flexDirection:'column', gap:'12px', width:'100%', maxWidth:'320px' },
   input:     { padding:'13px 16px', fontSize:'16px', borderRadius:'var(--r-lg)', border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-primary)', outline:'none' },
   error:     { fontSize:'13px', color:'var(--red)', margin:'0', textAlign:'center' },
-  btn:       { padding:'14px', background:'var(--text-primary)', color:'var(--text-inverse)', border:'none', borderRadius:'var(--r-lg)', fontSize:'15px', fontWeight:'600', cursor:'pointer' },
+  btn:       { padding:'14px', background:'var(--accent)', color:'var(--text-inverse)', border:'none', borderRadius:'var(--r-lg)', fontSize:'15px', fontWeight:'600', cursor:'pointer' },
   back:      { marginTop:'24px', background:'none', border:'none', color:'var(--text-tertiary)', fontSize:'14px', cursor:'pointer' },
 }

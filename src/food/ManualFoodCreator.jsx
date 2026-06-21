@@ -281,5 +281,5 @@ const st = {
   error:         { fontSize: '13px', color: 'var(--red)', margin: 0 },
   actions:       { display: 'flex', gap: '10px', marginTop: '4px' },
   secondaryBtn:  { flex: 1, padding: '14px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', color: 'var(--text-secondary)', fontSize: '15px', fontWeight: '500', cursor: 'pointer' },
-  primaryBtn:    { flex: 2, padding: '14px', background: 'var(--text-primary)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
+  primaryBtn:    { flex: 2, padding: '14px', background:'var(--accent)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
 }

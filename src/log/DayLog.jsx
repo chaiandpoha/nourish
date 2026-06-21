@@ -4,9 +4,12 @@ import { getFoodLogForDate, deleteFoodLogEntry, addFoodLogEntry, updateFoodLogEn
 import { sumMacros } from '../food/macroCalc.js'
 import { MACRO_COLORS } from '../config.js'
 import { Skeleton, SkeletonCard } from '../shared/Skeleton.jsx'
+import { BreakfastIcon, LunchIcon, DinnerIcon, SnackIcon } from '../shared/Icons.jsx'
 
 const MEAL_SLOTS  = ['breakfast', 'lunch', 'dinner', 'snack']
-const MEAL_ICONS  = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎' }
+const MEAL_ICONS  = { breakfast: BreakfastIcon, lunch: LunchIcon, dinner: DinnerIcon, snack: SnackIcon }
+const MEAL_COLORS = { breakfast: '#f59e0b', lunch: 'var(--accent)', dinner: '#6366f1', snack: '#f97316' }
+const MEAL_BG     = { breakfast: 'rgba(245,158,11,0.12)', lunch: 'rgba(74,124,106,0.12)', dinner: 'rgba(99,102,241,0.12)', snack: 'rgba(249,115,22,0.12)' }
 const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' }
 
 // Local date (not UTC) — fixes midnight–5:30am IST showing wrong day
@@ -264,21 +267,24 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
       {/* Tab row */}
       <div style={s.tabRow}>
         {MEAL_SLOTS.map(meal => {
-          const kcal    = sumMacros(byMeal[meal]).calories
-          const hasFood = byMeal[meal].length > 0
-          const active  = meal === activeTab
+          const kcal     = sumMacros(byMeal[meal]).calories
+          const hasFood  = byMeal[meal].length > 0
+          const active   = meal === activeTab
+          const MealIcon = MEAL_ICONS[meal]
           return (
             <button
               key={meal}
-              style={{ ...s.tab, ...(active ? s.tabActive : {}) }}
+              style={{ ...s.tab, ...(active ? { background: MEAL_BG[meal], border: `1.5px solid ${MEAL_COLORS[meal]}` } : {}) }}
               onClick={() => handleTabChange(meal)}
             >
-              <span style={s.tabIcon}>{MEAL_ICONS[meal]}</span>
-              <span style={{ ...s.tabLabel, ...(active ? s.tabLabelActive : {}) }}>
+              <div style={{ width:'24px', height:'24px', borderRadius:'6px', background: MEAL_BG[meal], color: MEAL_COLORS[meal], display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <MealIcon size={13} />
+              </div>
+              <span style={{ ...s.tabLabel, ...(active ? { color: MEAL_COLORS[meal], fontWeight:'700' } : {}) }}>
                 {MEAL_LABELS[meal]}
               </span>
               {hasFood && (
-                <span style={{ ...s.tabKcal, ...(active ? s.tabKcalActive : {}) }}>
+                <span style={{ ...s.tabKcal, color: active ? MEAL_COLORS[meal] : 'var(--text-secondary)' }}>
                   {kcal}
                 </span>
               )}
@@ -291,9 +297,10 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
       <div style={s.card}>
         {/* Meal header */}
         <div style={s.cardHeader}>
-          <span style={s.cardTitle}>
-            {MEAL_ICONS[activeTab]} {MEAL_LABELS[activeTab]}
-          </span>
+          <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+            {[activeTab].map(m => { const I = MEAL_ICONS[m]; return <div key={m} style={{ width:'28px', height:'28px', borderRadius:'8px', background:MEAL_BG[m], color:MEAL_COLORS[m], display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><I size={14} /></div> })}
+            <span style={s.cardTitle}>{MEAL_LABELS[activeTab]}</span>
+          </div>
           {activeEntries.length > 0 && (
             <span style={s.cardKcal}>{activeTotals.calories} kcal</span>
           )}
@@ -411,8 +418,9 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
                 </button>
                 <div style={s.copyMealHint}>Copy into → {MEAL_LABELS[activeTab]}</div>
                 {MEAL_SLOTS.map(m => {
-                  const preview = copySelectedDate.byMeal[m]
+                  const preview  = copySelectedDate.byMeal[m]
                   const disabled = !preview
+                  const CopyIcon = MEAL_ICONS[m]
                   return (
                     <button
                       key={m}
@@ -420,7 +428,7 @@ export default function DayLog({ date, onTotalsChange, reloadTrigger }) {
                       disabled={disabled}
                       onClick={() => !disabled && handleCopyFromMeal(copySelectedDate.date, m)}
                     >
-                      <span style={s.copyMealIcon}>{MEAL_ICONS[m]}</span>
+                      <div style={{ width:'24px', height:'24px', borderRadius:'6px', background:MEAL_BG[m], color:MEAL_COLORS[m], display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><CopyIcon size={13} /></div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={s.copyDateLabel}>{MEAL_LABELS[m]}</div>
                         {preview
@@ -527,11 +535,11 @@ function FoodEntryRow({ entry, onDelete, onEdit }) {
         {isBatch && adjIngredients.length > 0 && (
           <div style={{ display:'flex', gap:'6px' }}>
             <button
-              style={{ ...s.editBtn, ...((!adjMode) ? { background:'var(--text-primary)', color:'var(--text-inverse)' } : {}) }}
+              style={{ ...s.editBtn, ...((!adjMode) ? { background:'var(--accent)', color:'var(--text-inverse)' } : {}) }}
               onClick={() => setAdjMode(false)}
             >Grams</button>
             <button
-              style={{ ...s.editBtn, ...(adjMode ? { background:'var(--text-primary)', color:'var(--text-inverse)' } : {}) }}
+              style={{ ...s.editBtn, ...(adjMode ? { background:'var(--accent)', color:'var(--text-inverse)' } : {}) }}
               onClick={() => setAdjMode(true)}
             >Ingredients</button>
           </div>
@@ -622,7 +630,7 @@ const s = {
   container:    { display:'flex', flexDirection:'column', gap:'8px' },
   tabRow:       { display:'flex', gap:'6px' },
   tab:          { flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:'2px', padding:'8px 4px', background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-lg)', cursor:'pointer', minWidth:0 },
-  tabActive:    { background:'var(--text-primary)', border:'0.5px solid var(--text-primary)' },
+  tabActive:    { background:'var(--accent)', border:'0.5px solid var(--accent)' },
   tabIcon:      { fontSize:'14px', lineHeight:1 },
   tabLabel:     { fontSize:'10px', fontWeight:'600', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' },
   tabLabelActive:{ color:'var(--text-inverse)' },

@@ -266,7 +266,7 @@ const s = {
   weightInput:  { flex:1, padding:'12px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', fontSize:'28px', fontWeight:'300', letterSpacing:'-0.02em', color:'var(--text-primary)', outline:'none' },
   unitLabel:    { fontSize:'16px', color:'var(--text-tertiary)', fontWeight:'500' },
   noteInput:    { padding:'10px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', fontSize:'14px', color:'var(--text-primary)', outline:'none' },
-  saveBtn:      { padding:'13px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer' },
+  saveBtn:      { padding:'13px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer' },
   chartLabels:  { display:'flex', justifyContent:'space-between' },
   chartLabel:   { fontSize:'11px', color:'var(--text-tertiary)', fontFamily:'var(--font-mono)' },
   histRow:      { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:'0.5px solid var(--border-subtle)' },

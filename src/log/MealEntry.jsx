@@ -8,6 +8,11 @@ import BarcodeScanner from "../food/BarcodeScanner.jsx"
 import RecipeBuilder from "../food/RecipeBuilder.jsx"
 import ManualFoodCreator from "../food/ManualFoodCreator.jsx"
 import { MACRO_COLORS } from "../config.js"
+import { BreakfastIcon, LunchIcon, DinnerIcon, SnackIcon } from "../shared/Icons.jsx"
+
+const MEAL_ICONS  = { breakfast: BreakfastIcon, lunch: LunchIcon, dinner: DinnerIcon, snack: SnackIcon }
+const MEAL_COLORS = { breakfast: '#f59e0b', lunch: 'var(--accent)', dinner: '#6366f1', snack: '#f97316' }
+const MEAL_BG     = { breakfast: 'rgba(245,158,11,0.12)', lunch: 'rgba(74,124,106,0.12)', dinner: 'rgba(99,102,241,0.12)', snack: 'rgba(249,115,22,0.12)' }
 import { localDate, readMealPref, timeSlot } from "./DayLog.jsx"
 
 // ─── Speech recognition support ──────────────────────────────────────────────
@@ -372,15 +377,22 @@ export default function MealEntry({ date, onLogged, inline = false }) {
             <>
               {/* Meal selector */}
               <div style={s.mealRow}>
-                {["breakfast","lunch","dinner","snack"].map(m => (
-                  <button
-                    key={m}
-                    style={{ ...s.mealBtn, ...(meal === m ? s.mealBtnActive : {}) }}
-                    onClick={() => setMeal(m)}
-                  >
-                    {m.charAt(0).toUpperCase() + m.slice(1)}
-                  </button>
-                ))}
+                {["breakfast","lunch","dinner","snack"].map(m => {
+                  const MealIcon = MEAL_ICONS[m]
+                  const active   = meal === m
+                  return (
+                    <button
+                      key={m}
+                      style={{ ...s.mealBtn, ...(active ? s.mealBtnActive : {}) }}
+                      onClick={() => setMeal(m)}
+                    >
+                      <div style={{ width:'28px', height:'28px', borderRadius:'8px', background: active ? 'rgba(255,255,255,0.18)' : MEAL_BG[m], color: active ? '#fff' : MEAL_COLORS[m], display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <MealIcon size={15} />
+                      </div>
+                      {m.charAt(0).toUpperCase() + m.slice(1)}
+                    </button>
+                  )
+                })}
               </div>
 
               {/* Search */}
@@ -792,7 +804,7 @@ function FoodEntryInline({ food, batch, _meal, onAdd, onBack, onEditRecipe, init
               <div style={{ display:'flex', gap:'4px', flexShrink:0 }}>
                 {WEIGHT_UNITS.map(u => (
                   <button key={u} type="button" onClick={() => setUnit(u)}
-                    style={{ padding:'6px 8px', background: unit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${unit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: unit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
+                    style={{ padding:'6px 8px', background: unit === u ? 'var(--accent)' : 'var(--bg-elevated)', border:`1px solid ${unit === u ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: unit === u ? '#fff' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
                   >{u}</button>
                 ))}
               </div>
@@ -958,14 +970,14 @@ function FoodEntryInline({ food, batch, _meal, onAdd, onBack, onEditRecipe, init
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = {
-  fab:          { position:"fixed", bottom:"calc(80px + env(safe-area-inset-bottom) + 16px)", right:"20px", width:"56px", height:"56px", borderRadius:"50%", background:"var(--text-primary)", color:"var(--text-inverse)", fontSize:"28px", fontWeight:"300", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(28,24,20,0.18)", zIndex:90 },
-  inlineAddBtn: { padding:"14px", background:"var(--text-primary)", color:"var(--text-inverse)", border:"none", borderRadius:"var(--r-lg)", fontSize:"15px", fontWeight:"600", cursor:"pointer", width:"100%", textAlign:"center" },
+  fab:          { position:"fixed", bottom:"calc(80px + env(safe-area-inset-bottom) + 16px)", right:"20px", width:"56px", height:"56px", borderRadius:"50%", background:"var(--accent)", color:"var(--text-inverse)", fontSize:"28px", fontWeight:"300", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(28,24,20,0.18)", zIndex:90 },
+  inlineAddBtn: { padding:"14px", background:"var(--accent)", color:"var(--text-inverse)", border:"none", borderRadius:"var(--r-lg)", fontSize:"15px", fontWeight:"600", cursor:"pointer", width:"100%", textAlign:"center" },
   overlay:      { position:"fixed", inset:0, background:"rgba(28,24,20,0.35)", zIndex:150, backdropFilter:"blur(2px)" },
   sheet:        { position:"fixed", bottom:0, left:0, right:0, background:"var(--bg-surface)", borderRadius:"22px 22px 0 0", borderTop:"0.5px solid var(--border-subtle)", padding:"12px 16px calc(16px + env(safe-area-inset-bottom))", zIndex:151, height:"92svh", overflowY:"auto", overscrollBehavior:"contain", WebkitOverflowScrolling:"touch", animation:"sheetUp 0.2s cubic-bezier(0,0,0.2,1) both" },
   handle:       { width:"32px", height:"3px", background:"var(--border-strong)", borderRadius:"99px", margin:"0 auto 16px" },
   mealRow:      { display:"flex", gap:"6px", marginBottom:"12px" },
-  mealBtn:      { flex:1, padding:"8px 4px", background:"var(--bg-elevated)", border:"0.5px solid var(--border-subtle)", borderRadius:"var(--r-md)", fontSize:"12px", fontWeight:"500", color:"var(--text-secondary)", cursor:"pointer" },
-  mealBtnActive:{ background:"var(--text-primary)", color:"var(--text-inverse)", border:"0.5px solid var(--text-primary)" },
+  mealBtn:      { flex:1, padding:"10px 4px 8px", background:"var(--bg-elevated)", border:"0.5px solid var(--border-subtle)", borderRadius:"var(--r-md)", fontSize:"11px", fontWeight:"500", color:"var(--text-secondary)", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:"5px" },
+  mealBtnActive:{ background:"var(--accent)", color:"var(--text-inverse)", border:"0.5px solid var(--accent)" },
   searchRow:    { display:"flex", alignItems:"center", gap:"6px", marginBottom:"6px" },
   searchInput:  { flex:1, padding:"11px 14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-md)", fontSize:"15px", color:"var(--text-primary)", outline:"none", minWidth:0 },
   searchIconBtn:{ width:"40px", height:"40px", borderRadius:"var(--r-md)", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", color:"var(--text-secondary)", fontSize:"15px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
@@ -996,7 +1008,7 @@ const s = {
   servingHint:     { background:"none", border:"none", color:"var(--accent)", fontSize:"13px", cursor:"pointer", padding:0, textAlign:"left" },
   modeToggleRow:   { display:"flex", gap:"4px" },
   modeToggleBtn:   { padding:"6px 14px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-full)", fontSize:"12px", fontWeight:"600", color:"var(--text-secondary)", cursor:"pointer" },
-  modeToggleActive:{ background:"var(--text-primary)", border:"1px solid var(--text-primary)", color:"var(--text-inverse)" },
+  modeToggleActive:{ background:"var(--accent)", border:"1px solid var(--accent)", color:"var(--text-inverse)" },
   servingUnitInfo: { display:"flex", flexDirection:"column", alignItems:"flex-end", flexShrink:0, gap:"2px" },
   servingUnitName: { fontSize:"15px", fontWeight:"500", color:"var(--text-primary)" },
   servingUnitGrams:{ fontSize:"12px", color:"var(--text-tertiary)", fontFamily:"var(--font-mono)" },
@@ -1014,7 +1026,7 @@ const s = {
   error:        { fontSize:"13px", color:"var(--red)", margin:0 },
   actions:      { display:"flex", gap:"10px", marginTop:"4px" },
   cancelBtn:    { flex:1, padding:"14px", background:"transparent", border:"1px solid var(--border-default)", borderRadius:"var(--r-lg)", color:"var(--text-secondary)", fontSize:"15px", fontWeight:"500", cursor:"pointer" },
-  addBtn:       { flex:2, padding:"14px", background:"var(--text-primary)", border:"none", borderRadius:"var(--r-lg)", color:"var(--text-inverse)", fontSize:"15px", fontWeight:"600", cursor:"pointer" },
+  addBtn:       { flex:2, padding:"14px", background:"var(--accent)", border:"none", borderRadius:"var(--r-lg)", color:"var(--text-inverse)", fontSize:"15px", fontWeight:"600", cursor:"pointer" },
   saveToggle:   { display:"flex", alignItems:"center", gap:"10px", background:"var(--bg-elevated)", border:"1px solid var(--border-default)", borderRadius:"var(--r-lg)", padding:"12px 14px", cursor:"pointer", width:"100%", textAlign:"left", fontSize:"13px", color:"var(--text-secondary)", fontWeight:"500" },
   saveToggleOn: { border:"1px solid var(--accent)", color:"var(--accent)", background:"var(--accent-dim)" },
   saveToggleDot:{ width:"18px", height:"18px", borderRadius:"50%", border:"2px solid var(--border-default)", flexShrink:0, transition:"all 0.15s" },

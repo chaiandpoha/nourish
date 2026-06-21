@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { db } from '../../db/indexedDB.js'
+import { db } from '../../db/db.js'
 import { getActiveBatches, fetchHouseholdFoods, deleteFood } from '../FoodDB.js'
 
 // ─── Module mocks ─────────────────────────────────────────────────────────────

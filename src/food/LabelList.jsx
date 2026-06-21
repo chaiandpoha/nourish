@@ -287,5 +287,5 @@ const s = {
   error:           { fontSize: '13px', color: 'var(--red)', margin: 0 },
   editActions:     { display: 'flex', gap: '8px' },
   cancelBtn2:      { flex: 1, padding: '11px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500', cursor: 'pointer' },
-  saveBtn:         { flex: 2, padding: '11px', background: 'var(--text-primary)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '14px', fontWeight: '600', cursor: 'pointer' },
+  saveBtn:         { flex: 2, padding: '11px', background:'var(--accent)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '14px', fontWeight: '600', cursor: 'pointer' },
 }

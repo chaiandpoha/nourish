@@ -320,7 +320,7 @@ export async function deleteFood(id, householdId) {
     const deleted = JSON.parse(localStorage.getItem('nourish_deleted_foods') || '[]')
     if (!deleted.includes(id)) {
       deleted.push(id)
-      // Keep last 500 entries to avoid unbounded growth
+      // Keep last 2000 entries to avoid unbounded growth
       localStorage.setItem('nourish_deleted_foods', JSON.stringify(deleted.slice(-2000)))
     }
   } catch {}

@@ -210,7 +210,7 @@ const styles = {
     border:          '1px solid var(--amber)',
   },
   dotToday: {
-    background:      'var(--text-primary)',
+    background:'var(--accent)',
     color:           'var(--text-inverse)',
     fontSize:        '18px',
     fontWeight:      '300',

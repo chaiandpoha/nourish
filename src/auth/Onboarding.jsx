@@ -195,7 +195,7 @@ const s = {
   body:        { fontSize:'15px', color:'var(--text-secondary)', textAlign:'center', lineHeight:'1.5', margin:'0 0 16px' },
   label:       { fontSize:'13px', color:'var(--text-secondary)', alignSelf:'flex-start', marginBottom:'4px', marginTop:'8px' },
   input:       { width:'100%', padding:'13px 14px', background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', color:'var(--text-primary)', fontSize:'16px', outline:'none', boxSizing:'border-box' },
-  primaryBtn:  { width:'100%', padding:'15px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'16px', fontWeight:'600', cursor:'pointer', marginTop:'12px' },
+  primaryBtn:  { width:'100%', padding:'15px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'16px', fontWeight:'600', cursor:'pointer', marginTop:'12px' },
   ghostBtn:    { width:'100%', padding:'13px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', color:'var(--text-secondary)', fontSize:'15px', cursor:'pointer', marginTop:'8px' },
   skipBtn:     { background:'none', border:'none', color:'var(--text-tertiary)', fontSize:'13px', cursor:'pointer', padding:'8px', marginTop:'4px' },
   error:       { color:'var(--red)', fontSize:'14px', textAlign:'center', margin:'4px 0' },

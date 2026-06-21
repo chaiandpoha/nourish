@@ -443,7 +443,7 @@ const s = {
   emptyIcon:    { fontSize:'40px' },
   emptyText:    { fontSize:'16px', fontWeight:'600', color:'var(--text-primary)', margin:0 },
   emptySub:     { fontSize:'14px', color:'var(--text-secondary)', textAlign:'center', margin:0 },
-  createBtn:    { marginTop:'6px', padding:'12px 24px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer' },
+  createBtn:    { marginTop:'6px', padding:'12px 24px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer' },
 
   // View programme
   viewTitle:    { fontSize:'22px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.03em', marginTop:'6px' },
@@ -473,6 +473,6 @@ const s = {
   resultName:   { fontSize:'14px', color:'var(--text-primary)', fontWeight:'500' },
   resultMeta:   { fontSize:'12px', color:'var(--text-tertiary)', textTransform:'capitalize' },
   addDayBtn:    { padding:'13px', background:'var(--bg-elevated)', border:'1px dashed var(--border-strong)', borderRadius:'var(--r-lg)', color:'var(--text-secondary)', fontSize:'14px', fontWeight:'500', cursor:'pointer' },
-  saveBtn:      { width:'100%', padding:'16px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-xl)', color:'var(--text-inverse)', fontSize:'16px', fontWeight:'700', cursor:'pointer', letterSpacing:'-0.01em' },
+  saveBtn:      { width:'100%', padding:'16px', background:'var(--accent)', border:'none', borderRadius:'var(--r-xl)', color:'var(--text-inverse)', fontSize:'16px', fontWeight:'700', cursor:'pointer', letterSpacing:'-0.01em' },
   error:        { fontSize:'13px', color:'var(--red)', margin:0 },
 }

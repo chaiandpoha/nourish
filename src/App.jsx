@@ -29,7 +29,7 @@ import { localDate } from './log/DayLog.jsx'
 import HouseholdScreen from './household/HouseholdScreen.jsx'
 import RecipeList from './food/RecipeList.jsx'
 import LabelList from './food/LabelList.jsx'
-import { getThemePref, setThemePref } from './shared/theme.js'
+import { getThemePref, setThemePref, getColorTheme, setColorTheme } from './shared/theme.js'
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -539,12 +539,7 @@ function SettingsScreen() {
   const [saved, setSaved] = useState(false)
 
   async function saveInstructions() {
-    const { db } = await import('./db/db.js')
-    await db.users.update(user.id, {
-      aiInstructions: instructions,
-      dirty: 1,
-      updatedAt: new Date().toISOString(),
-    })
+    await saveUser({ ...user, aiInstructions: instructions })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -583,6 +578,7 @@ function SettingsScreen() {
           <ProfileEditor user={user} onSaved={refreshUser} />
           <MergeDuplicateProfile currentUserId={user?.id} />
           <ThemeToggle />
+          <ColorThemeToggle />
           <ExportData userId={user?.id} />
           {user?.pinHash && (
             <button style={styles.lockBtnFull} onClick={lock}>🔒 Lock App</button>
@@ -643,7 +639,7 @@ function SettingsScreen() {
             placeholder="e.g. I am vegetarian. Suggest Indian meals. I prefer high protein foods..."
           />
           <button
-            style={{ ...styles.saveInstructionsBtn, background: saved ? 'var(--accent)' : 'var(--text-primary)' }}
+            style={{ ...styles.saveInstructionsBtn, background: 'var(--accent)' }}
             onClick={saveInstructions}
           >
             {saved ? '✓ Saved' : 'Save Instructions'}
@@ -1284,7 +1280,7 @@ function ProfileEditor({ user, onSaved }) {
       <button
         onClick={handleSave}
         disabled={saving}
-        style={{ padding:'13px', background: saved ? 'var(--accent)' : 'var(--text-primary)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer', opacity: saving ? 0.6 : 1, transition:'background 0.2s ease' }}
+        style={{ padding:'13px', background: 'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer', opacity: saving ? 0.6 : 1, transition:'background 0.2s ease' }}
       >
         {saved ? '✓ Saved' : saving ? 'Saving…' : 'Save Profile'}
       </button>
@@ -1324,6 +1320,65 @@ const th = {
   group:     { display:'flex', background:'var(--bg-elevated)', borderRadius:'var(--r-md)', padding:'3px', gap:'2px' },
   btn:       { padding:'6px 14px', background:'transparent', border:'none', borderRadius:'9px', fontSize:'13px', fontWeight:'500', color:'var(--text-secondary)', cursor:'pointer' },
   btnActive: { background:'var(--bg-surface)', color:'var(--text-primary)', boxShadow:'0 1px 3px rgba(0,0,0,0.1)' },
+}
+
+// ─── ColorThemeToggle ─────────────────────────────────────────────────────────
+
+const COLOR_THEMES = [
+  {
+    id:      'default',
+    label:   'Forest',
+    swatch:  ['#152e22', '#4a7c6a', '#f6f3ee'],
+  },
+  {
+    id:      'knicks',
+    label:   'Knicks',
+    swatch:  ['#006BB6', '#F58426', '#ffffff'],
+  },
+]
+
+function ColorThemeToggle() {
+  const [current, setCurrent] = useState(getColorTheme)
+
+  function choose(id) {
+    setCurrent(id)
+    setColorTheme(id)
+  }
+
+  return (
+    <div style={{ ...th.row, flexDirection:'column', alignItems:'flex-start', gap:'12px' }}>
+      <span style={th.label}>Color Theme</span>
+      <div style={{ display:'flex', gap:'10px', width:'100%' }}>
+        {COLOR_THEMES.map(t => (
+          <button
+            key={t.id}
+            onClick={() => choose(t.id)}
+            style={{
+              flex: 1,
+              padding: '10px 8px 8px',
+              background: current === t.id ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+              border: current === t.id ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+              borderRadius: 'var(--r-lg)',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <div style={{ display:'flex', borderRadius:'6px', overflow:'hidden', width:'54px', height:'22px', flexShrink:0, border:'1px solid var(--border-subtle)' }}>
+              {t.swatch.map((c, i) => (
+                <div key={i} style={{ flex:1, background: c }} />
+              ))}
+            </div>
+            <span style={{ fontSize:'11px', fontWeight: current === t.id ? '700' : '500', color: current === t.id ? 'var(--accent)' : 'var(--text-secondary)', letterSpacing:'0.02em' }}>
+              {t.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 // ─── ExportData ───────────────────────────────────────────────────────────────
@@ -1433,8 +1488,8 @@ const st2 = {
   timeInput:     { background:'transparent', border:'none', fontSize:'15px', fontWeight:'500', color:'var(--text-primary)', outline:'none', textAlign:'right', cursor:'pointer' },
   daysRow:       { display:'flex', gap:'6px', padding:'12px 0', borderBottom:'0.5px solid var(--border-subtle)' },
   dayBtn:        { width:'34px', height:'34px', borderRadius:'50%', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', color:'var(--text-secondary)', fontSize:'11px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
-  dayBtnActive:  { background:'var(--text-primary)', border:'1px solid var(--text-primary)', color:'var(--text-inverse)' },
-  addBtn:        { width:'100%', padding:'13px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-md)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer', marginTop:'4px' },
+  dayBtnActive:  { background:'var(--accent)', border:'1px solid var(--accent)', color:'var(--text-inverse)' },
+  addBtn:        { width:'100%', padding:'13px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'var(--text-inverse)', fontSize:'15px', fontWeight:'600', cursor:'pointer', marginTop:'4px' },
   error:         { fontSize:'13px', color:'var(--red)', margin:'4px 0 0' },
   empty:         { display:'flex', flexDirection:'column', alignItems:'center', padding:'48px 0', gap:'6px' },
   emptyTitle:    { fontSize:'15px', fontWeight:'600', color:'var(--text-primary)', margin:0 },
@@ -1477,9 +1532,9 @@ const styles = {
     flexShrink:     0,
   },
   tabBtnActive: {
-    background:     'var(--text-primary)',
+    background:'var(--accent)',
     color:          'var(--text-inverse)',
-    border:         '0.5px solid var(--text-primary)',
+    border:'0.5px solid var(--accent)',
   },
   settingsSection: {
     background:    'var(--bg-surface)',

@@ -317,7 +317,7 @@ const st = {
   icon:         { fontSize: '52px' },
   bigTitle:     { fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' },
   sub:          { fontSize: '14px', color: 'var(--text-secondary)', textAlign: 'center', margin: 0, lineHeight: '1.5', maxWidth: '280px' },
-  primaryBtn:   { width: '100%', padding: '14px', background: 'var(--text-primary)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
+  primaryBtn:   { width: '100%', padding: '14px', background:'var(--accent)', border: 'none', borderRadius: 'var(--r-lg)', color: 'var(--text-inverse)', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
   outlineBtn:   { width: '100%', padding: '13px', background: 'transparent', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', color: 'var(--text-secondary)', fontSize: '15px', fontWeight: '500', cursor: 'pointer' },
   manualInput:  { width: '100%', padding: '14px', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', outline: 'none', textAlign: 'center', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em', boxSizing: 'border-box' },
   manualError:  { fontSize: '13px', color: 'var(--red)', margin: '0', textAlign: 'center' },

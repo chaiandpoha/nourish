@@ -341,7 +341,7 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
               <div style={{ display:'flex', gap:'4px' }}>
                 {[['weight','By total weight'],['servings','By servings']].map(([m, label]) => (
                   <button key={m} type="button" onClick={() => { setManualMode(m); setManualError('') }}
-                    style={{ flex:1, padding:'8px 6px', background: manualMode === m ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${manualMode === m ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-md)', fontSize:'12px', fontWeight:'600', color: manualMode === m ? 'var(--text-inverse)' : 'var(--text-secondary)', cursor:'pointer' }}>
+                    style={{ flex:1, padding:'8px 6px', background: manualMode === m ? 'var(--accent)' : 'var(--bg-elevated)', border:`1px solid ${manualMode === m ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius:'var(--r-md)', fontSize:'12px', fontWeight:'600', color: manualMode === m ? '#fff' : 'var(--text-secondary)', cursor:'pointer' }}>
                     {label}
                   </button>
                 ))}
@@ -354,7 +354,7 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
                       value={manual.grams} onChange={e => { setManual(m => ({ ...m, grams: e.target.value })); setManualError('') }} />
                     {WEIGHT_UNITS.map(u => (
                       <button key={u} type="button" onClick={() => setManualUnit(u)}
-                        style={{ padding:'6px 8px', background: manualUnit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${manualUnit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: manualUnit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
+                        style={{ padding:'6px 8px', background: manualUnit === u ? 'var(--accent)' : 'var(--bg-elevated)', border:`1px solid ${manualUnit === u ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: manualUnit === u ? '#fff' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
                       >{u}</button>
                     ))}
                   </div>
@@ -417,7 +417,7 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
           <input style={{ ...inp, flex:1, minWidth:'80px' }} type="number" inputMode="decimal" placeholder="e.g. 800" value={yieldGrams} onChange={e => setYieldGrams(e.target.value)} />
           {WEIGHT_UNITS.map(u => (
             <button key={u} type="button" onClick={() => setYieldUnit(u)}
-              style={{ padding:'6px 8px', background: yieldUnit === u ? 'var(--text-primary)' : 'var(--bg-elevated)', border:`1px solid ${yieldUnit === u ? 'var(--text-primary)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: yieldUnit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
+              style={{ padding:'6px 8px', background: yieldUnit === u ? 'var(--accent)' : 'var(--bg-elevated)', border:`1px solid ${yieldUnit === u ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: yieldUnit === u ? '#fff' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
             >{u}</button>
           ))}
         </div>
@@ -466,7 +466,7 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
       ))}
 
       <button onClick={handleSave} disabled={saving}
-        style={{ width:'100%', padding:'15px', background:'var(--text-primary)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'16px', fontWeight:'600', cursor:'pointer', opacity: saving ? 0.6 : 1 }}>
+        style={{ width:'100%', padding:'15px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'var(--text-inverse)', fontSize:'16px', fontWeight:'600', cursor:'pointer', opacity: saving ? 0.6 : 1 }}>
         {saving ? 'Saving…' : existingBatch ? 'Update Batch' : 'Save Batch'}
       </button>
 

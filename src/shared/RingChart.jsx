@@ -1,15 +1,14 @@
 // ─── RingChart ────────────────────────────────────────────────────────────────
-// Circular calorie ring — hero element on the dashboard
-// Shows calories consumed vs goal with animated fill
+// Pure progress ring — used standalone or inside RingWithMacros (showLabel=false)
 
-export default function RingChart({ current, goal, size = 120 }) {
-  const radius      = (size / 2) - 10
+export default function RingChart({ current, goal, size = 120, showLabel = true }) {
+  const radius       = (size / 2) - 10
   const circumference = 2 * Math.PI * radius
-  const pct         = goal > 0 ? Math.min(1, current / goal) : 0
-  const offset      = circumference - pct * circumference
-  const over        = current > goal
-  const center      = size / 2
-  const strokeWidth = size > 100 ? 8 : 6
+  const pct          = goal > 0 ? Math.min(1, current / goal) : 0
+  const offset       = circumference - pct * circumference
+  const over         = current > goal
+  const center       = size / 2
+  const strokeWidth  = size > 100 ? 8 : 6
 
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
@@ -19,21 +18,12 @@ export default function RingChart({ current, goal, size = 120 }) {
         viewBox={`0 0 ${size} ${size}`}
         style={{ transform: 'rotate(-90deg)' }}
       >
-        {/* Track */}
         <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          fill="none"
-          stroke="var(--bg-elevated)"
-          strokeWidth={strokeWidth}
+          cx={center} cy={center} r={radius}
+          fill="none" stroke="var(--bg-elevated)" strokeWidth={strokeWidth}
         />
-
-        {/* Fill */}
         <circle
-          cx={center}
-          cy={center}
-          r={radius}
+          cx={center} cy={center} r={radius}
           fill="none"
           stroke={over ? 'var(--red)' : 'var(--accent)'}
           strokeWidth={strokeWidth}
@@ -44,43 +34,34 @@ export default function RingChart({ current, goal, size = 120 }) {
         />
       </svg>
 
-      {/* Center content */}
-      <div style={{
-        position:        'absolute',
-        inset:           0,
-        display:         'flex',
-        flexDirection:   'column',
-        alignItems:      'center',
-        justifyContent:  'center',
-        gap:             '1px',
-      }}>
-        <span style={{
-          fontSize:      size > 100 ? '26px' : '20px',
-          fontWeight:    '300',
-          letterSpacing: '-0.04em',
-          color:         over ? 'var(--red)' : 'var(--text-primary)',
-          fontFamily:    'var(--font-sans)',
-          lineHeight:    '1',
+      {showLabel && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: '1px',
         }}>
-          {current.toLocaleString()}
-        </span>
-        <span style={{
-          fontSize:      '10px',
-          color:         'var(--text-tertiary)',
-          fontWeight:    '500',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-        }}>
-          {over ? 'over' : 'kcal'}
-        </span>
-      </div>
+          <span style={{
+            fontSize: size > 100 ? '26px' : '20px',
+            fontWeight: '300', letterSpacing: '-0.04em',
+            color: over ? 'var(--red)' : 'var(--text-primary)',
+            fontFamily: 'var(--font-sans)', lineHeight: '1',
+          }}>
+            {current.toLocaleString()}
+          </span>
+          <span style={{
+            fontSize: '10px', color: 'var(--text-tertiary)',
+            fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.06em',
+          }}>
+            {over ? 'over' : 'kcal'}
+          </span>
+        </div>
+      )}
     </div>
   )
 }
 
 // ─── RingWithMacros ───────────────────────────────────────────────────────────
-// Hero card — ring on the left, macro bars on the right
-// This is the main dashboard widget
+// Hero dashboard card — Oura-style: big number + progress arc + macro grid
 
 import { MACRO_COLORS } from '../config.js'
 import { getExpectedDayPct } from '../food/macroCalc.js'
@@ -94,78 +75,31 @@ export function RingWithMacros({ totals, goals }) {
     { key: 'fat',     label: 'Fat'     },
     { key: 'fibre',   label: 'Fibre'   },
   ]
-
-  const calGoal     = goals?.calories || 2000
-  const calCurrent  = Math.round(totals?.calories || 0)
-  const remaining   = Math.max(0, calGoal - calCurrent)
-  const over        = calCurrent > calGoal
   const expectedPct = getExpectedDayPct()
 
   return (
     <div style={styles.heroCard}>
-      {/* Left — ring + calorie detail */}
-      <div style={styles.ringCol}>
-        <RingChart
-          current={calCurrent}
-          goal={calGoal}
-          size={108}
-        />
-        <div style={styles.calDetail}>
-          <span style={styles.calDetailNum}>
-            {over
-              ? `+${(calCurrent - calGoal).toLocaleString()}`
-              : remaining.toLocaleString()
-            }
-          </span>
-          <span style={styles.calDetailLabel}>
-            {over ? 'over goal' : 'remaining'}
-          </span>
-        </div>
-      </div>
+      {macros.map(({ key, label }) => {
+        const current     = Math.round(totals?.[key] || 0)
+        const goal        = goals?.[key] || 0
+        const pct         = goal > 0 ? Math.min(100, (current / goal) * 100) : 0
+        const isOver      = current > goal
+        const aheadOfPace = !isOver && pct > expectedPct + 15
+        const fillColor   = isOver ? 'var(--red)' : aheadOfPace ? PACE_AMBER : MACRO_COLORS[key]
 
-      {/* Divider */}
-      <div style={styles.divider} />
-
-      {/* Right — macro bars */}
-      <div style={styles.macroCol}>
-        {macros.map(({ key, label }) => {
-          const current     = Math.round(totals?.[key] || 0)
-          const goal        = goals?.[key] || 0
-          const pct         = goal > 0 ? Math.min(100, (current / goal) * 100) : 0
-          const over        = current > goal
-          const aheadOfPace = !over && pct > expectedPct + 15
-          const fillColor   = over ? 'var(--red)' : aheadOfPace ? PACE_AMBER : MACRO_COLORS[key]
-
-          return (
-            <div key={key} style={styles.macroRow}>
-              <span style={styles.macroLabel}>{label}</span>
-              <div style={styles.macroTrack}>
-                <div style={{
-                  ...styles.macroFill,
-                  width:      `${pct}%`,
-                  background: fillColor,
-                }} />
-                <div style={{
-                  position:   'absolute',
-                  left:       `${expectedPct}%`,
-                  top:        '-1px',
-                  height:     'calc(100% + 2px)',
-                  width:      '2px',
-                  background: 'rgba(0,0,0,0.18)',
-                  borderRadius: '1px',
-                  transform:  'translateX(-50%)',
-                }} />
-              </div>
-              <span style={{
-                ...styles.macroVal,
-                color: fillColor,
-              }}>
-                {current}<span style={styles.macroGoal}>/{goal}</span>
-              </span>
+        return (
+          <div key={key} style={styles.macroRow}>
+            <div style={{ ...styles.macroDot, background: fillColor }} />
+            <span style={styles.macroLabel}>{label}</span>
+            <div style={styles.macroTrack}>
+              <div style={{ ...styles.macroFill, width: `${pct}%`, background: fillColor }} />
             </div>
-          )
-        })}
-      </div>
+            <span style={{ ...styles.macroVal, color: isOver ? 'var(--red)' : 'var(--text-primary)' }}>
+              {current}<span style={styles.macroGoal}>/{goal}g</span>
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -174,88 +108,100 @@ export function RingWithMacros({ totals, goals }) {
 const styles = {
   heroCard: {
     background:    'var(--bg-surface)',
-    border:        '0.5px solid var(--border-subtle)',
-    borderRadius:  'var(--r-xl)',
-    padding:       '18px 16px',
+    boxShadow:     'var(--shadow-md)',
+    borderRadius:  'var(--r-2xl)',
+    padding:       '22px 20px 20px',
     display:       'flex',
-    alignItems:    'center',
+    flexDirection: 'column',
     gap:           '16px',
   },
-  ringCol: {
+  topRow: {
+    display:        'flex',
+    alignItems:     'flex-start',
+    justifyContent: 'space-between',
+  },
+  calBlock: {
     display:       'flex',
     flexDirection: 'column',
-    alignItems:    'center',
-    gap:           '8px',
-    flexShrink:    0,
+    gap:           '3px',
   },
-  calDetail: {
-    display:       'flex',
-    flexDirection: 'column',
-    alignItems:    'center',
-    gap:           '1px',
+  calNum: {
+    fontSize:      '52px',
+    fontWeight:    '200',
+    letterSpacing: '-0.04em',
+    lineHeight:    '1',
+    fontFamily:    'var(--font-sans)',
   },
-  calDetailNum: {
-    fontSize:      '15px',
-    fontWeight:    '600',
-    color:         'var(--text-primary)',
-    letterSpacing: '-0.02em',
-    fontFamily:    'var(--font-mono)',
-  },
-  calDetailLabel: {
-    fontSize:      '10px',
-    color:         'var(--text-tertiary)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
+  calUnit: {
+    fontSize:      '13px',
     fontWeight:    '500',
+    color:         'var(--text-secondary)',
+    letterSpacing: '-0.01em',
+    marginTop:     '6px',
   },
-  divider: {
-    width:         '0.5px',
-    alignSelf:     'stretch',
-    background:    'var(--border-subtle)',
-    flexShrink:    0,
+  calSub: {
+    fontSize:      '12px',
+    fontWeight:    '400',
   },
-  macroCol: {
-    flex:          1,
+  calTrack: {
+    height:        '5px',
+    background:    'var(--bg-elevated)',
+    borderRadius:  '99px',
+    overflow:      'hidden',
+    position:      'relative',
+  },
+  calFill: {
+    height:        '100%',
+    borderRadius:  '99px',
+    transition:    'width 0.6s cubic-bezier(0.16,1,0.3,1)',
+  },
+  macroRows: {
     display:       'flex',
     flexDirection: 'column',
     gap:           '10px',
   },
   macroRow: {
-    display:       'flex',
-    alignItems:    'center',
-    gap:           '8px',
+    display:     'flex',
+    alignItems:  'center',
+    gap:         '10px',
+  },
+  macroDot: {
+    width:        '8px',
+    height:       '8px',
+    borderRadius: '50%',
+    flexShrink:   0,
   },
   macroLabel: {
-    fontSize:      '12px',
-    color:         'var(--text-secondary)',
-    fontWeight:    '500',
-    width:         '46px',
-    flexShrink:    0,
+    fontSize:   '13px',
+    fontWeight: '500',
+    color:      'var(--text-secondary)',
+    width:      '50px',
+    flexShrink: 0,
   },
   macroTrack: {
-    flex:          1,
-    height:        '4px',
-    background:    'var(--bg-elevated)',
-    borderRadius:  '99px',
-    position:      'relative',
+    flex:         1,
+    height:       '6px',
+    background:   'var(--bg-elevated)',
+    borderRadius: '99px',
+    overflow:     'hidden',
   },
   macroFill: {
-    height:        '100%',
-    borderRadius:  '99px',
-    transition:    'width 0.5s cubic-bezier(0.16,1,0.3,1)',
+    height:       '100%',
+    borderRadius: '99px',
+    transition:   'width 0.5s cubic-bezier(0.16,1,0.3,1)',
   },
   macroVal: {
-    fontSize:      '12px',
-    fontWeight:    '700',
+    fontSize:      '13px',
+    fontWeight:    '600',
     fontFamily:    'var(--font-mono)',
-    width:         '52px',
+    width:         '72px',
     textAlign:     'right',
     flexShrink:    0,
     letterSpacing: '-0.01em',
   },
   macroGoal: {
-    fontSize:      '10px',
-    color:         'var(--text-tertiary)',
-    fontWeight:    '400',
+    fontSize:   '11px',
+    fontWeight: '400',
+    color:      'var(--text-tertiary)',
   },
 }
