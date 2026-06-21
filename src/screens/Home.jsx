@@ -102,6 +102,7 @@ export default function Home() {
   const [supplements,  setSupplements]  = useState([])
   const [suppDone,     setSuppDone]     = useState({})
   const [stepsData,    setStepsData]    = useState(null)
+  const [workout,      setWorkout]      = useState(null)
   const [refreshKey,   setRefreshKey]   = useState(0)
   const [greeting,     setGreeting]     = useState('')
   const [dateLabel,    setDateLabel]    = useState('')
@@ -180,6 +181,13 @@ export default function Home() {
         .equals([user.id, freshToday])
         .first()
       setStepsData(steps || null)
+
+      const w = await db.workoutLogs
+        .where('[userId+date]')
+        .equals([user.id, freshToday])
+        .filter(w => w.status === 'complete')
+        .first()
+      setWorkout(w || null)
     } finally {
       setLoading(false)
     }
@@ -387,41 +395,22 @@ export default function Home() {
       {/* Compact stat strip */}
       <div style={{ background:'var(--bg-surface)', boxShadow:'var(--shadow-sm)', borderRadius:'var(--r-xl)', display:'flex', alignItems:'stretch' }}>
 
-        <button onClick={openWeightEdit} style={styles.stripBtn}>
-          <div style={{ color:'var(--accent)' }}><WeightIcon size={13} /></div>
-          <div style={styles.stripVal}>
-            {weight ? (weightUnit === 'lbs' ? Math.round(weight * 2.20462 * 10) / 10 : weight) : '—'}
-            {weight && <span style={styles.stripUnit}> {weightUnit}</span>}
-          </div>
-          <div style={styles.stripLabel}>Weight</div>
-        </button>
-
-        <div style={styles.stripDivider} />
-
-        <button onClick={openStepsEdit} style={styles.stripBtn}>
-          <div style={{ color:'#f59e0b' }}><StepsIcon size={13} /></div>
-          <div style={styles.stripVal}>{stepsData?.steps ? stepsData.steps.toLocaleString() : '—'}</div>
-          <div style={styles.stripLabel}>Steps</div>
-        </button>
-
-        <div style={styles.stripDivider} />
-
-        <div style={styles.stripBtn}>
-          <div style={{ color:'#8b5cf6' }}><DumbbellIcon size={13} /></div>
-          <WorkoutStat userId={user?.id} date={today} compact />
-          <div style={styles.stripLabel}>Workout</div>
-        </div>
-
-        <div style={styles.stripDivider} />
-
-        <button onClick={openStepsEdit} style={styles.stripBtn}>
-          <div style={{ color:'var(--red)' }}><FireIcon size={13} /></div>
-          <div style={styles.stripVal}>
-            {stepsData?.caloriesBurned ? stepsData.caloriesBurned : '—'}
-            {stepsData?.caloriesBurned ? <span style={styles.stripUnit}> kcal</span> : null}
-          </div>
-          <div style={styles.stripLabel}>Cal Burned</div>
-        </button>
+        {[
+          { label:'Weight',  Icon:WeightIcon,  value: weight ? `${weightUnit === 'lbs' ? Math.round(weight*2.20462*10)/10 : weight} ${weightUnit}` : '—', onClick: openWeightEdit },
+          { label:'Steps',   Icon:StepsIcon,   value: stepsData?.steps ? stepsData.steps.toLocaleString() : '—', onClick: openStepsEdit },
+          { label:'Workout', Icon:DumbbellIcon, value: workout ? (workout.name || 'Done').split(' ')[0] : 'Rest', onClick: null },
+          { label:'Burned',  Icon:FireIcon,    value: stepsData?.caloriesBurned ? `${stepsData.caloriesBurned} cal` : '—', onClick: openStepsEdit },
+        ].map((stat, i) => (
+          <button
+            key={stat.label}
+            onClick={stat.onClick}
+            style={{ ...styles.stripBtn, borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none', cursor: stat.onClick ? 'pointer' : 'default' }}
+          >
+            <stat.Icon size={14} />
+            <div style={styles.stripVal}>{stat.value}</div>
+            <div style={styles.stripLabel}>{stat.label}</div>
+          </button>
+        ))}
 
       </div>
 
@@ -677,14 +666,14 @@ const styles = {
   },
   stripBtn: {
     flex:                    1,
-    padding:                 '10px 4px',
+    padding:                 '12px 6px',
     display:                 'flex',
     flexDirection:           'column',
     alignItems:              'center',
-    gap:                     '2px',
+    gap:                     '4px',
     background:              'none',
     border:                  'none',
-    cursor:                  'pointer',
+    color:                   'var(--text-secondary)',
     WebkitTapHighlightColor: 'transparent',
   },
   stripVal: {
@@ -692,26 +681,14 @@ const styles = {
     fontWeight:   '700',
     color:        'var(--text-primary)',
     letterSpacing:'-0.02em',
-    lineHeight:   '1.1',
-  },
-  stripUnit: {
-    fontSize:   '10px',
-    fontWeight: '400',
-    color:      'var(--text-tertiary)',
+    lineHeight:   '1',
   },
   stripLabel: {
     fontSize:      '9px',
-    fontWeight:    '600',
+    fontWeight:    '500',
     color:         'var(--text-tertiary)',
     textTransform: 'uppercase',
-    letterSpacing: '0.07em',
-  },
-  stripDivider: {
-    width:      '1px',
-    alignSelf:  'center',
-    height:     '32px',
-    background: 'var(--border-subtle)',
-    flexShrink: 0,
+    letterSpacing: '0.06em',
   },
   statVal: {
     fontSize:     '17px',
