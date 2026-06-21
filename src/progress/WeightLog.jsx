@@ -258,7 +258,7 @@ const s = {
   unitBtn:      { padding:'6px 16px', background:'transparent', border:'none', borderRadius:'9px', fontSize:'13px', fontWeight:'500', color:'var(--text-secondary)', cursor:'pointer' },
   unitBtnActive:{ background:'var(--bg-surface)', color:'var(--text-primary)', boxShadow:'0 1px 3px rgba(0,0,0,0.08)' },
   card:         { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', padding:'16px', display:'flex', flexDirection:'column', gap:'10px' },
-  cardLabel:    { fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' },
+  cardLabel:    { fontSize:'11px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em' },
   todayRow:     { display:'flex', alignItems:'center', justifyContent:'space-between' },
   todayVal:     { fontSize:'32px', fontWeight:'300', color:'var(--text-primary)', letterSpacing:'-0.03em', fontFamily:'var(--font-sans)' },
   deleteBtn:    { padding:'6px 12px', background:'rgba(200,80,64,0.08)', border:'none', borderRadius:'var(--r-md)', color:'var(--red)', fontSize:'13px', fontWeight:'600', cursor:'pointer' },

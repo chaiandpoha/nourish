@@ -412,7 +412,7 @@ const s = {
   // Sections
   section:      { display:'flex', flexDirection:'column', gap:'8px' },
   sectionHeader:{ display:'flex', alignItems:'center', justifyContent:'space-between' },
-  sectionLabel: { fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.07em' },
+  sectionLabel: { fontSize:'11px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.07em' },
   newBtn:       { padding:'6px 14px', background:'var(--accent-dim)', border:'none', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer' },
 
   // Active programme card

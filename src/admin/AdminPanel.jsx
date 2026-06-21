@@ -573,7 +573,7 @@ const s = {
   tabBtnActive:   { background:'var(--accent)', color:'var(--text-inverse)', border:'0.5px solid var(--accent)' },
   section:        { display:'flex', flexDirection:'column', gap:'10px' },
   sectionHeader:  { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 2px' },
-  sectionTitle:   { fontSize:'12px', fontWeight:'600', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' },
+  sectionTitle:   { fontSize:'12px', fontWeight:'600', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em' },
   card:           { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', overflow:'hidden' },
   cardHeader:     { display:'flex', alignItems:'center', gap:'12px', padding:'14px 16px', background:'transparent', border:'none', width:'100%', cursor:'pointer', textAlign:'left' },
   cardBody:       { display:'flex', flexDirection:'column', gap:'0', borderTop:'0.5px solid var(--border-subtle)' },

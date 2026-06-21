@@ -942,13 +942,13 @@ const st = {
 
   // Previous session
   prevRow:       { display:'flex', alignItems:'center', gap:'6px', padding:'6px 16px 10px', flexWrap:'wrap' },
-  prevLabel:     { fontSize:'10px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.05em' },
+  prevLabel:     { fontSize:'10px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.05em' },
   prevChip:      { fontSize:'12px', fontWeight:'500', color:'var(--text-secondary)', background:'var(--bg-elevated)', padding:'3px 8px', borderRadius:'var(--r-full)', letterSpacing:'-0.01em' },
   prevFirstTime: { padding:'6px 16px 10px', fontSize:'12px', color:'var(--text-tertiary)', fontStyle:'italic' },
 
   // Column headers
   colHeader:     { display:'flex', gap:'6px', padding:'6px 12px 4px', alignItems:'center', borderTop:'0.5px solid var(--border-subtle)' },
-  colLbl:        { fontSize:'10px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.05em', textAlign:'center', flexShrink:0 },
+  colLbl:        { fontSize:'10px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.05em', textAlign:'center', flexShrink:0 },
 
   // Set rows
   setRow:        { display:'flex', gap:'6px', padding:'10px 12px', alignItems:'center', borderTop:'0.5px solid var(--border-subtle)', transition:'background 0.2s ease', minHeight:'56px' },

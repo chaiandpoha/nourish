@@ -652,7 +652,7 @@ const s = {
   copyDatePreview:     { fontSize:'12px', color:'var(--text-tertiary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 },
   copyChevron:         { fontSize:'16px', color:'var(--text-tertiary)', flexShrink:0 },
   copyBackBtn:         { display:'block', width:'100%', textAlign:'left', padding:'9px 14px', background:'var(--bg-elevated)', border:'none', borderBottom:'0.5px solid var(--border-subtle)', fontSize:'13px', fontWeight:'600', color:'var(--accent)', cursor:'pointer', fontFamily:'inherit' },
-  copyMealHint:        { padding:'6px 14px', fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em', borderBottom:'0.5px solid var(--border-subtle)', background:'var(--bg-base)' },
+  copyMealHint:        { padding:'6px 14px', fontSize:'11px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.06em', borderBottom:'0.5px solid var(--border-subtle)', background:'var(--bg-base)' },
   copyMealIcon:        { fontSize:'16px', flexShrink:0 },
   copyEmpty:           { padding:'12px 14px', fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center' },
   copyCustomRow:       { display:'flex', alignItems:'center', gap:'8px', padding:'10px 14px', borderTop:'0.5px solid var(--border-subtle)' },

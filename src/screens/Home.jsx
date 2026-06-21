@@ -620,7 +620,7 @@ function getDateLabel() {
   })
 }
 
-const lbl = { fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'6px', display:'block' }
+const lbl = { fontSize:'11px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'6px', display:'block' }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = {

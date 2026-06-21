@@ -136,7 +136,7 @@ const s = {
   macroLabel:  { fontSize:'10px', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.04em' },
 
   card:        { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', padding:'16px', display:'flex', flexDirection:'column', gap:'10px' },
-  cardLabel:   { fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' },
+  cardLabel:   { fontSize:'11px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em' },
 
   workoutRow:  { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 0' },
   workoutName: { fontSize:'15px', fontWeight:'500', color:'var(--text-primary)' },

@@ -358,18 +358,18 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
                       >{u}</button>
                     ))}
                   </div>
-                  <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Macros for {manual.grams || '?'}{manualUnit}</span>
+                  <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Macros for {manual.grams || '?'}{manualUnit}</span>
                 </>
               ) : (
                 <>
                   <div style={{ display:'flex', gap:'8px' }}>
                     <div style={{ flex:1, display:'flex', flexDirection:'column', gap:'4px' }}>
-                      <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Serving size (g)</span>
+                      <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Serving size (g)</span>
                       <input style={inp} type="number" inputMode="decimal" placeholder="e.g. 30"
                         value={servingSize} onChange={e => { setServingSize(e.target.value); setManualError('') }} />
                     </div>
                     <div style={{ flex:1, display:'flex', flexDirection:'column', gap:'4px' }}>
-                      <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Servings used</span>
+                      <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Servings used</span>
                       <input style={inp} type="number" inputMode="decimal" placeholder="e.g. 3"
                         value={servingCount} onChange={e => { setServingCount(e.target.value); setManualError('') }} />
                     </div>
@@ -379,7 +379,7 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
                       = {Math.round(parseFloat(servingSize) * parseFloat(servingCount))}g total
                     </div>
                   )}
-                  <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Macros per serving ({servingSize || '?'}g)</span>
+                  <span style={{ fontSize:'11px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Macros per serving ({servingSize || '?'}g)</span>
                 </>
               )}
 
@@ -475,4 +475,4 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
   )
 }
 
-const lbl = { fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' }
+const lbl = { fontSize:'11px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.08em' }
