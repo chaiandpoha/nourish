@@ -406,7 +406,7 @@ export default function Home() {
             onClick={stat.onClick}
             style={{ ...styles.stripBtn, borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none', cursor: stat.onClick ? 'pointer' : 'default' }}
           >
-            <stat.Icon size={14} />
+            <stat.Icon size={22} />
             <div style={styles.stripVal}>{stat.value}</div>
             <div style={styles.stripLabel}>{stat.label}</div>
           </button>
