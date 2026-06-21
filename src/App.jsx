@@ -1335,6 +1335,11 @@ const COLOR_THEMES = [
     label:   'Knicks',
     swatch:  ['#006BB6', '#F58426', '#ffffff'],
   },
+  {
+    id:      'pink',
+    label:   'Rose',
+    swatch:  ['#b84d6a', '#f9edf3', '#fdf5f8'],
+  },
 ]
 
 function ColorThemeToggle() {

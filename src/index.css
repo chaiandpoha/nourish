@@ -113,6 +113,30 @@
   --hero-to:        #006BB6;
 }
 
+[data-color="pink"] {
+  --bg-base:        #fdf5f8;
+  --bg-surface:     #ffffff;
+  --bg-elevated:    #f9edf3;
+  --bg-hover:       #fdf0f5;
+  --bg-nav:         rgba(253,245,248,0.88);
+
+  --border-subtle:  #f0dce6;
+  --border-default: #e8cfd9;
+  --border-strong:  #d8b5c5;
+
+  /* Deep rose — passes 4.5:1 contrast on white */
+  --accent:         #b84d6a;
+  --accent-dim:     rgba(184,77,106,0.10);
+  --accent-glow:    rgba(184,77,106,0.08);
+
+  --text-inverse:   #ffffff;
+
+  /* Keep all text tokens identical to default for legibility */
+  --text-primary:   #1c1814;
+  --text-secondary: #b0a89e;
+  --text-tertiary:  #c8c0b4;
+}
+
 /* ─── Reset ──────────────────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
