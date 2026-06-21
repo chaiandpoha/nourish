@@ -364,24 +364,24 @@ export default function Home() {
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px 20px', flex:1 }}>
             {[
-              { key:'protein', label:'Protein', color:'#5eead4' },
-              { key:'carbs',   label:'Carbs',   color:'#86efac' },
-              { key:'fat',     label:'Fat',     color:'#fcd34d' },
-              { key:'fibre',   label:'Fibre',   color:'#c4b5fd' },
-            ].map(({ key, label, color }) => {
+              { key:'protein', label:'Protein' },
+              { key:'carbs',   label:'Carbs'   },
+              { key:'fat',     label:'Fat'     },
+              { key:'fibre',   label:'Fibre'   },
+            ].map(({ key, label }) => {
               const val  = Math.round(totals?.[key] || 0)
               const goal = goals?.[key] || 0
               const pct  = goal > 0 ? Math.min(100, (val / goal) * 100) : 0
               return (
                 <div key={key}>
                   <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:'4px' }}>
-                    <span style={{ fontSize:'8px', fontWeight:'800', color, letterSpacing:'0.12em', textTransform:'uppercase' }}>{label}</span>
-                    <span style={{ fontSize:'13px', fontWeight:'600', color:'rgba(255,255,255,0.85)', fontFamily:'var(--font-mono)', letterSpacing:'-0.01em' }}>
+                    <span style={{ fontSize:'8px', fontWeight:'700', color:'rgba(255,255,255,0.45)', letterSpacing:'0.1em', textTransform:'uppercase' }}>{label}</span>
+                    <span style={{ fontSize:'13px', fontWeight:'700', color:'rgba(255,255,255,0.9)', fontFamily:'var(--font-mono)', letterSpacing:'-0.01em' }}>
                       {val}<span style={{ fontSize:'9px', color:'rgba(255,255,255,0.3)', fontWeight:'400' }}>/{goal}g</span>
                     </span>
                   </div>
                   <div style={{ height:'3px', background:'rgba(255,255,255,0.12)', borderRadius:'2px', overflow:'hidden' }}>
-                    <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius:'2px', transition:'width 0.5s ease' }} />
+                    <div style={{ height:'100%', width:`${pct}%`, background:'rgba(255,255,255,0.55)', borderRadius:'2px', transition:'width 0.5s ease' }} />
                   </div>
                 </div>
               )

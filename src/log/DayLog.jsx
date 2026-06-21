@@ -633,7 +633,7 @@ const s = {
   card:         { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', overflow:'hidden' },
   cardHeader:   { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 14px', borderBottom:'0.5px solid var(--border-subtle)' },
   cardTitle:    { fontSize:'14px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.01em' },
-  cardKcal:     { fontSize:'13px', fontWeight:'600', color:'var(--text-secondary)', fontFamily:'var(--font-mono)' },
+  cardKcal:     { fontSize:'13px', fontWeight:'700', color:'var(--text-primary)', fontFamily:'var(--font-mono)' },
 
   emptySlot:    { fontSize:'13px', color:'var(--text-tertiary)', padding:'20px 14px', textAlign:'center' },
 
@@ -660,24 +660,24 @@ const s = {
   copyCustomInput:     { flex:1, padding:'5px 8px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'13px', color:'var(--text-primary)', outline:'none', minWidth:0 },
   copyCustomBtn:       { padding:'5px 12px', background:'var(--accent)', border:'none', borderRadius:'var(--r-sm)', color:'#fff', fontSize:'14px', fontWeight:'700', cursor:'pointer', flexShrink:0 },
   copyCustomError:     { padding:'4px 14px 8px', fontSize:'12px', color:'var(--red)' },
-  dayTotal:     { fontSize:'12px', color:'var(--text-secondary)', fontWeight:'600', fontFamily:'var(--font-mono)' },
+  dayTotal:     { fontSize:'12px', color:'var(--text-primary)', fontWeight:'700', fontFamily:'var(--font-mono)' },
 
   entryRow:     { display:'flex', alignItems:'center', padding:'10px 14px', borderTop:'0.5px solid var(--border-subtle)', cursor:'pointer', gap:'8px' },
   entryInfo:    { flex:1, display:'flex', flexDirection:'column', gap:'2px', minWidth:0 },
-  entryName:    { fontSize:'14px', fontWeight:'500', color:'var(--text-primary)', letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' },
+  entryName:    { fontSize:'14px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' },
   entryMeta:    { fontSize:'12px', color:'var(--text-tertiary)', lineHeight:'1.4' },
   mp:           { color:'var(--macro-protein)', fontWeight:'600' },
   mc:           { color:'var(--macro-carbs)',   fontWeight:'600' },
   mf:           { color:'var(--macro-fat)',     fontWeight:'600' },
   mfi:          { color:'var(--macro-fibre)',   fontWeight:'600' },
-  entryCalories:{ fontSize:'14px', fontWeight:'600', color:'var(--text-secondary)', fontFamily:'var(--font-mono)', flexShrink:0 },
+  entryCalories:{ fontSize:'14px', fontWeight:'700', color:'var(--text-primary)', fontFamily:'var(--font-mono)', flexShrink:0 },
 
   editBtn:      { padding:'5px 10px', background:'var(--bg-elevated)', border:'none', borderRadius:'var(--r-sm)', color:'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' },
   deleteBtn:    { padding:'5px 10px', background:'rgba(200,80,64,0.08)', border:'none', borderRadius:'var(--r-sm)', color:'var(--red)', fontSize:'12px', fontWeight:'600', cursor:'pointer' },
 
   gramsInput:   { width:'72px', padding:'7px 10px', fontSize:'15px', fontWeight:'600', borderRadius:'var(--r-md)', border:'1px solid var(--border-subtle)', background:'var(--bg-elevated)', color:'var(--text-primary)', outline:'none', fontFamily:'var(--font-mono)', textAlign:'right' },
   macroPreview: { display:'flex', gap:'6px', alignItems:'center', flexWrap:'wrap' },
-  previewVal:   { fontSize:'12px', fontWeight:'600', color:'var(--text-secondary)', fontFamily:'var(--font-mono)' },
+  previewVal:   { fontSize:'12px', fontWeight:'700', color:'var(--text-primary)', fontFamily:'var(--font-mono)' },
   adjCard:      { background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', overflow:'hidden' },
   adjRow:       { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 12px', borderBottom:'0.5px solid var(--border-subtle)', gap:'10px' },
   adjName:      { fontSize:'13px', color:'var(--text-primary)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
