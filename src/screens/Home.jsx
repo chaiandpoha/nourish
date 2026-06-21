@@ -273,50 +273,57 @@ export default function Home() {
   return (
     <div style={styles.screen}>
 
-      {/* ── Dark hero ─────────────────────────────────────────────── */}
-      <div style={styles.hero}>
-        <div style={{ position:'absolute', top:'-60px', right:'-50px', width:'180px', height:'180px', borderRadius:'50%', background:'rgba(255,255,255,0.03)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom:'-40px', left:'-20px', width:'140px', height:'140px', borderRadius:'50%', background:'rgba(255,255,255,0.025)', pointerEvents:'none' }} />
-
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px', position:'relative', zIndex:1 }}>
-          <div style={{ fontSize:'13px', fontWeight:'300', color:'rgba(255,255,255,0.72)', letterSpacing:'-0.01em', fontFamily:'var(--font-serif)', fontStyle:'italic' }}>
-            {greeting}, <span style={{ color:'rgba(255,255,255,0.92)', fontWeight:'400' }}>{user?.name?.split(' ')[0]}</span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:'4px' }}>
-            <SyncStatus />
-            <AvatarMenu user={user} logout={logout} light />
-          </div>
+      {/* ── Greeting ──────────────────────────────────────────────── */}
+      <div style={{ padding:'14px 16px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div>
+          <div style={{ fontSize:'11px', fontWeight:'600', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'1px' }}>{greeting}</div>
+          <div style={{ fontSize:'24px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.03em', lineHeight:'1.1' }}>{user?.name?.split(' ')[0]}</div>
         </div>
+        <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+          <SyncStatus />
+          <AvatarMenu user={user} logout={logout} />
+        </div>
+      </div>
 
-        {/* Calorie + left — single compact row */}
-        <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:'8px', position:'relative', zIndex:1 }}>
-          <div style={{ display:'flex', alignItems:'baseline', gap:'5px' }}>
-            <span style={{ fontSize:'34px', fontWeight:'200', color:'#fff', letterSpacing:'-0.04em', lineHeight:'1', fontFamily:'var(--font-sans)' }}>
-              {Math.round(totals.calories).toLocaleString()}
-            </span>
-            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.35)', fontWeight:'400' }}>/ {(goals.calories||0).toLocaleString()} kcal</span>
+      {/* ── Macro card ────────────────────────────────────────────── */}
+      <div style={{ margin:'12px 16px 0', background:'var(--bg-surface)', borderRadius:'var(--r-xl)', padding:'14px 16px 16px', boxShadow:'var(--shadow-md)' }}>
+
+        {/* Calorie row */}
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:'10px' }}>
+          <div>
+            <div style={{ fontSize:'10px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'3px' }}>Calories</div>
+            <div style={{ display:'flex', alignItems:'baseline', gap:'5px' }}>
+              <span style={{ fontSize:'32px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.04em', lineHeight:'1' }}>
+                {Math.round(totals.calories).toLocaleString()}
+              </span>
+              <span style={{ fontSize:'12px', color:'var(--text-tertiary)', fontWeight:'400' }}>/ {(goals.calories||0).toLocaleString()}</span>
+            </div>
           </div>
           {(goals.calories||0) > 0 && (
-            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.5)', fontWeight:'500' }}>
-              <span style={{ fontSize:'14px', fontWeight:'600', color:'rgba(255,255,255,0.8)', letterSpacing:'-0.02em' }}>
+            <div style={{ textAlign:'right' }}>
+              <div style={{ fontSize:'20px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.03em', lineHeight:'1' }}>
                 {Math.max(0,(goals.calories||0)-Math.round(totals.calories)).toLocaleString()}
-              </span>{' '}left
-            </span>
+              </div>
+              <div style={{ fontSize:'9px', fontWeight:'600', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:'2px' }}>kcal left</div>
+            </div>
           )}
         </div>
 
-        {/* Calorie bar */}
-        <div style={{ height:'2px', background:'rgba(255,255,255,0.1)', borderRadius:'2px', overflow:'hidden', marginBottom:'12px', position:'relative', zIndex:1 }}>
-          <div style={{ height:'100%', width:`${Math.min(100,(totals.calories/(goals.calories||1))*100)}%`, background:'rgba(255,255,255,0.65)', borderRadius:'2px', transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)' }} />
+        {/* Calorie progress bar */}
+        <div style={{ height:'4px', background:'var(--bg-elevated)', borderRadius:'2px', overflow:'hidden', marginBottom:'14px' }}>
+          <div style={{ height:'100%', width:`${Math.min(100,(totals.calories/(goals.calories||1))*100)}%`, background:'var(--accent)', borderRadius:'2px', transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)' }} />
         </div>
 
+        {/* Divider */}
+        <div style={{ height:'0.5px', background:'var(--border-subtle)', marginBottom:'12px' }} />
+
         {/* 4-col macro grid */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'0 4px', position:'relative', zIndex:1 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'0 8px' }}>
           {[
-            { key:'protein', label:'Protein', color:'#6ee7b7' },
-            { key:'carbs',   label:'Carbs',   color:'#fcd34d' },
-            { key:'fat',     label:'Fat',     color:'#f9a8d4' },
-            { key:'fibre',   label:'Fibre',   color:'#93c5fd' },
+            { key:'protein', label:'Protein', color:'#10b981' },
+            { key:'carbs',   label:'Carbs',   color:'#f59e0b' },
+            { key:'fat',     label:'Fat',     color:'#ec4899' },
+            { key:'fibre',   label:'Fibre',   color:'#6366f1' },
           ].map(({ key, label, color }) => {
             const val  = Math.round(totals?.[key] || 0)
             const goal = goals?.[key] || 0
@@ -324,11 +331,11 @@ export default function Home() {
             const over = goal > 0 && val > goal
             return (
               <div key={key}>
-                <div style={{ fontSize:'8px', fontWeight:'600', color:'rgba(255,255,255,0.38)', letterSpacing:'0.05em', textTransform:'uppercase', marginBottom:'3px' }}>{label}</div>
-                <div style={{ fontSize:'16px', fontWeight:'700', color: over ? color : '#fff', letterSpacing:'-0.02em', lineHeight:'1', fontFamily:'var(--font-mono)', marginBottom:'2px' }}>{val}</div>
-                <div style={{ fontSize:'9px', color:'rgba(255,255,255,0.28)', fontWeight:'400', marginBottom:'5px' }}>/{goal}g</div>
-                <div style={{ height:'2px', background:'rgba(255,255,255,0.1)', borderRadius:'1px', overflow:'hidden' }}>
-                  <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius:'1px', transition:'width 0.5s ease' }} />
+                <div style={{ fontSize:'9px', fontWeight:'700', color:'var(--text-tertiary)', letterSpacing:'0.05em', textTransform:'uppercase', marginBottom:'4px' }}>{label}</div>
+                <div style={{ fontSize:'17px', fontWeight:'700', color: over ? color : 'var(--text-primary)', letterSpacing:'-0.02em', lineHeight:'1', fontFamily:'var(--font-mono)', marginBottom:'2px' }}>{val}</div>
+                <div style={{ fontSize:'9px', color:'var(--text-tertiary)', marginBottom:'6px' }}>/{goal}g</div>
+                <div style={{ height:'3px', background:'var(--bg-elevated)', borderRadius:'2px', overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius:'2px', transition:'width 0.5s ease' }} />
                 </div>
               </div>
             )
@@ -523,15 +530,8 @@ const styles = {
     minHeight:     '100%',
     animation:     'pageIn 0.25s var(--ease-out) both',
   },
-  hero: {
-    background: 'linear-gradient(160deg, var(--hero-from) 0%, var(--hero-via1) 45%, var(--hero-via2) 80%, var(--hero-to) 100%)',
-    padding:    '10px 20px 14px',
-    position:   'relative',
-    overflow:   'hidden',
-    flexShrink: 0,
-  },
   content: {
-    padding:       '12px 16px 0',
+    padding:       '10px 16px 0',
     display:       'flex',
     flexDirection: 'column',
     gap:           '12px',
