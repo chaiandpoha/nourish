@@ -7,20 +7,19 @@ import DaySummary from './DaySummary.jsx'
 import { localDate } from '../log/DayLog.jsx'
 
 export default function CalendarView() {
-  const [year,       setYear]       = useState(new Date().getFullYear())
-  const [month,      setMonth]      = useState(new Date().getMonth())
-  const [dayData,    setDayData]    = useState({})
+  const [year,        setYear]        = useState(new Date().getFullYear())
+  const [month,       setMonth]       = useState(new Date().getMonth())
+  const [dayData,     setDayData]     = useState({})
   const [selectedDay, setSelectedDay] = useState(null)
-  const [loading,    setLoading]    = useState(true)
+  const [loading,     setLoading]     = useState(true)
   const { user } = useAuth()
   const location = useLocation()
 
   const today     = localDate()
-  const monthName = new Date(year, month, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+  const monthName = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const goals     = user?.macroGoals || {}
 
-  // Reset to calendar grid whenever user navigates to /calendar (e.g. taps bottom nav)
   useEffect(() => { setSelectedDay(null) }, [location.key])
-
   useEffect(() => { loadMonthData() }, [user, year, month])
 
   async function loadMonthData() {
@@ -37,34 +36,31 @@ export default function CalendarView() {
     ])
 
     const data = {}
-    const goals = user.macroGoals || {}
+    const g    = user?.macroGoals || {}
 
-    // Group food logs by date
     for (const log of foodLogs) {
       if (!data[log.date]) data[log.date] = { logs: [], workouts: [], weight: null }
       data[log.date].logs.push(log)
     }
-
-    // Group workout logs by date
     for (const w of workoutLogs) {
       if (!data[w.date]) data[w.date] = { logs: [], workouts: [], weight: null }
       data[w.date].workouts.push(w)
     }
-
-    // Group weight by date
     for (const w of weights) {
       if (!data[w.date]) data[w.date] = { logs: [], workouts: [], weight: null }
       data[w.date].weight = w
     }
 
-    // Calculate indicators for each day
     for (const date of Object.keys(data)) {
       const d      = data[date]
       const totals = sumMacros(d.logs)
       d.calories   = Math.round(totals.calories)
-      d.proteinHit = d.logs.length > 0 && totals.protein >= (goals.protein || 150)
+      d.protein    = Math.round(totals.protein)
       d.hasLogs    = d.logs.length > 0
-      d.hasWorkout = d.workouts.length > 0
+      d.hasWorkout = d.workouts.some(w => w.status === 'complete')
+      d.proteinHit = d.hasLogs && d.protein >= (g.protein || 999)
+      d.calPct     = g.calories > 0 ? Math.min(100, (d.calories / g.calories) * 100) : 0
+      d.calOk      = g.calories > 0 && d.calories >= g.calories * 0.85 && d.calories <= g.calories * 1.1
     }
 
     setDayData(data)
@@ -75,39 +71,30 @@ export default function CalendarView() {
     if (month === 0) { setYear(y => y - 1); setMonth(11) }
     else setMonth(m => m - 1)
   }
-
   function nextMonth() {
     if (month === 11) { setYear(y => y + 1); setMonth(0) }
     else setMonth(m => m + 1)
   }
 
+  // Month summary stats
+  const pastDays    = Object.entries(dayData).filter(([d]) => d <= today)
+  const loggedDays  = pastDays.filter(([, d]) => d.hasLogs).length
+  const proteinDays = pastDays.filter(([, d]) => d.proteinHit).length
+  const workoutDays = pastDays.filter(([, d]) => d.hasWorkout).length
+
   if (selectedDay) {
-    return (
-      <DaySummary
-        key={selectedDay}
-        date={selectedDay}
-        onBack={() => setSelectedDay(null)}
-      />
-    )
+    return <DaySummary key={selectedDay} date={selectedDay} onBack={() => setSelectedDay(null)} />
   }
 
-  // Build calendar grid
   const firstDayOfMonth = new Date(year, month, 1).getDay()
   const daysInMonth     = new Date(year, month + 1, 0).getDate()
   const cells           = []
-
-  // Empty cells before first day
-  for (let i = 0; i < firstDayOfMonth; i++) {
-    cells.push(null)
-  }
-
-  // Day cells
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push(d)
-  }
+  for (let i = 0; i < firstDayOfMonth; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
 
   return (
     <div style={s.container}>
+
       {/* Header */}
       <div style={s.header}>
         <button style={s.navBtn} onClick={prevMonth}>‹</button>
@@ -115,101 +102,149 @@ export default function CalendarView() {
         <button style={s.navBtn} onClick={nextMonth}>›</button>
       </div>
 
+      {/* Month summary strip */}
+      {!loading && loggedDays > 0 && (
+        <div style={s.summaryStrip}>
+          {[
+            { label: 'Logged',  value: loggedDays,  total: Object.keys(dayData).filter(d => d <= today).length },
+            { label: 'Protein', value: proteinDays, total: loggedDays },
+            { label: 'Workout', value: workoutDays, total: loggedDays },
+          ].map(({ label, value, total }) => (
+            <div key={label} style={s.summaryCell}>
+              <div style={s.summaryVal}>{value}<span style={s.summaryOf}>/{total}</span></div>
+              <div style={s.summaryLabel}>{label}</div>
+              <div style={s.summaryTrack}>
+                <div style={{ ...s.summaryFill, width: `${total > 0 ? (value/total)*100 : 0}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Day labels */}
       <div style={s.weekLabels}>
-        {['S','M','T','W','T','F','S'].map((d, i) => (
-          <div key={i} style={s.weekLabel}>{d}</div>
+        {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+          <div key={d} style={s.weekLabel}>{d}</div>
         ))}
       </div>
 
-      {/* Calendar grid */}
+      {/* Grid */}
       {loading ? (
         <div style={s.loading}>Loading…</div>
       ) : (
         <div style={s.grid}>
           {cells.map((day, i) => {
-            if (!day) return <div key={`empty-${i}`} />
+            if (!day) return <div key={`e-${i}`} />
 
-            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-            const data    = dayData[dateStr]
-            const isToday = dateStr === today
+            const dateStr  = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+            const data     = dayData[dateStr]
+            const isToday  = dateStr === today
             const isFuture = dateStr > today
+            const isPast   = dateStr < today
+
+            // Background intent
+            let cellBg = 'var(--bg-surface)'
+            let barColor = 'var(--border-subtle)'
+            if (!isFuture && data?.hasLogs) {
+              if (data.proteinHit) {
+                cellBg   = 'var(--accent-dim)'
+                barColor = 'var(--accent)'
+              } else {
+                cellBg   = 'rgba(184,120,48,0.09)'
+                barColor = 'var(--amber)'
+              }
+            } else if (isPast && !data?.hasLogs) {
+              cellBg = 'var(--bg-elevated)'
+            }
 
             return (
               <button
                 key={dateStr}
+                onClick={() => !isFuture && setSelectedDay(dateStr)}
                 style={{
-                  ...s.dayCell,
-                  ...(isToday ? s.dayCellToday : {}),
-                  ...(isFuture ? s.dayCellFuture : {}),
+                  ...s.cell,
+                  background:  cellBg,
+                  border:      isToday ? '2px solid var(--accent)' : '1px solid var(--border-subtle)',
+                  opacity:     isFuture ? 0.3 : 1,
+                  cursor:      isFuture ? 'default' : 'pointer',
                 }}
-                onClick={() => setSelectedDay(dateStr)}
               >
-                <span style={{
-                  ...s.dayNum,
-                  ...(isToday ? s.dayNumToday : {}),
-                }}>
-                  {day}
-                </span>
+                {/* Top row: day number + workout badge */}
+                <div style={s.cellTop}>
+                  <span style={{
+                    ...s.dayNum,
+                    color:      isToday ? 'var(--accent)' : 'var(--text-primary)',
+                    fontWeight: isToday ? '700' : '600',
+                  }}>{day}</span>
+                  {data?.hasWorkout && (
+                    <span style={s.workoutBadge}>W</span>
+                  )}
+                </div>
 
-                {data && (
-                  <div style={s.dots}>
-                    {data.hasLogs && (
-                      <div style={{
-                        ...s.dot,
-                        background: data.proteinHit
-                          ? 'var(--accent)'
-                          : 'var(--amber)',
-                      }} />
-                    )}
-                    {data.hasWorkout && (
-                      <div style={{ ...s.dot, background: 'var(--macro-fat)' }} />
-                    )}
-                  </div>
-                )}
+                {/* Calories */}
+                {data?.hasLogs ? (
+                  <div style={s.calNum}>{data.calories >= 1000 ? `${(data.calories/1000).toFixed(1)}k` : data.calories}</div>
+                ) : isPast ? (
+                  <div style={s.missed}>—</div>
+                ) : null}
+
+                {/* Progress bar */}
+                <div style={s.barTrack}>
+                  <div style={{
+                    ...s.barFill,
+                    width:      `${data?.calPct || 0}%`,
+                    background: barColor,
+                  }} />
+                </div>
               </button>
             )
           })}
         </div>
       )}
 
-      {/* Legend */}
+      {/* Inline legend */}
       <div style={s.legend}>
-        <div style={s.legendItem}>
-          <div style={{ ...s.legendDot, background: 'var(--accent)' }} />
-          <span style={s.legendLabel}>Protein hit</span>
-        </div>
-        <div style={s.legendItem}>
-          <div style={{ ...s.legendDot, background: 'var(--amber)' }} />
-          <span style={s.legendLabel}>Logged, missed target</span>
-        </div>
-        <div style={s.legendItem}>
-          <div style={{ ...s.legendDot, background: 'var(--macro-fat)' }} />
-          <span style={s.legendLabel}>Workout</span>
-        </div>
+        <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'var(--accent-dim)', border:'1px solid var(--accent)' }} /><span>Protein hit</span></div>
+        <div style={s.legendItem}><div style={{ ...s.legendSwatch, background:'rgba(184,120,48,0.09)', border:'1px solid var(--amber)' }} /><span>Logged, missed</span></div>
+        <div style={s.legendItem}><span style={s.workoutBadge}>W</span><span>Workout</span></div>
       </div>
+
     </div>
   )
 }
 
 const s = {
-  container:     { display:'flex', flexDirection:'column', gap:'12px', paddingBottom:'24px' },
-  header:        { display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'4px' },
-  navBtn:        { background:'none', border:'none', fontSize:'24px', color:'var(--text-primary)', cursor:'pointer', padding:'4px 12px', borderRadius:'var(--r-md)' },
-  monthLabel:    { fontSize:'18px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.02em' },
-  weekLabels:    { display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:'4px' },
-  weekLabel:     { textAlign:'center', fontSize:'11px', fontWeight:'600', color:'var(--text-tertiary)', padding:'4px 0', textTransform:'uppercase', letterSpacing:'0.05em' },
-  grid:          { display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'4px' },
-  loading:       { textAlign:'center', padding:'32px 0', fontSize:'14px', color:'var(--text-tertiary)' },
-  dayCell:       { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'6px 2px', minHeight:'48px', background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-md)', cursor:'pointer', gap:'3px' },
-  dayCellToday:  { border:'1.5px solid var(--text-primary)' },
-  dayCellFuture: { opacity:0.35, cursor:'default' },
-  dayNum:        { fontSize:'14px', fontWeight:'500', color:'var(--text-primary)', lineHeight:'1' },
-  dayNumToday:   { fontWeight:'700', color:'var(--text-primary)' },
-  dots:          { display:'flex', gap:'2px' },
-  dot:           { width:'5px', height:'5px', borderRadius:'50%' },
-  legend:        { display:'flex', gap:'16px', flexWrap:'wrap', padding:'8px 0' },
-  legendItem:    { display:'flex', alignItems:'center', gap:'6px' },
-  legendDot:     { width:'8px', height:'8px', borderRadius:'50%', flexShrink:0 },
-  legendLabel:   { fontSize:'12px', color:'var(--text-secondary)' },
+  container:    { display:'flex', flexDirection:'column', gap:'10px', paddingBottom:'24px' },
+
+  header:       { display:'flex', alignItems:'center', justifyContent:'space-between' },
+  navBtn:       { background:'none', border:'none', fontSize:'22px', color:'var(--text-primary)', cursor:'pointer', padding:'4px 10px', borderRadius:'var(--r-md)' },
+  monthLabel:   { fontSize:'17px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.02em' },
+
+  summaryStrip: { display:'flex', gap:'8px', background:'var(--bg-surface)', borderRadius:'var(--r-xl)', padding:'12px 14px', boxShadow:'var(--shadow-sm)' },
+  summaryCell:  { flex:1, display:'flex', flexDirection:'column', gap:'3px' },
+  summaryVal:   { fontSize:'16px', fontWeight:'700', color:'var(--text-primary)', letterSpacing:'-0.02em', lineHeight:'1' },
+  summaryOf:    { fontSize:'11px', fontWeight:'400', color:'var(--text-tertiary)' },
+  summaryLabel: { fontSize:'9px', fontWeight:'600', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em' },
+  summaryTrack: { height:'3px', background:'var(--bg-elevated)', borderRadius:'2px', overflow:'hidden', marginTop:'2px' },
+  summaryFill:  { height:'100%', background:'var(--accent)', borderRadius:'2px', transition:'width 0.4s ease' },
+
+  weekLabels:   { display:'grid', gridTemplateColumns:'repeat(7,1fr)' },
+  weekLabel:    { textAlign:'center', fontSize:'9px', fontWeight:'600', color:'var(--text-tertiary)', padding:'2px 0 4px', textTransform:'uppercase', letterSpacing:'0.05em' },
+
+  grid:         { display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'4px' },
+  loading:      { textAlign:'center', padding:'32px 0', fontSize:'14px', color:'var(--text-tertiary)' },
+
+  cell:         { display:'flex', flexDirection:'column', alignItems:'stretch', padding:'5px 5px 0', minHeight:'58px', borderRadius:'var(--r-md)', gap:'2px', overflow:'hidden', WebkitTapHighlightColor:'transparent' },
+  cellTop:      { display:'flex', alignItems:'center', justifyContent:'space-between' },
+  dayNum:       { fontSize:'12px', lineHeight:'1' },
+  workoutBadge: { fontSize:'8px', fontWeight:'700', color:'var(--accent)', background:'var(--accent-dim)', borderRadius:'4px', padding:'1px 4px', letterSpacing:'0.02em' },
+  calNum:       { fontSize:'11px', fontWeight:'700', color:'var(--text-secondary)', letterSpacing:'-0.02em', textAlign:'center', flex:1, display:'flex', alignItems:'center', justifyContent:'center' },
+  missed:       { fontSize:'11px', color:'var(--text-tertiary)', textAlign:'center', flex:1, display:'flex', alignItems:'center', justifyContent:'center' },
+
+  barTrack:     { height:'3px', background:'var(--border-subtle)', borderRadius:'0 0 4px 4px', overflow:'hidden', marginTop:'auto' },
+  barFill:      { height:'100%', borderRadius:'0 0 4px 4px', transition:'width 0.4s ease' },
+
+  legend:       { display:'flex', gap:'14px', flexWrap:'wrap', padding:'4px 2px' },
+  legendItem:   { display:'flex', alignItems:'center', gap:'6px', fontSize:'11px', color:'var(--text-secondary)' },
+  legendSwatch: { width:'14px', height:'14px', borderRadius:'4px', flexShrink:0 },
 }
