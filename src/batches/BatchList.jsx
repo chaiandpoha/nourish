@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
-import { db, addFoodLogEntry, sbFetchBatches, sbCloseBatch, sbReopenBatch } from '../db/db.js'
+import { db, addFoodLogEntry, sbFetchBatches, sbCloseBatch, sbReopenBatch, flushDirtyToSupabase } from '../db/db.js'
 import { calcPortionMacros } from './batchCalc.js'
 import BatchBuilder from './BatchBuilder.jsx'
 import { localDate } from '../log/DayLog.jsx'
@@ -108,19 +108,32 @@ export default function BatchList({ onLogged }) {
     const now = new Date().toISOString()
     await sbCloseBatch(batchId).catch(e => console.warn('Supabase:', e))
     await db.batches.update(batchId, { closed: 1, closedAt: now, dirty: 1, updatedAt: now })
+    flushDirtyToSupabase(user.id).catch(() => {})
     loadBatches()
   }
 
   async function handleReopen(batchId) {
     await sbReopenBatch(batchId).catch(e => console.warn('Supabase:', e))
     await db.batches.update(batchId, { closed: 0, closedAt: null, dirty: 1, updatedAt: new Date().toISOString() })
+    flushDirtyToSupabase(user.id).catch(() => {})
     loadBatches()
   }
 
   if (screen === 'create') {
     return (
       <BatchBuilder
-        onSave={() => { setScreen('list'); loadBatches() }}
+        onSave={(batch) => {
+          setScreen('list')
+          if (batch) setBatches(prev => {
+            const merged = [batch, ...prev.filter(b => b.id !== batch.id)]
+            return merged.sort((a, b) => {
+              if (a.shared && !b.shared) return -1
+              if (!a.shared && b.shared) return 1
+              return new Date(b.createdAt) - new Date(a.createdAt)
+            })
+          })
+          loadBatches()
+        }}
         onCancel={() => setScreen('list')}
       />
     )
@@ -130,7 +143,19 @@ export default function BatchList({ onLogged }) {
     return (
       <BatchBuilder
         existingBatch={editing}
-        onSave={() => { setScreen('list'); setEditing(null); loadBatches() }}
+        onSave={(batch) => {
+          setScreen('list')
+          setEditing(null)
+          if (batch) setBatches(prev => {
+            const merged = [batch, ...prev.filter(b => b.id !== batch.id)]
+            return merged.sort((a, b) => {
+              if (a.shared && !b.shared) return -1
+              if (!a.shared && b.shared) return 1
+              return new Date(b.createdAt) - new Date(a.createdAt)
+            })
+          })
+          loadBatches()
+        }}
         onCancel={() => { setScreen('list'); setEditing(null) }}
       />
     )

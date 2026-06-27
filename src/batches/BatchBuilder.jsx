@@ -148,7 +148,7 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
         userId:        user.id,
         createdBy:     user.email || user.id,
         shared:        shared ? 1 : 0,
-        closed:        0,
+        closed:        existingBatch?.closed ?? 0,
         ingredients:   ingredients.map(i => ({ name: i.name, grams: i.grams, per100g: i.per100g })),
         yieldGrams:    yieldG,
         macrosPer100g: per100g,

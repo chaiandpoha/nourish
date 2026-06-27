@@ -58,6 +58,43 @@ Users belong to a household (`householdId`). Food batches and recipes are shared
 
 Vision (food label scanning) uses `claude-sonnet-4-6`; chat uses `claude-haiku-4-5-20251001`.
 
+Rate limits are enforced server-side by IP (not userId) using an in-memory `Map` that resets on cold starts — intentionally simple for a personal app.
+
+### Workout module
+
+`src/workout/` contains the full workout feature:
+
+- `ExerciseDB.js` — static array of ~182 exercises, each with `id`, `name`, `muscle`, `movement`, `equipment`, `feel`, `cues[]`, and `yt` (YouTube search string). This is the authoritative exercise catalogue; it is never written to IndexedDB.
+- `WorkoutLog.jsx` — active session UI: exercise search, set logging with weight/reps/RPE, rest timer, swap exercises.
+- `WorkoutHistory.jsx` — past session browser with edit/delete.
+- `WorkoutCharts.jsx` — per-exercise progress charts (estimated 1RM, volume).
+- `MuscleVolume.jsx` — weekly volume tracking by muscle group.
+- `ProgramManager.jsx` — create/edit named workout programmes (ordered exercise lists stored as `programmes` in IndexedDB, one programme can be marked `active: 1`).
+- `DeltabolicCard.jsx` — summary card displayed on the Home screen showing last workout.
+- `ExerciseVideo.jsx` / `MovementGif.jsx` — fetch and display exercise demonstration media.
+
+Exercise thumbnails are loaded from musclewiki.com CDN at runtime; failures fall back to a coloured initials badge.
+
+### Batches & Recipes
+
+`src/batches/` — A "batch" is a cooked meal made from multiple raw ingredients. `BatchBuilder.jsx` lets users add ingredients by weight, set a yield (e.g. total cooked grams), and `batchCalc.js` calculates the macros per 100g of the finished batch. Batches saved to IndexedDB (`batches` table) can be shared across the household (`shared` flag). `BatchList.jsx` shows all available batches.
+
+`src/food/RecipeBuilder.jsx` and `RecipeList.jsx` handle fixed-ratio recipes (ingredients + serving sizes).
+
+### Food databases
+
+`src/data/nin_foods.json` and `src/data/usda_foods.json` are bundled static food databases seeded into IndexedDB on first use via `seedFoodDatabase()` in `FoodDB.js`. They are imported at build time and included in the bundle — do not make them larger than necessary.
+
+### Calendar & Progress
+
+`src/calendar/CalendarView.jsx` — monthly calendar showing logged data per day. `DaySummary.jsx` shows the macro and workout summary for a tapped day.
+
+`src/progress/WeightLog.jsx` — body weight trend chart. `src/progress/Measurements.jsx` — body measurement tracking (waist, hips, etc.).
+
+### Dev server API proxy
+
+`vite.config.js` includes a custom `apiDevServer` plugin that intercepts `/api/*` requests during `npm run dev` and routes them to the corresponding `api/*.js` handler. This means `npm run dev` is all you need for local development — there is no need for `vercel dev`. All `.env` variables (not just `VITE_*` prefixed ones) are loaded into `process.env` so serverless handlers can access secrets like `ANTHROPIC_API_KEY`.
+
 ### Health sync (steps)
 
 iOS Shortcut POSTs steps/calories to Supabase `health_sync` table using a per-user `healthSyncToken`. `HealthClipboardSync` in `App.jsx` polls Supabase every 5 minutes and on focus to pull new data into the local `stepsLog` table.
