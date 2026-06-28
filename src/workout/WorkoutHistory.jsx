@@ -271,8 +271,10 @@ export default function WorkoutHistory() {
                     <button style={s.removeSetBtn} onClick={() => removeSet(ei, si)}>×</button>
                   </div>
                 ) : (
-                  <div key={set.id || si} style={s.setChip}>
-                    <span style={s.setNum}>{si + 1}</span>
+                  <div key={set.id || si} style={{ ...s.setChip, ...(set.type === 'W' ? s.setChipWarmup : {}) }}>
+                    <span style={{ ...s.setNum, ...(set.type && set.type !== 'N' ? setTypeBadgeStyle(set.type) : {}) }}>
+                      {set.type && set.type !== 'N' ? set.type : si + 1}
+                    </span>
                     <span style={s.setVal}>{set.weight} {unit} × {set.reps}</span>
                     {set.rpe && <span style={s.setRpe}>RPE {set.rpe}</span>}
                   </div>
@@ -363,6 +365,13 @@ export default function WorkoutHistory() {
   )
 }
 
+function setTypeBadgeStyle(type) {
+  if (type === 'W') return { color:'#b87830', fontWeight:'700' }
+  if (type === 'D') return { color:'#4870a8', fontWeight:'700' }
+  if (type === 'F') return { color:'#c03c3c', fontWeight:'700' }
+  return {}
+}
+
 const s = {
   container:    { display:'flex', flexDirection:'column', gap:'10px', paddingBottom:'32px' },
   loading:      { textAlign:'center', color:'var(--text-tertiary)', padding:'48px 0', fontSize:'14px' },
@@ -421,6 +430,9 @@ const s = {
   setNum:       { width:'20px', fontSize:'12px', color:'var(--text-tertiary)', fontFamily:'var(--font-mono)', textAlign:'center', flexShrink:0 },
   setVal:       { flex:1, fontSize:'14px', fontWeight:'500', color:'var(--text-primary)', fontFamily:'var(--font-mono)' },
   setRpe:       { fontSize:'11px', color:'var(--text-secondary)', background:'var(--bg-surface)', padding:'2px 7px', borderRadius:'var(--r-full)' },
+
+  // Set type in history
+  setChipWarmup: { opacity: 0.75 },
 
   // Edit mode rows
   editRow:      { display:'flex', alignItems:'center', gap:'6px', padding:'4px 0' },

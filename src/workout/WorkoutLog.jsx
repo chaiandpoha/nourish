@@ -9,6 +9,7 @@ import { flushDirtyToSupabase, queueResync } from '../db/db.js'
 
 const RPE_OPTIONS = ['6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10']
 const DEFAULT_REST = 90
+const SET_TYPES    = ['N', 'W', 'D', 'F']
 
 const MUSCLE_COLOR = {
   chest:      { bg:'rgba(200,112,80,0.12)', fg:'#c87050' },
@@ -62,6 +63,23 @@ function ExThumb({ exercise }) {
   )
 }
 
+// Plate calculator helper
+function calcPlates(targetWeight, unit) {
+  const barWeight    = unit === 'kg' ? 20 : 45
+  const plateOptions = unit === 'kg'
+    ? [25, 20, 15, 10, 5, 2.5, 1.25]
+    : [45, 35, 25, 10, 5, 2.5]
+  let remaining = Math.max(0, (targetWeight - barWeight) / 2)
+  const plates = []
+  for (const plate of plateOptions) {
+    while (remaining >= plate - 0.001) {
+      plates.push(plate)
+      remaining = Math.round((remaining - plate) * 1000) / 1000
+    }
+  }
+  return { barWeight, plates }
+}
+
 export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCancel }) {
   const { user } = useAuth()
 
@@ -72,7 +90,7 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
   const [restTotal,  setRestTotal]  = useState(DEFAULT_REST)
   const [restActive, setRestActive] = useState(false)
   const [extraEx,    setExtraEx]    = useState([])
-  const [swapped,    setSwapped]    = useState(new Map()) // originalId → newExercise data
+  const [swapped,    setSwapped]    = useState(new Map())
   const [swapTarget, setSwapTarget] = useState(null)
   const [addingEx,   setAddingEx]   = useState(false)
   const [exQuery,    setExQuery]    = useState('')
@@ -81,8 +99,14 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
   const [summary,         setSummary]         = useState(null)
   const [rpePicker,       setRpePicker]       = useState(null)
   const [unit,            setUnit]            = useState(() => localStorage.getItem('workoutUnit') || 'lbs')
-  const [formExpanded,    setFormExpanded]    = useState(new Set()) // exercise IDs with form open
+  const [formExpanded,    setFormExpanded]    = useState(new Set())
   const [inactivityAlert, setInactivityAlert] = useState(false)
+  // New Strong-parity state
+  const [exNotes,      setExNotes]      = useState({})
+  const [plateCalc,    setPlateCalc]    = useState(null)   // { exId, weight } | null
+  const [restDuration, setRestDuration] = useState(
+    () => parseInt(localStorage.getItem('workoutRestTime')) || DEFAULT_REST
+  )
 
   const startRef        = useRef(Date.now())
   const lastActivityRef = useRef(Date.now())
@@ -92,8 +116,6 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
   const workoutLogId    = useRef(draftLogId || generateId())
   const draftSaved      = useRef(!!draftLogId)
 
-  // Merge saved programme exercises with full ExerciseDB data (restores cues, yt, equipment, etc.)
-  // Swapped programme exercises are replaced in-place; truly extra exercises follow.
   const swappedValues = new Set([...swapped.values()].map(v => v.id))
   const exercises = [
     ...(day?.exercises || []).map(ex => swapped.has(ex.id) ? swapped.get(ex.id) : ex),
@@ -105,14 +127,28 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
   const sessionName = day?.name || 'Workout'
   const exKey       = exercises.map(e => e.id).join(',')
 
-  // Running volume across all completed sets
+  // Volume excludes warmup sets
   const runningVolume = useMemo(() =>
     exercises.reduce((tot, ex) =>
       tot + (sets[ex.id] || [])
-        .filter(s => s.done)
+        .filter(s => s.done && s.type !== 'W')
         .reduce((v, s) => v + (parseFloat(s.weight)||0) * (parseInt(s.reps)||0), 0)
     , 0)
   , [sets, exKey])
+
+  // Real-time PR tracking — which exercises have a PR this session
+  const sessionPRs = useMemo(() => {
+    const prs = new Set()
+    for (const ex of exercises) {
+      const pd = prevData[ex.id]
+      if (!pd) continue
+      const maxW = (sets[ex.id] || [])
+        .filter(s => s.done && s.type !== 'W')
+        .reduce((m, s) => Math.max(m, parseFloat(s.weight) || 0), 0)
+      if (maxW > (pd.allTimeBest || 0)) prs.add(ex.id)
+    }
+    return prs
+  }, [sets, prevData, exKey])
 
   // ── Resume: load existing sets from a draft log ────────────────────────────
   useEffect(() => {
@@ -126,7 +162,14 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
         const byEx = {}
         for (const s of existing) {
           if (!byEx[s.exerciseId]) byEx[s.exerciseId] = []
-          byEx[s.exerciseId].push({ id: s.id, weight: String(s.weight ?? ''), reps: String(s.reps ?? ''), rpe: s.rpe || '', done: s.done !== false })
+          byEx[s.exerciseId].push({
+            id:     s.id,
+            weight: String(s.weight ?? ''),
+            reps:   String(s.reps ?? ''),
+            rpe:    s.rpe || '',
+            done:   s.done !== false,
+            type:   s.type || 'N',
+          })
         }
         setSets(byEx)
       })
@@ -143,6 +186,7 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
             reps:   String(ex.reps   || 10),
             rpe:    '',
             done:   false,
+            type:   'N',
           }))
         }
       }
@@ -179,16 +223,16 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
       const best = lastSession.reduce((b, s) =>
         (parseFloat(s.weight) || 0) > (parseFloat(b?.weight) || 0) ? s : b, lastSession[0])
 
-      // All-time best weight across every session, not just the last one
-      const allTimeBest = pastSets.reduce((max, s) =>
-        (parseFloat(s.weight) || 0) > max ? (parseFloat(s.weight) || 0) : max, 0)
+      const allTimeBest = pastSets
+        .filter(s => s.type !== 'W')
+        .reduce((max, s) => Math.max(max, parseFloat(s.weight) || 0), 0)
 
       result[ex.id] = {
-        label:        `${lastSession.length} sets · best ${best.weight} ${localStorage.getItem('workoutUnit') || 'lbs'} × ${best.reps}`,
-        weight:       parseFloat(best.weight) || 0,
+        label:      `${lastSession.length} sets · best ${best.weight} ${localStorage.getItem('workoutUnit') || 'lbs'} × ${best.reps}`,
+        weight:     parseFloat(best.weight) || 0,
         allTimeBest,
-        reps:         parseInt(best.reps)     || 10,
-        allSets:      lastSession,
+        reps:       parseInt(best.reps) || 10,
+        allSets:    lastSession,
       }
     }
 
@@ -201,15 +245,15 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
         if (!pd) continue
         const cur = next[ex.id] || []
         if (cur.some(s => s.done)) continue
-        // Empty strings so fields appear blank — prev values shown as grey placeholder
         next[ex.id] = pd.allSets.map(s => ({
-          weight:      '',
-          reps:        '',
-          rpe:         '',
-          done:        false,
-          weightHint:  String(parseFloat(s.weight) || 0),
-          repsHint:    String(parseInt(s.reps)     || 10),
-          rpeHint:     s.rpe != null && s.rpe !== '' ? String(s.rpe) : '',
+          weight:     '',
+          reps:       '',
+          rpe:        '',
+          done:       false,
+          type:       s.type || 'N',
+          weightHint: String(parseFloat(s.weight) || 0),
+          repsHint:   String(parseInt(s.reps)     || 10),
+          rpeHint:    s.rpe != null && s.rpe !== '' ? String(s.rpe) : '',
         }))
       }
       return next
@@ -230,7 +274,6 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
     return () => clearTimeout(restRef.current)
   }, [restActive, restTimer])
 
-  // Check for inactivity every 60s — alert after 90 minutes without a logged set
   useEffect(() => {
     inactivityRef.current = setInterval(() => {
       const idleMs = Date.now() - lastActivityRef.current
@@ -271,6 +314,7 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
           reps:   last?.reps   ?? String(pd?.reps   ?? 10),
           rpe:    '',
           done:   false,
+          type:   'N',
         }]
       }
     })
@@ -287,13 +331,28 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
     }))
   }
 
+  function cycleSetType(exId, setIdx) {
+    setSets(s => {
+      const cur     = s[exId][setIdx]
+      const curType = cur.type || 'N'
+      const next    = SET_TYPES[(SET_TYPES.indexOf(curType) + 1) % SET_TYPES.length]
+      return { ...s, [exId]: s[exId].map((set, i) => i === setIdx ? { ...set, type: next } : set) }
+    })
+  }
+
+  function changeRestDuration(delta) {
+    const next = Math.max(15, restDuration + delta)
+    localStorage.setItem('workoutRestTime', String(next))
+    setRestDuration(next)
+    if (restActive) setRestTimer(t => Math.min(t, next))
+  }
+
   function completeSet(exId, setIdx) {
     const setId = generateId()
     lastActivityRef.current = Date.now()
     setInactivityAlert(false)
     setSets(s => {
       const cur = s[exId][setIdx]
-      // Fall back to grey hint values if user left the field blank
       const resolved = {
         ...cur,
         weight: cur.weight !== '' ? cur.weight : (cur.weightHint ?? '0'),
@@ -307,8 +366,8 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
       persistSet(exId, next[exId][setIdx], setId)
       return next
     })
-    setRestTimer(DEFAULT_REST)
-    setRestTotal(DEFAULT_REST)
+    setRestTimer(restDuration)
+    setRestTotal(restDuration)
     setRestActive(true)
   }
 
@@ -342,6 +401,7 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
       weight:       parseFloat(set.weight) || 0,
       reps:         parseInt(set.reps)     || 0,
       rpe:          set.rpe ? parseFloat(set.rpe) : null,
+      type:         set.type || 'N',
       date,
       dirty:        1,
       updatedAt:    now,
@@ -373,16 +433,12 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
     const isProgrammeEx = (day?.exercises || []).some(e => e.id === oldEx.id)
 
     if (isProgrammeEx) {
-      // Swap a programme exercise in-place
       setSwapped(prev => { const m = new Map(prev); m.set(oldEx.id, replacement); return m })
     } else {
-      // Check if oldEx is itself a previously-swapped-in exercise
       const swapEntry = [...swapped.entries()].find(([, v]) => v.id === oldEx.id)
       if (swapEntry) {
-        // Re-swap: update the map entry so position is preserved
         setSwapped(prev => { const m = new Map(prev); m.set(swapEntry[0], replacement); return m })
       } else {
-        // Truly extra exercise — replace in extraEx
         setExtraEx(prev => [
           ...prev.filter(e => e.id !== oldEx.id),
           replacement,
@@ -415,11 +471,12 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
       const now      = new Date().toISOString()
 
       for (const ex of exercises) {
-        const exSets = getSets(ex.id).filter(s => s.done)
-        if (!exSets.length) continue
-        totalSets  += exSets.length
-        const maxW  = Math.max(...exSets.map(s => parseFloat(s.weight) || 0))
-        totalVolume += exSets.reduce((sum, s) =>
+        // Exclude warmup sets from all finish-time calculations
+        const workingSets = getSets(ex.id).filter(s => s.done && s.type !== 'W')
+        if (!workingSets.length) continue
+        totalSets  += workingSets.length
+        const maxW  = Math.max(...workingSets.map(s => parseFloat(s.weight) || 0))
+        totalVolume += workingSets.reduce((sum, s) =>
           sum + (parseFloat(s.weight) || 0) * (parseInt(s.reps) || 0), 0)
         const pd       = prevData[ex.id]
         const prTarget = pd?.allTimeBest ?? pd?.weight ?? 0
@@ -429,19 +486,20 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
       }
 
       await db.workoutLogs.put({
-        id:          workoutLogId.current,
-        userId:      user.id,
+        id:             workoutLogId.current,
+        userId:         user.id,
         date,
-        name:        sessionName,
-        programmeId: programme?.id || null,
-        dayName:     day?.name     || null,
+        name:           sessionName,
+        programmeId:    programme?.id || null,
+        dayName:        day?.name     || null,
         duration,
         totalSets,
         totalVolume,
         prs,
-        status:      'complete',
-        dirty:       1,
-        updatedAt:   now,
+        exerciseNotes:  exNotes,
+        status:         'complete',
+        dirty:          1,
+        updatedAt:      now,
       })
 
       if (!draftSaved.current) {
@@ -453,9 +511,10 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
               workoutLogId: workoutLogId.current,
               exerciseId:   ex.id,
               exerciseName: ex.name,
-              weight:  parseFloat(set.weight) || 0,
-              reps:    parseInt(set.reps)     || 0,
-              rpe:     set.rpe ? parseFloat(set.rpe) : null,
+              weight:       parseFloat(set.weight) || 0,
+              reps:         parseInt(set.reps)     || 0,
+              rpe:          set.rpe ? parseFloat(set.rpe) : null,
+              type:         set.type || 'N',
               date, dirty: 1, updatedAt: now,
             })
           }
@@ -464,7 +523,6 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
 
       setSummary({ duration, totalSets, totalVolume, prs })
 
-      // Push to Supabase immediately — don't wait for the 30s interval
       if (user?.id) flushDirtyToSupabase(user.id).catch(() => {})
     } catch (e) {
       console.error('Finish error:', e)
@@ -474,13 +532,12 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
   }
 
   async function handleCancel() {
-    // Clean up draft log and any persisted sets so they don't linger in IndexedDB
     if (draftSaved.current && user?.id) {
       const month = localDate().slice(0, 7)
       await db.workoutSets.where('workoutLogId').equals(workoutLogId.current).delete().catch(() => {})
       await db.workoutLogs.delete(workoutLogId.current).catch(() => {})
-      queueResync('workoutSets',  user.id, month)
-      queueResync('workoutLogs',  user.id, month)
+      queueResync('workoutSets', user.id, month)
+      queueResync('workoutLogs', user.id, month)
       flushDirtyToSupabase(user.id).catch(() => {})
     }
     onCancel?.()
@@ -500,9 +557,9 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
         <div style={st.summaryTitle}>Workout Complete</div>
         <div style={st.summaryStats}>
           {[
-            { val: fmt(summary.duration),                                lbl: 'Duration'        },
-            { val: summary.totalSets,                                    lbl: 'Sets'            },
-            { val: `${Math.round(summary.totalVolume).toLocaleString()}`,lbl: `Volume (${unit})` },
+            { val: fmt(summary.duration),                                 lbl: 'Duration'         },
+            { val: summary.totalSets,                                     lbl: 'Sets'             },
+            { val: `${Math.round(summary.totalVolume).toLocaleString()}`, lbl: `Volume (${unit})` },
           ].map(({ val, lbl }) => (
             <div key={lbl} style={st.summaryStat}>
               <div style={st.summaryVal}>{val}</div>
@@ -517,7 +574,7 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
             {summary.prs.map((pr, i) => (
               <div key={i} style={st.prRow}>
                 <span style={st.prName}>{pr.exercise}</span>
-                <span style={st.prVal}>{pr.value} {unit} ✕ PR</span>
+                <span style={st.prVal}>{pr.value} {unit} · PR</span>
               </div>
             ))}
           </div>
@@ -565,8 +622,8 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
   }
 
   // ── Main log screen ────────────────────────────────────────────────────────
-  const totalSetsAll  = exercises.reduce((n, ex) => n + (sets[ex.id]?.length || 0), 0)
-  const doneSetsAll   = exercises.reduce((n, ex) => n + (sets[ex.id]?.filter(s => s.done).length || 0), 0)
+  const totalSetsAll = exercises.reduce((n, ex) => n + (sets[ex.id]?.length || 0), 0)
+  const doneSetsAll  = exercises.reduce((n, ex) => n + (sets[ex.id]?.filter(s => s.done).length || 0), 0)
 
   return (
     <div style={st.container}>
@@ -633,9 +690,14 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
             <div style={{ ...st.restFill, width: `${(restTimer / restTotal) * 100}%` }} />
           </div>
           <div style={st.restContent}>
-            <div style={{ display:'flex', flexDirection:'column', gap:'1px' }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
               <div style={st.restLabel}>Rest</div>
               <div style={st.restTime}>{fmt(restTimer)}</div>
+              <div style={st.restDurationRow}>
+                <button style={st.restDurBtn} onClick={() => changeRestDuration(-15)}>−15s</button>
+                <span style={st.restDurLabel}>{fmt(restDuration)}</span>
+                <button style={st.restDurBtn} onClick={() => changeRestDuration(+15)}>+15s</button>
+              </div>
             </div>
             <div style={st.restBtns}>
               <button style={st.restAdj} onClick={() => setRestTimer(t => Math.max(0, t - 15))}>−15s</button>
@@ -653,6 +715,7 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
         const doneCnt = exSets.filter(s => s.done).length
         const allDone = exSets.length > 0 && doneCnt === exSets.length
         const mc      = muscleStyle(ex.muscle)
+        const hasPR   = sessionPRs.has(ex.id)
 
         return (
           <div key={ex.id} style={{ ...st.exCard, ...(allDone ? st.exCardDone : {}) }}>
@@ -668,6 +731,7 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
                 <div style={st.exNameRow}>
                   <span style={st.exName}>{ex.name}</span>
                   {allDone && <span style={st.doneBadge}>Done</span>}
+                  {hasPR && <span style={st.prBadgeInline}>PR</span>}
                 </div>
                 <div style={st.exTagRow}>
                   {ex.muscle && (
@@ -697,18 +761,6 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
               </div>
             </div>
 
-            {/* Previous session chips */}
-            {pd ? (
-              <div style={st.prevRow}>
-                <span style={st.prevLabel}>Last</span>
-                {pd.allSets.slice(0, 5).map((s, i) => (
-                  <span key={i} style={st.prevChip}>{s.weight}×{s.reps}</span>
-                ))}
-              </div>
-            ) : (
-              <div style={st.prevFirstTime}>First time · set a starting weight below</div>
-            )}
-
             {/* Inline form panel */}
             {formExpanded.has(ex.id) && (
               <div style={st.formPanel}>
@@ -731,34 +783,74 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
               </div>
             )}
 
-            {/* Column headers */}
+            {/* Column headers: # | PREV | WEIGHT | REPS | RPE | ✓ */}
             <div style={st.colHeader}>
-              <span style={{ ...st.colLbl, width:'26px' }}>#</span>
+              <span style={{ ...st.colLbl, width:'32px' }}>#</span>
+              <span style={{ ...st.colLbl, width:'58px' }}>PREV</span>
               <span style={{ ...st.colLbl, flex:1.2 }}>{unit.toUpperCase()}</span>
               <span style={{ ...st.colLbl, flex:1 }}>REPS</span>
-              <span style={{ ...st.colLbl, width:'44px' }}>RPE</span>
-              <span style={{ ...st.colLbl, width:'48px' }}></span>
+              <span style={{ ...st.colLbl, width:'36px' }}>RPE</span>
+              <span style={{ ...st.colLbl, width:'44px' }}></span>
             </div>
 
             {/* Set rows */}
             {exSets.map((set, i) => {
-              const isDone      = set.done
-              const ps          = pd?.allSets?.[i]
+              const isDone = set.done
+              const ps     = pd?.allSets?.[i]
+              const prevDisplay = ps
+                ? `${parseFloat(ps.weight) || 0}×${parseInt(ps.reps) || 0}`
+                : '—'
               const wPlaceholder = set.weightHint ?? (ps ? String(ps.weight) : '0')
               const rPlaceholder = set.repsHint   ?? (ps ? String(ps.reps)   : '10')
               const rpeHint      = set.rpeHint    ?? (ps?.rpe ? String(ps.rpe) : '')
+              const setType      = set.type || 'N'
+              const isWarmup     = setType === 'W'
+
+              // Per-set PR: this set's resolved weight > allTimeBest
+              const resolvedW = parseFloat(set.weight !== '' ? set.weight : (set.weightHint ?? '0')) || 0
+              const isSetPR   = isDone && !isWarmup && pd && resolvedW > 0 && resolvedW > (pd.allTimeBest || 0)
+
               return (
-                <div key={i} style={{ ...st.setRow, ...(isDone ? st.setDone : {}) }}>
-                  <span style={st.setNum}>{i + 1}</span>
-                  <input
-                    className="workout-num-input"
-                    style={{ ...st.numIn, ...(isDone ? st.numInDone : {}), flex: 1.2 }}
-                    type="text" inputMode="decimal"
-                    placeholder={wPlaceholder}
-                    value={set.weight}
-                    onChange={e => update(ex.id, i, 'weight', e.target.value)}
-                    disabled={isDone}
-                  />
+                <div key={i} style={{
+                  ...st.setRow,
+                  ...(isDone ? st.setDone : {}),
+                  ...(isWarmup ? st.setWarmup : {}),
+                }}>
+                  {/* Set type button — tap cycles N→W→D→F */}
+                  <button
+                    style={{ ...st.setTypeBtn, ...setTypeBtnStyle(setType) }}
+                    onClick={() => !isDone && cycleSetType(ex.id, i)}
+                    title={`Set type: ${setType} — tap to change`}
+                  >
+                    {setType === 'N' ? i + 1 : setType}
+                  </button>
+
+                  {/* Previous session for this set index */}
+                  <span style={st.prevCell}>{prevDisplay}</span>
+
+                  {/* Weight */}
+                  <div style={{ flex:1.2, position:'relative', minWidth:0 }}>
+                    <input
+                      className="workout-num-input"
+                      style={{ ...st.numIn, ...(isDone ? st.numInDone : {}), width:'100%', boxSizing:'border-box' }}
+                      type="text" inputMode="decimal"
+                      placeholder={wPlaceholder}
+                      value={set.weight}
+                      onChange={e => update(ex.id, i, 'weight', e.target.value)}
+                      disabled={isDone}
+                    />
+                    {!isDone && (
+                      <button
+                        style={st.plateIcon}
+                        onClick={() => setPlateCalc({ exId: ex.id, weight: parseFloat(set.weight || wPlaceholder) || 0 })}
+                        title="Plate calculator"
+                      >
+                        ⚖
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Reps */}
                   <input
                     className="workout-num-input"
                     style={{ ...st.numIn, ...(isDone ? st.numInDone : {}) }}
@@ -768,6 +860,8 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
                     onChange={e => update(ex.id, i, 'reps', e.target.value)}
                     disabled={isDone}
                   />
+
+                  {/* RPE */}
                   <button
                     style={{ ...st.rpeBtn, ...(set.rpe ? st.rpeBtnSet : {}), ...(isDone ? st.rpeBtnDone : {}), ...((!set.rpe && rpeHint) ? st.rpeBtnHint : {}) }}
                     onClick={() => !isDone && setRpePicker({ exId: ex.id, setIdx: i })}
@@ -775,8 +869,12 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
                   >
                     {set.rpe || (rpeHint ? rpeHint : '—')}
                   </button>
+
+                  {/* Done / PR */}
                   {isDone ? (
-                    <button style={st.checkDone} onClick={() => uncompleteSet(ex.id, i)}>✓</button>
+                    <button style={{ ...st.checkDone, ...(isSetPR ? st.checkPR : {}) }} onClick={() => uncompleteSet(ex.id, i)}>
+                      {isSetPR ? '🏆' : '✓'}
+                    </button>
                   ) : (
                     <button style={st.checkBtn} onClick={() => completeSet(ex.id, i)}>✓</button>
                   )}
@@ -790,6 +888,17 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
               {exSets.length > 1 && (
                 <button style={st.removeSetBtn} onClick={() => removeLastSet(ex.id)}>− Remove</button>
               )}
+            </div>
+
+            {/* Exercise notes */}
+            <div style={st.notesRow}>
+              <textarea
+                style={st.notesInput}
+                placeholder="Exercise notes…"
+                value={exNotes[ex.id] || ''}
+                onChange={e => setExNotes(prev => ({ ...prev, [ex.id]: e.target.value }))}
+                rows={1}
+              />
             </div>
           </div>
         )
@@ -845,7 +954,6 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
         </div>
       )}
 
-
       {/* ── RPE bottom sheet ── */}
       {rpePicker && (
         <>
@@ -882,8 +990,115 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
           </div>
         </>
       )}
+
+      {/* ── Plate calculator bottom sheet ── */}
+      {plateCalc && (
+        <>
+          <div style={st.backdrop} onClick={() => setPlateCalc(null)} />
+          <div style={st.rpeSheet}>
+            <div style={st.rpeHandle} />
+            <div style={st.rpeTitle}>Plate Calculator</div>
+            <PlateCalcSheet
+              weight={plateCalc.weight}
+              unit={unit}
+              onClose={() => setPlateCalc(null)}
+            />
+          </div>
+        </>
+      )}
     </div>
   )
+}
+
+// ── Plate calculator sheet content ────────────────────────────────────────────
+function PlateCalcSheet({ weight, unit, onClose }) {
+  const [target, setTarget] = useState(String(weight || ''))
+  const targetW = parseFloat(target) || 0
+  const { barWeight, plates } = calcPlates(targetW, unit)
+
+  const plateCounts = {}
+  for (const p of plates) plateCounts[p] = (plateCounts[p] || 0) + 1
+
+  const PLATE_COLORS = {
+    45: '#c0392b', 35: '#2980b9', 25: '#27ae60', 10: '#ffffff',
+    5:  '#888888', 2.5: '#555555', 1.25: '#999999',
+    20: '#c0392b', 15: '#2980b9', 1:   '#aaaaaa',
+  }
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:'16px' }}>
+      <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+        <input
+          style={{ flex:1, padding:'12px 14px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', fontSize:'20px', fontWeight:'600', color:'var(--text-primary)', outline:'none', textAlign:'center', fontFamily:'var(--font-mono)' }}
+          type="text" inputMode="decimal"
+          value={target}
+          onChange={e => setTarget(e.target.value)}
+        />
+        <span style={{ fontSize:'14px', color:'var(--text-tertiary)', fontWeight:'600' }}>{unit}</span>
+      </div>
+
+      {targetW > 0 && targetW >= barWeight && (
+        <>
+          {/* Visual bar */}
+          <div style={{ display:'flex', alignItems:'center', gap:'3px', justifyContent:'center', flexWrap:'wrap', padding:'8px 0' }}>
+            <div style={{ width:'60px', height:'14px', background:'#888', borderRadius:'4px', flexShrink:0 }} />
+            {plates.map((p, i) => (
+              <div key={i} style={{
+                width: Math.max(14, p * 1.2) + 'px',
+                height: Math.max(28, p * 2.2) + 'px',
+                background: PLATE_COLORS[p] || '#666',
+                borderRadius:'3px',
+                border:'1.5px solid rgba(255,255,255,0.15)',
+                flexShrink:0,
+              }} />
+            ))}
+            <div style={{ width:'6px', height:'14px', background:'#888', borderRadius:'2px', flexShrink:0 }} />
+          </div>
+
+          {/* Plate list */}
+          <div style={{ background:'var(--bg-elevated)', borderRadius:'var(--r-lg)', overflow:'hidden' }}>
+            <div style={{ padding:'10px 14px', fontSize:'11px', fontWeight:'700', color:'var(--text-tertiary)', textTransform:'uppercase', letterSpacing:'0.06em' }}>
+              Per side — {unit === 'kg' ? '20kg' : '45lb'} bar
+            </div>
+            {Object.entries(plateCounts).sort((a, b) => parseFloat(b[0]) - parseFloat(a[0])).map(([plate, count]) => (
+              <div key={plate} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', borderTop:'0.5px solid var(--border-subtle)' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+                  <div style={{ width:'14px', height:'22px', background: PLATE_COLORS[parseFloat(plate)] || '#666', borderRadius:'2px', border:'1px solid rgba(0,0,0,0.2)' }} />
+                  <span style={{ fontSize:'15px', fontWeight:'600', color:'var(--text-primary)', fontFamily:'var(--font-mono)' }}>{plate} {unit}</span>
+                </div>
+                <span style={{ fontSize:'15px', color:'var(--text-secondary)', fontFamily:'var(--font-mono)' }}>× {count}</span>
+              </div>
+            ))}
+            <div style={{ padding:'12px 14px', borderTop:'0.5px solid var(--border-subtle)', display:'flex', justifyContent:'space-between' }}>
+              <span style={{ fontSize:'13px', color:'var(--text-tertiary)' }}>Total</span>
+              <span style={{ fontSize:'15px', fontWeight:'700', color:'var(--accent)', fontFamily:'var(--font-mono)' }}>
+                {barWeight + plates.reduce((s, p) => s + p, 0) * 2} {unit}
+              </span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {targetW > 0 && targetW < barWeight && (
+        <div style={{ textAlign:'center', fontSize:'13px', color:'var(--text-tertiary)', padding:'8px 0' }}>
+          Below bar weight ({barWeight} {unit})
+        </div>
+      )}
+
+      <button style={{ padding:'13px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-lg)', color:'var(--text-secondary)', fontSize:'14px', cursor:'pointer' }}
+        onClick={onClose}>
+        Close
+      </button>
+    </div>
+  )
+}
+
+// Set type button style helper
+function setTypeBtnStyle(type) {
+  if (type === 'W') return { background:'rgba(184,120,48,0.15)', color:'#b87830', border:'1px solid rgba(184,120,48,0.3)', fontWeight:'700' }
+  if (type === 'D') return { background:'rgba(72,112,168,0.15)', color:'#4870a8', border:'1px solid rgba(72,112,168,0.3)', fontWeight:'700' }
+  if (type === 'F') return { background:'rgba(200,60,60,0.12)',  color:'#c03c3c', border:'1px solid rgba(200,60,60,0.25)',  fontWeight:'700' }
+  return {}  // N = default style
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
@@ -914,15 +1129,18 @@ const st = {
   overallFill:   { height:'100%', background:'var(--accent)', transition:'width 0.4s ease', borderRadius:'2px' },
 
   // Rest timer
-  restBanner:    { borderRadius:'var(--r-xl)', overflow:'hidden', background:'var(--accent-dim)', border:'1px solid var(--accent)' },
-  restTrack:     { height:'4px', background:'rgba(74,124,106,0.2)' },
-  restFill:      { height:'100%', background:'var(--accent)', transition:'width 1s linear' },
-  restContent:   { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px' },
-  restLabel:     { fontSize:'11px', fontWeight:'700', color:'var(--accent)', letterSpacing:'0.06em', textTransform:'uppercase' },
-  restTime:      { fontSize:'34px', fontWeight:'300', color:'var(--text-primary)', fontFamily:'var(--font-mono)', letterSpacing:'-0.05em', lineHeight:1 },
-  restBtns:      { display:'flex', gap:'6px', alignItems:'center' },
-  restAdj:       { padding:'9px 12px', background:'rgba(74,124,106,0.15)', border:'1px solid var(--accent)', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer' },
-  restSkip:      { padding:'9px 16px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'13px', fontWeight:'600', cursor:'pointer' },
+  restBanner:       { borderRadius:'var(--r-xl)', overflow:'hidden', background:'var(--accent-dim)', border:'1px solid var(--accent)' },
+  restTrack:        { height:'4px', background:'rgba(74,124,106,0.2)' },
+  restFill:         { height:'100%', background:'var(--accent)', transition:'width 1s linear' },
+  restContent:      { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px' },
+  restLabel:        { fontSize:'11px', fontWeight:'700', color:'var(--accent)', letterSpacing:'0.06em', textTransform:'uppercase' },
+  restTime:         { fontSize:'34px', fontWeight:'300', color:'var(--text-primary)', fontFamily:'var(--font-mono)', letterSpacing:'-0.05em', lineHeight:1 },
+  restDurationRow:  { display:'flex', alignItems:'center', gap:'5px', marginTop:'4px' },
+  restDurBtn:       { padding:'3px 7px', background:'rgba(74,124,106,0.1)', border:'1px solid var(--accent)', borderRadius:'var(--r-sm)', color:'var(--accent)', fontSize:'11px', fontWeight:'600', cursor:'pointer' },
+  restDurLabel:     { fontSize:'11px', color:'var(--text-tertiary)', fontFamily:'var(--font-mono)', minWidth:'36px', textAlign:'center' },
+  restBtns:         { display:'flex', gap:'6px', alignItems:'center' },
+  restAdj:          { padding:'9px 12px', background:'rgba(74,124,106,0.15)', border:'1px solid var(--accent)', borderRadius:'var(--r-md)', color:'var(--accent)', fontSize:'13px', fontWeight:'600', cursor:'pointer' },
+  restSkip:         { padding:'9px 16px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'13px', fontWeight:'600', cursor:'pointer' },
 
   // Exercise card
   exCard:        { background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)', overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.04)' },
@@ -933,6 +1151,7 @@ const st = {
   exNameRow:     { display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' },
   exName:        { fontSize:'16px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.02em', lineHeight:1.2 },
   doneBadge:     { fontSize:'10px', fontWeight:'700', color:'var(--accent)', background:'var(--accent-dim)', padding:'2px 7px', borderRadius:'var(--r-full)', textTransform:'uppercase', letterSpacing:'0.04em' },
+  prBadgeInline: { fontSize:'10px', fontWeight:'800', color:'#b87830', background:'rgba(184,120,48,0.15)', padding:'2px 7px', borderRadius:'var(--r-full)', textTransform:'uppercase', letterSpacing:'0.06em' },
   exTagRow:      { display:'flex', alignItems:'center', gap:'5px', marginTop:'5px', flexWrap:'wrap' },
   muscleTag:     { fontSize:'11px', fontWeight:'600', padding:'2px 8px', borderRadius:'var(--r-full)', textTransform:'capitalize' },
   equipTag:      { fontSize:'11px', color:'var(--text-tertiary)', background:'var(--bg-elevated)', padding:'2px 8px', borderRadius:'var(--r-full)', textTransform:'capitalize' },
@@ -940,38 +1159,46 @@ const st = {
   formBtnActive: { background:'var(--accent)', color:'#fff' },
   swapBtn:       { padding:'7px 13px', background:'var(--bg-elevated)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'12px', fontWeight:'500', cursor:'pointer', flexShrink:0 },
 
-  // Previous session
-  prevRow:       { display:'flex', alignItems:'center', gap:'6px', padding:'6px 16px 10px', flexWrap:'wrap' },
-  prevLabel:     { fontSize:'10px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.05em' },
-  prevChip:      { fontSize:'12px', fontWeight:'500', color:'var(--text-secondary)', background:'var(--bg-elevated)', padding:'3px 8px', borderRadius:'var(--r-full)', letterSpacing:'-0.01em' },
-  prevFirstTime: { padding:'6px 16px 10px', fontSize:'12px', color:'var(--text-tertiary)', fontStyle:'italic' },
-
   // Column headers
   colHeader:     { display:'flex', gap:'6px', padding:'6px 12px 4px', alignItems:'center', borderTop:'0.5px solid var(--border-subtle)' },
   colLbl:        { fontSize:'10px', fontWeight:'700', color:'var(--accent)', textTransform:'uppercase', letterSpacing:'0.05em', textAlign:'center', flexShrink:0 },
 
   // Set rows
-  setRow:        { display:'flex', gap:'6px', padding:'10px 12px', alignItems:'center', borderTop:'0.5px solid var(--border-subtle)', transition:'background 0.2s ease', minHeight:'56px' },
+  setRow:        { display:'flex', gap:'5px', padding:'8px 10px', alignItems:'center', borderTop:'0.5px solid var(--border-subtle)', transition:'background 0.2s ease', minHeight:'52px' },
   setDone:       { background:'rgba(74,124,106,0.06)' },
-  setNum:        { width:'26px', fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center', fontFamily:'var(--font-mono)', flexShrink:0, fontWeight:'500' },
-  setHint:       { width:'58px', fontSize:'11px', color:'var(--text-tertiary)', textAlign:'center', flexShrink:0, letterSpacing:'-0.01em', lineHeight:1.2 },
-  numIn:         { flex:1, padding:'11px 4px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'17px', fontWeight:'600', color:'var(--text-primary)', outline:'none', textAlign:'center', minWidth:0, transition:'border-color 0.15s, background 0.2s' },
+  setWarmup:     { background:'rgba(184,120,48,0.04)' },
+
+  // Set type button (replaces plain set number)
+  setTypeBtn:    { width:'32px', height:'32px', flexShrink:0, borderRadius:'var(--r-sm)', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', color:'var(--text-tertiary)', fontSize:'12px', fontWeight:'600', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-mono)' },
+
+  // Previous column
+  prevCell:      { width:'58px', flexShrink:0, fontSize:'11px', color:'var(--text-tertiary)', textAlign:'center', letterSpacing:'-0.01em', lineHeight:1.2, fontFamily:'var(--font-mono)' },
+
+  numIn:         { flex:1, padding:'10px 4px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'17px', fontWeight:'600', color:'var(--text-primary)', outline:'none', textAlign:'center', minWidth:0, transition:'border-color 0.15s, background 0.2s' },
   numInDone:     { background:'transparent', border:'1px solid transparent', color:'var(--accent)', fontWeight:'700' },
 
+  // Plate calculator icon inside weight cell
+  plateIcon:     { position:'absolute', top:'2px', right:'2px', width:'14px', height:'14px', background:'none', border:'none', color:'var(--text-tertiary)', fontSize:'10px', cursor:'pointer', padding:0, display:'flex', alignItems:'center', justifyContent:'center', opacity:0.6 },
+
   // RPE
-  rpeBtn:        { width:'44px', flexShrink:0, padding:'10px 2px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'12px', fontWeight:'500', color:'var(--text-tertiary)', cursor:'pointer', textAlign:'center' },
+  rpeBtn:        { width:'36px', flexShrink:0, padding:'10px 2px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', fontSize:'11px', fontWeight:'500', color:'var(--text-tertiary)', cursor:'pointer', textAlign:'center' },
   rpeBtnSet:     { background:'var(--accent-dim)', border:'1px solid var(--accent)', color:'var(--accent)', fontWeight:'700' },
   rpeBtnHint:    { color:'var(--text-tertiary)', fontStyle:'italic' },
   rpeBtnDone:    { background:'transparent', border:'1px solid transparent', cursor:'default' },
 
   // Check buttons
-  checkBtn:      { width:'48px', height:'48px', flexShrink:0, borderRadius:'50%', background:'var(--bg-elevated)', border:'2px solid var(--border-strong)', color:'var(--text-tertiary)', fontSize:'18px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.15s var(--ease-out)' },
-  checkDone:     { width:'48px', height:'48px', flexShrink:0, borderRadius:'50%', background:'var(--accent)', border:'none', color:'#fff', fontSize:'18px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(74,124,106,0.4)' },
+  checkBtn:      { width:'44px', height:'44px', flexShrink:0, borderRadius:'50%', background:'var(--bg-elevated)', border:'2px solid var(--border-strong)', color:'var(--text-tertiary)', fontSize:'18px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.15s var(--ease-out)' },
+  checkDone:     { width:'44px', height:'44px', flexShrink:0, borderRadius:'50%', background:'var(--accent)', border:'none', color:'#fff', fontSize:'18px', fontWeight:'700', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(74,124,106,0.4)' },
+  checkPR:       { background:'#b87830', boxShadow:'0 2px 10px rgba(184,120,48,0.5)' },
 
   // Set actions
   setActions:    { display:'flex', gap:'8px', padding:'10px 12px', borderTop:'0.5px solid var(--border-subtle)' },
   addSetBtn:     { flex:1, padding:'10px', background:'transparent', border:'1px dashed var(--border-strong)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'13px', fontWeight:'500', cursor:'pointer' },
   removeSetBtn:  { padding:'10px 14px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', color:'var(--red)', fontSize:'13px', cursor:'pointer' },
+
+  // Exercise notes
+  notesRow:      { padding:'8px 12px 12px', borderTop:'0.5px solid var(--border-subtle)' },
+  notesInput:    { width:'100%', boxSizing:'border-box', padding:'9px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', fontSize:'13px', color:'var(--text-primary)', outline:'none', resize:'none', fontFamily:'inherit', lineHeight:1.5 },
 
   // Empty session
   emptySession:  { display:'flex', flexDirection:'column', alignItems:'center', gap:'10px', padding:'40px 16px', background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)' },
@@ -1007,11 +1234,10 @@ const st = {
   cueRow:         { display:'flex', alignItems:'flex-start', gap:'12px', padding:'10px 14px' },
   cueDot:         { width:'22px', height:'22px', borderRadius:'50%', background:'var(--accent)', color:'#fff', fontSize:'11px', fontWeight:'700', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:'1px' },
   cueText:        { fontSize:'14px', color:'var(--text-primary)', lineHeight:1.55, fontWeight:'400' },
-  ytBtn:          { display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', padding:'12px 14px', background:'rgba(255,0,0,0.07)', border:'0.5px solid rgba(255,0,0,0.18)', borderRadius:'var(--r-lg)', color:'#cc0000', fontSize:'14px', fontWeight:'600', textDecoration:'none' },
 
   // RPE sheet
   backdrop:      { position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:300 },
-  rpeSheet:      { position:'fixed', bottom:0, left:0, right:0, background:'var(--bg-surface)', borderRadius:'20px 20px 0 0', padding:'16px 20px 40px', zIndex:301, display:'flex', flexDirection:'column', gap:'16px' },
+  rpeSheet:      { position:'fixed', bottom:0, left:0, right:0, background:'var(--bg-surface)', borderRadius:'20px 20px 0 0', padding:'16px 20px 40px', zIndex:301, display:'flex', flexDirection:'column', gap:'16px', maxHeight:'80vh', overflowY:'auto' },
   rpeHandle:     { width:'36px', height:'4px', borderRadius:'2px', background:'var(--border-strong)', alignSelf:'center' },
   rpeTitle:      { fontSize:'17px', fontWeight:'600', color:'var(--text-primary)', letterSpacing:'-0.02em', textAlign:'center' },
   rpeScale:      { display:'flex', justifyContent:'space-between', fontSize:'12px', color:'var(--text-tertiary)', padding:'0 4px' },
@@ -1032,6 +1258,6 @@ const st = {
   prBoxTitle:    { padding:'12px 16px', fontSize:'13px', fontWeight:'700', color:'var(--text-primary)', borderBottom:'0.5px solid var(--border-subtle)', textTransform:'uppercase', letterSpacing:'0.04em' },
   prRow:         { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'13px 16px', borderTop:'0.5px solid var(--border-subtle)' },
   prName:        { fontSize:'14px', color:'var(--text-primary)' },
-  prVal:         { fontSize:'14px', fontWeight:'700', color:'var(--accent)', fontFamily:'var(--font-mono)' },
+  prVal:         { fontSize:'14px', fontWeight:'700', color:'#b87830', fontFamily:'var(--font-mono)' },
   doneBtn:       { width:'100%', padding:'17px', background:'var(--accent)', border:'none', borderRadius:'var(--r-xl)', color:'#fff', fontSize:'17px', fontWeight:'700', cursor:'pointer', letterSpacing:'-0.02em' },
 }

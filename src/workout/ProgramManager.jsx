@@ -220,8 +220,12 @@ function CreateProgram({ userId, programme, onSave, onCancel }) {
   const [error,  setError]  = useState('')
   const [saving, setSaving] = useState(false)
 
+  const [openDays, setOpenDays] = useState(new Set([0]))
+
   function addDay() {
+    const newIndex = days.length
     setDays(d => [...d, { name: `Day ${d.length + 1}`, exercises: [] }])
+    setOpenDays(prev => { const s = new Set(prev); s.add(newIndex); return s })
   }
 
   function updateDayName(i, name) {
@@ -306,6 +310,7 @@ function CreateProgram({ userId, programme, onSave, onCancel }) {
           key={dayIndex}
           day={day}
           dayIndex={dayIndex}
+          defaultOpen={openDays.has(dayIndex)}
           onNameChange={name => updateDayName(dayIndex, name)}
           onAddExercise={ex => addExercise(dayIndex, ex)}
           onUpdateExercise={(exIdx, field, val) => updateExercise(dayIndex, exIdx, field, val)}
@@ -330,10 +335,10 @@ function CreateProgram({ userId, programme, onSave, onCancel }) {
 
 // ─── DayBuilder ───────────────────────────────────────────────────────────────
 
-function DayBuilder({ day, dayIndex, onNameChange, onAddExercise, onUpdateExercise, onRemoveExercise }) {
+function DayBuilder({ day, dayIndex, onNameChange, onAddExercise, onUpdateExercise, onRemoveExercise, defaultOpen }) {
   const [query,   setQuery]   = useState('')
   const [results, setResults] = useState([])
-  const [open,    setOpen]    = useState(dayIndex === 0)
+  const [open,    setOpen]    = useState(defaultOpen ?? dayIndex === 0)
 
   useEffect(() => {
     if (!query.trim()) { setResults([]); return }
