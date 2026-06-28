@@ -11,9 +11,11 @@ export default function RecipeList({ householdId }) {
   const [deleting, setDeleting] = useState(null) // id being confirmed
   const didSync = useRef(false)
 
+  const byNewest = (a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')
+
   async function loadLocal() {
     const local = await db.foods.where('source').equals('recipe').toArray()
-    local.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+    local.sort(byNewest)
     setRecipes(local)
     return local
   }
@@ -82,7 +84,7 @@ export default function RecipeList({ householdId }) {
       if (idx >= 0) {
         const next = [...prev]
         next[idx] = food
-        return next.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+        return next.sort(byNewest)
       }
       return [food, ...prev]
     })

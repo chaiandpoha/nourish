@@ -1,9 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../auth/useAuth.jsx'
-import { db, addFoodLogEntry, sbFetchBatches, sbCloseBatch, sbReopenBatch, flushDirtyToSupabase } from '../db/db.js'
+import { db, addFoodLogEntry, sbFetchBatches, sbCloseBatch, sbReopenBatch } from '../db/db.js'
 import { calcPortionMacros } from './batchCalc.js'
 import BatchBuilder from './BatchBuilder.jsx'
 import { localDate } from '../log/DayLog.jsx'
+
+const sortBatches = (a, b) => {
+  if (a.shared && !b.shared) return -1
+  if (!a.shared && b.shared) return 1
+  return new Date(b.createdAt) - new Date(a.createdAt)
+}
 
 export default function BatchList({ onLogged }) {
   const [batches,       setBatches]       = useState([])
@@ -14,6 +20,7 @@ export default function BatchList({ onLogged }) {
   const [editing,       setEditing]       = useState(null)
   const [loading,       setLoading]       = useState(true)
   const { user } = useAuth()
+  const _loadingRef = useRef(false)
 
   useEffect(() => { loadBatches() }, [user])
 
@@ -29,7 +36,8 @@ export default function BatchList({ onLogged }) {
   }, [user])
 
   async function loadBatches() {
-    if (!user) return
+    if (!user || _loadingRef.current) return
+    _loadingRef.current = true
     try {
       const remote = await sbFetchBatches(user.householdId)
       const localRecords = await db.batches.bulkGet(remote.map(b => b.id))
@@ -64,11 +72,7 @@ export default function BatchList({ onLogged }) {
         if (toRemove.length) await db.batches.bulkDelete(toRemove)
       }
 
-      const sort = arr => arr.sort((a, b) => {
-        if (a.shared && !b.shared) return -1
-        if (!a.shared && b.shared) return 1
-        return new Date(b.createdAt) - new Date(a.createdAt)
-      })
+      const sort = arr => [...arr].sort(sortBatches)
       const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
       const allRaw = await db.batches.toArray()
       // Only show household batches + own personal batches (not other users' personal batches)
@@ -92,8 +96,10 @@ export default function BatchList({ onLogged }) {
         : allRaw.filter(b => b.userId === user?.id || b.createdBy === user?.email || !b.userId)
       setBatches(all.filter(b => !b.closed))
       setClosedBatches(all.filter(b => b.closed && (b.closedAt || b.updatedAt || '') >= cutoff))
+    } finally {
+      setLoading(false)
+      _loadingRef.current = false
     }
-    setLoading(false)
   }
 
   async function handleEdit(batch) {
@@ -106,34 +112,26 @@ export default function BatchList({ onLogged }) {
 
   async function handleClose(batchId) {
     const now = new Date().toISOString()
-    await sbCloseBatch(batchId).catch(e => console.warn('Supabase:', e))
-    await db.batches.update(batchId, { closed: 1, closedAt: now, dirty: 1, updatedAt: now })
-    flushDirtyToSupabase(user.id).catch(() => {})
+    const ok = await sbCloseBatch(batchId).then(() => true).catch(e => { console.warn('Supabase:', e); return false })
+    await db.batches.update(batchId, { closed: 1, closedAt: now, dirty: ok ? 0 : 1, updatedAt: now })
     loadBatches()
   }
 
   async function handleReopen(batchId) {
-    await sbReopenBatch(batchId).catch(e => console.warn('Supabase:', e))
-    await db.batches.update(batchId, { closed: 0, closedAt: null, dirty: 1, updatedAt: new Date().toISOString() })
-    flushDirtyToSupabase(user.id).catch(() => {})
+    const ok = await sbReopenBatch(batchId).then(() => true).catch(e => { console.warn('Supabase:', e); return false })
+    await db.batches.update(batchId, { closed: 0, closedAt: null, dirty: ok ? 0 : 1, updatedAt: new Date().toISOString() })
+    loadBatches()
+  }
+
+  function handleBatchSaved(batch) {
+    if (batch) setBatches(prev => [...prev.filter(b => b.id !== batch.id), batch].sort(sortBatches))
     loadBatches()
   }
 
   if (screen === 'create') {
     return (
       <BatchBuilder
-        onSave={(batch) => {
-          setScreen('list')
-          if (batch) setBatches(prev => {
-            const merged = [batch, ...prev.filter(b => b.id !== batch.id)]
-            return merged.sort((a, b) => {
-              if (a.shared && !b.shared) return -1
-              if (!a.shared && b.shared) return 1
-              return new Date(b.createdAt) - new Date(a.createdAt)
-            })
-          })
-          loadBatches()
-        }}
+        onSave={(batch) => { setScreen('list'); handleBatchSaved(batch) }}
         onCancel={() => setScreen('list')}
       />
     )
@@ -143,19 +141,7 @@ export default function BatchList({ onLogged }) {
     return (
       <BatchBuilder
         existingBatch={editing}
-        onSave={(batch) => {
-          setScreen('list')
-          setEditing(null)
-          if (batch) setBatches(prev => {
-            const merged = [batch, ...prev.filter(b => b.id !== batch.id)]
-            return merged.sort((a, b) => {
-              if (a.shared && !b.shared) return -1
-              if (!a.shared && b.shared) return 1
-              return new Date(b.createdAt) - new Date(a.createdAt)
-            })
-          })
-          loadBatches()
-        }}
+        onSave={(batch) => { setScreen('list'); setEditing(null); handleBatchSaved(batch) }}
         onCancel={() => { setScreen('list'); setEditing(null) }}
       />
     )

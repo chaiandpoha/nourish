@@ -72,7 +72,8 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
   // Tap any food or batch → added immediately at default grams, no confirm step
   function addFood(food) {
     // Prevent duplicate ingredients from rapid double-taps
-    if (ingredients.some(i => i.name === food.name && i.per100g === food.per100g)) return
+    const macrosMatch = (a, b) => a && b && a.calories === b.calories && a.protein === b.protein && a.carbs === b.carbs && a.fat === b.fat
+    if (ingredients.some(i => i.name === food.name && macrosMatch(i.per100g, food.per100g))) return
     const defaultGrams = food.servingSize || 100
     setIngredients(prev => [...prev, {
       id:      generateId(),
@@ -341,7 +342,7 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
               <div style={{ display:'flex', gap:'4px' }}>
                 {[['weight','By total weight'],['servings','By servings']].map(([m, label]) => (
                   <button key={m} type="button" onClick={() => { setManualMode(m); setManualError('') }}
-                    style={{ flex:1, padding:'8px 6px', background: manualMode === m ? 'var(--accent)' : 'var(--bg-elevated)', border:`1px solid ${manualMode === m ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius:'var(--r-md)', fontSize:'12px', fontWeight:'600', color: manualMode === m ? '#fff' : 'var(--text-secondary)', cursor:'pointer' }}>
+                    style={{ flex:1, padding:'8px 6px', background: manualMode === m ? 'var(--accent)' : 'var(--bg-elevated)', border:`1px solid ${manualMode === m ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius:'var(--r-md)', fontSize:'12px', fontWeight:'600', color: manualMode === m ? 'var(--text-inverse)' : 'var(--text-secondary)', cursor:'pointer' }}>
                     {label}
                   </button>
                 ))}
@@ -354,7 +355,7 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
                       value={manual.grams} onChange={e => { setManual(m => ({ ...m, grams: e.target.value })); setManualError('') }} />
                     {WEIGHT_UNITS.map(u => (
                       <button key={u} type="button" onClick={() => setManualUnit(u)}
-                        style={{ padding:'6px 8px', background: manualUnit === u ? 'var(--accent)' : 'var(--bg-elevated)', border:`1px solid ${manualUnit === u ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: manualUnit === u ? '#fff' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
+                        style={{ padding:'6px 8px', background: manualUnit === u ? 'var(--accent)' : 'var(--bg-elevated)', border:`1px solid ${manualUnit === u ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: manualUnit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
                       >{u}</button>
                     ))}
                   </div>
@@ -398,7 +399,7 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
                 <button onClick={() => { setShowManual(false); setManualError(''); setManualMode('weight') }}
                   style={{ flex:1, padding:'11px', background:'transparent', border:'1px solid var(--border-default)', borderRadius:'var(--r-md)', color:'var(--text-secondary)', fontSize:'14px', cursor:'pointer' }}>Cancel</button>
                 <button onClick={confirmManual}
-                  style={{ flex:2, padding:'11px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'#fff', fontSize:'14px', fontWeight:'600', cursor:'pointer' }}>Add Ingredient</button>
+                  style={{ flex:2, padding:'11px', background:'var(--accent)', border:'none', borderRadius:'var(--r-md)', color:'var(--text-inverse)', fontSize:'14px', fontWeight:'600', cursor:'pointer' }}>Add Ingredient</button>
               </div>
             </div>
           ) : (
@@ -417,7 +418,7 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
           <input style={{ ...inp, flex:1, minWidth:'80px' }} type="number" inputMode="decimal" placeholder="e.g. 800" value={yieldGrams} onChange={e => setYieldGrams(e.target.value)} />
           {WEIGHT_UNITS.map(u => (
             <button key={u} type="button" onClick={() => setYieldUnit(u)}
-              style={{ padding:'6px 8px', background: yieldUnit === u ? 'var(--accent)' : 'var(--bg-elevated)', border:`1px solid ${yieldUnit === u ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: yieldUnit === u ? '#fff' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
+              style={{ padding:'6px 8px', background: yieldUnit === u ? 'var(--accent)' : 'var(--bg-elevated)', border:`1px solid ${yieldUnit === u ? 'var(--accent)' : 'var(--border-default)'}`, borderRadius:'var(--r-sm)', color: yieldUnit === u ? 'var(--text-inverse)' : 'var(--text-secondary)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}
             >{u}</button>
           ))}
         </div>
