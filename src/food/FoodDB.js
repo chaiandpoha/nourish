@@ -386,10 +386,25 @@ export async function seedFoodDatabase() {
  * Priority: saved/scanned first, then nin, then usda.
  * Matches anywhere in the name — not just prefix.
  */
-export async function searchFoods(query, limit = 20) {
+export async function searchFoods(query, limit = 20, userId = null) {
   if (!query || query.trim().length < 1) return []
 
   const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
+
+  // Build 30-day frequency map when userId is available — used to boost
+  // frequently-logged foods above lower-priority sources in the rankings.
+  const freqMap = {}
+  if (userId) {
+    const since = new Date()
+    since.setDate(since.getDate() - 30)
+    const logs = await db.foodLogs
+      .where('[userId+date]')
+      .between([userId, localDate(since)], [userId, localDate()], true, true)
+      .toArray()
+    for (const l of logs) {
+      if (l.foodId) freqMap[l.foodId] = (freqMap[l.foodId] || 0) + 1
+    }
+  }
 
   const all = await db.foods.toArray()
 
@@ -399,13 +414,20 @@ export async function searchFoods(query, limit = 20) {
     return words.every(w => name.includes(w))
   })
 
-  // Sort by priority then relevance
+  // Sort by effective priority, then frequency, then start-match.
+  // Every 3 logs moves a food one source tier higher (e.g. a nin food
+  // logged 6 times ranks the same as a saved food — priority 3→1).
   matches.sort((a, b) => {
-    const pa = sourcePriority(a.source)
-    const pb = sourcePriority(b.source)
+    const freqA = freqMap[a.id] || 0
+    const freqB = freqMap[b.id] || 0
+    const pa = Math.max(0, sourcePriority(a.source) - Math.floor(freqA / 3))
+    const pb = Math.max(0, sourcePriority(b.source) - Math.floor(freqB / 3))
     if (pa !== pb) return pa - pb
 
-    // Within same source — exact start match ranked higher
+    // Same effective priority — more-logged item first
+    if (freqB !== freqA) return freqB - freqA
+
+    // Same frequency — exact start match ranked higher
     const aName = a.name.toLowerCase()
     const bName = b.name.toLowerCase()
     const aStarts = aName.startsWith(words[0]) ? 0 : 1

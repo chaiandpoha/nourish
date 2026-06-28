@@ -156,7 +156,7 @@ export default function MealEntry({ date, onLogged, inline = false }) {
     const searchTerm = parsed.qty ? parsed.foodName : query
     if (!searchTerm.trim()) { setResults([]); return }
     const t = setTimeout(async () => {
-      const r = await searchFoods(searchTerm, 20)
+      const r = await searchFoods(searchTerm, 20, user?.id)
       setResults(r)
     }, 150)
     return () => clearTimeout(t)
