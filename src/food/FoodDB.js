@@ -471,7 +471,7 @@ function sourcePriority(source) {
  * Get foods logged by userId in the last 30 days,
  * sorted by most-recently-logged first then frequency.
  */
-export async function getRecentFoods(userId, limit = 10) {
+export async function getRecentFoods(userId, limit = 15) {
   const since = new Date()
   since.setDate(since.getDate() - 30)
   const cutoff = localDate(since)
