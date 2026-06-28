@@ -414,25 +414,25 @@ export async function searchFoods(query, limit = 20, userId = null) {
     return words.every(w => name.includes(w))
   })
 
-  // Sort by effective priority, then frequency, then start-match.
-  // Every 3 logs moves a food one source tier higher (e.g. a nin food
-  // logged 6 times ranks the same as a saved food — priority 3→1).
   matches.sort((a, b) => {
     const freqA = freqMap[a.id] || 0
     const freqB = freqMap[b.id] || 0
-    const pa = Math.max(0, sourcePriority(a.source) - Math.floor(freqA / 3))
-    const pb = Math.max(0, sourcePriority(b.source) - Math.floor(freqB / 3))
+    const aUsed = freqA > 0
+    const bUsed = freqB > 0
+
+    // Foods logged at least once in last 30 days always rank above everything else
+    if (aUsed !== bUsed) return aUsed ? -1 : 1
+
+    // Both used: higher frequency first
+    if (aUsed && freqA !== freqB) return freqB - freqA
+
+    // Both unused: fall back to source priority then start-match
+    const pa = sourcePriority(a.source)
+    const pb = sourcePriority(b.source)
     if (pa !== pb) return pa - pb
-
-    // Same effective priority — more-logged item first
-    if (freqB !== freqA) return freqB - freqA
-
-    // Same frequency — exact start match ranked higher
     const aName = a.name.toLowerCase()
     const bName = b.name.toLowerCase()
-    const aStarts = aName.startsWith(words[0]) ? 0 : 1
-    const bStarts = bName.startsWith(words[0]) ? 0 : 1
-    return aStarts - bStarts
+    return (aName.startsWith(words[0]) ? 0 : 1) - (bName.startsWith(words[0]) ? 0 : 1)
   })
 
   // De-duplicate: if user has saved/scanned a food with this exact name,
