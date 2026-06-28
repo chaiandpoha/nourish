@@ -249,6 +249,66 @@ const STAPLE_FOODS = [
   { id:'staples_204', name:'Strongbow Hard Cider',                 per100g:{ calories:46,  protein:0,    carbs:4.5,  fat:0,    fibre:0   }, servingSize:355, servingLabel:'1 can/bottle (12oz)' },
   { id:'staples_205', name:"Mike's Hard Lemonade",                 per100g:{ calories:62,  protein:0,    carbs:9.6,  fat:0,    fibre:0   }, servingSize:355, servingLabel:'1 bottle (12oz)'     },
   { id:'staples_206', name:'Smirnoff Ice',                         per100g:{ calories:64,  protein:0,    carbs:8.5,  fat:0,    fibre:0   }, servingSize:355, servingLabel:'1 bottle (12oz)'     },
+
+  // ── V7: Indian street food gaps ──
+  { id:'staples_207', name:'Sev Puri',                             per100g:{ calories:130, protein:2.5,  carbs:22,   fat:4,    fibre:1.5 }, servingSize:150, servingLabel:'1 plate (~8 puris)'  },
+  { id:'staples_208', name:'Batata Vada',                          per100g:{ calories:200, protein:4,    carbs:28,   fat:8,    fibre:2   }, servingSize:100, servingLabel:'1 piece'             },
+  { id:'staples_209', name:'Aloo Tikki',                           per100g:{ calories:170, protein:3,    carbs:25,   fat:6,    fibre:2   }, servingSize:90,  servingLabel:'1 piece'             },
+  { id:'staples_210', name:'Ragda Pattice',                        per100g:{ calories:120, protein:4,    carbs:17,   fat:4,    fibre:3   }, servingSize:300, servingLabel:'1 plate'             },
+  { id:'staples_211', name:'Papdi Chaat',                          per100g:{ calories:155, protein:4,    carbs:22,   fat:5,    fibre:2   }, servingSize:200, servingLabel:'1 plate'             },
+  { id:'staples_212', name:'Dahi Bhalla / Dahi Vada',             per100g:{ calories:130, protein:5,    carbs:18,   fat:4,    fibre:2   }, servingSize:200, servingLabel:'1 plate'             },
+  { id:'staples_213', name:'Bread Pakoda',                         per100g:{ calories:270, protein:6,    carbs:33,   fat:12,   fibre:2   }, servingSize:90,  servingLabel:'1 piece'             },
+  { id:'staples_214', name:'Puri Bhaji (2 puris)',                 per100g:{ calories:190, protein:4,    carbs:25,   fat:8,    fibre:2.5 }, servingSize:200, servingLabel:'1 plate'             },
+  { id:'staples_215', name:'Tawa Pulao',                           per100g:{ calories:130, protein:2.5,  carbs:22,   fat:3.5,  fibre:1.5 }, servingSize:300, servingLabel:'1 plate'             },
+  { id:'staples_216', name:'Idli (2 pieces)',                      per100g:{ calories:58,  protein:2,    carbs:12,   fat:0.5,  fibre:0.8 }, servingSize:160, servingLabel:'2 idlis'             },
+  { id:'staples_217', name:'Medu Vada',                            per100g:{ calories:225, protein:7,    carbs:25,   fat:10,   fibre:3   }, servingSize:65,  servingLabel:'1 piece'             },
+  { id:'staples_218', name:'Uttapam (plain)',                      per100g:{ calories:150, protein:4,    carbs:23,   fat:4,    fibre:1.5 }, servingSize:120, servingLabel:'1 piece'             },
+  { id:'staples_219', name:'Frankie / Kathi Roll (chicken)',       per100g:{ calories:220, protein:9,    carbs:27,   fat:8,    fibre:1.5 }, servingSize:200, servingLabel:'1 roll'              },
+  { id:'staples_220', name:'Frankie / Kathi Roll (paneer)',        per100g:{ calories:215, protein:7.5,  carbs:26,   fat:8,    fibre:1.5 }, servingSize:200, servingLabel:'1 roll'              },
+  { id:'staples_221', name:'Thepla',                               per100g:{ calories:280, protein:8,    carbs:40,   fat:9,    fibre:4   }, servingSize:50,  servingLabel:'1 piece'             },
+  { id:'staples_222', name:'Methi Paratha',                        per100g:{ calories:260, protein:6.5,  carbs:36,   fat:10,   fibre:3.5 }, servingSize:60,  servingLabel:'1 paratha'           },
+
+  // ── V7: Tandoor, grill & kebabs ──
+  { id:'staples_223', name:'Paneer Tikka',                         per100g:{ calories:220, protein:14,   carbs:6,    fat:15,   fibre:1   }, servingSize:150, servingLabel:'1 serving (~6 pcs)'  },
+  { id:'staples_224', name:'Tandoori Chicken (half)',              per100g:{ calories:150, protein:22,   carbs:3,    fat:6,    fibre:0.5 }, servingSize:250, servingLabel:'half chicken'        },
+  { id:'staples_225', name:'Seekh Kebab',                          per100g:{ calories:240, protein:18,   carbs:8,    fat:15,   fibre:1   }, servingSize:100, servingLabel:'2 pieces'            },
+  { id:'staples_226', name:'Chicken Tikka',                        per100g:{ calories:165, protein:20,   carbs:4,    fat:8,    fibre:0.5 }, servingSize:150, servingLabel:'1 serving'           },
+  { id:'staples_227', name:'Reshmi Kebab',                         per100g:{ calories:255, protein:17,   carbs:6,    fat:17,   fibre:0.5 }, servingSize:100, servingLabel:'2 pieces'            },
+  { id:'staples_228', name:'Fish Tikka',                           per100g:{ calories:145, protein:18,   carbs:4,    fat:6,    fibre:0.5 }, servingSize:150, servingLabel:'1 serving'           },
+
+  // ── V7: Curries & mains ──
+  { id:'staples_229', name:'Dal Tadka',                            per100g:{ calories:90,  protein:5,    carbs:12,   fat:2.5,  fibre:3   }, servingSize:280, servingLabel:'1 bowl'              },
+  { id:'staples_230', name:'Chole (restaurant)',                   per100g:{ calories:110, protein:5,    carbs:14,   fat:4,    fibre:4   }, servingSize:280, servingLabel:'1 bowl'              },
+  { id:'staples_231', name:'Matar Paneer',                         per100g:{ calories:120, protein:5.5,  carbs:9,    fat:7,    fibre:2   }, servingSize:280, servingLabel:'1 bowl'              },
+  { id:'staples_232', name:'Shahi Paneer',                         per100g:{ calories:165, protein:6,    carbs:8,    fat:12,   fibre:0.8 }, servingSize:280, servingLabel:'1 bowl'              },
+  { id:'staples_233', name:'Kadai Chicken',                        per100g:{ calories:140, protein:12,   carbs:6,    fat:8,    fibre:1   }, servingSize:280, servingLabel:'1 bowl'              },
+  { id:'staples_234', name:'Chicken Tikka Masala',                 per100g:{ calories:145, protein:11,   carbs:7,    fat:8,    fibre:0.8 }, servingSize:280, servingLabel:'1 bowl'              },
+  { id:'staples_235', name:'Baingan Bharta',                       per100g:{ calories:70,  protein:2,    carbs:8,    fat:3,    fibre:3   }, servingSize:200, servingLabel:'1 bowl'              },
+  { id:'staples_236', name:'Kadhi Pakora',                         per100g:{ calories:95,  protein:3,    carbs:10,   fat:4.5,  fibre:1   }, servingSize:300, servingLabel:'1 bowl'              },
+  { id:'staples_237', name:'Mutton Rogan Josh',                    per100g:{ calories:175, protein:14,   carbs:5,    fat:11,   fibre:0.8 }, servingSize:280, servingLabel:'1 bowl'              },
+  { id:'staples_238', name:'Fish Curry, coastal style',            per100g:{ calories:120, protein:12,   carbs:5,    fat:6,    fibre:0.5 }, servingSize:280, servingLabel:'1 bowl'              },
+  { id:'staples_239', name:'Egg Curry',                            per100g:{ calories:125, protein:7,    carbs:6,    fat:8,    fibre:0.8 }, servingSize:280, servingLabel:'1 bowl'              },
+
+  // ── V7: Indian drinks ──
+  { id:'staples_240', name:'Lassi, sweet (plain)',                 per100g:{ calories:65,  protein:2.5,  carbs:10,   fat:1.5,  fibre:0   }, servingSize:300, servingLabel:'1 glass'             },
+  { id:'staples_241', name:'Lassi, salted',                        per100g:{ calories:50,  protein:2.5,  carbs:6,    fat:1.5,  fibre:0   }, servingSize:300, servingLabel:'1 glass'             },
+  { id:'staples_242', name:'Sugarcane Juice, fresh',               per100g:{ calories:70,  protein:0.2,  carbs:17,   fat:0,    fibre:0   }, servingSize:300, servingLabel:'1 glass'             },
+  { id:'staples_243', name:'Kokum Sharbat',                        per100g:{ calories:35,  protein:0,    carbs:8.5,  fat:0,    fibre:0   }, servingSize:200, servingLabel:'1 glass'             },
+  { id:'staples_244', name:'Aam Panna (raw mango drink)',          per100g:{ calories:40,  protein:0.3,  carbs:10,   fat:0,    fibre:0.5 }, servingSize:200, servingLabel:'1 glass'             },
+  { id:'staples_245', name:'Jaljeera',                             per100g:{ calories:20,  protein:0.2,  carbs:4.5,  fat:0,    fibre:0.2 }, servingSize:200, servingLabel:'1 glass'             },
+  { id:'staples_246', name:'Thandai',                              per100g:{ calories:120, protein:3,    carbs:16,   fat:5,    fibre:0.5 }, servingSize:250, servingLabel:'1 glass'             },
+
+  // ── V7: Indian sweets & desserts ──
+  { id:'staples_247', name:'Jalebi',                               per100g:{ calories:340, protein:2,    carbs:70,   fat:5,    fibre:0.5 }, servingSize:60,  servingLabel:'2 pieces'            },
+  { id:'staples_248', name:'Kulfi, malai',                         per100g:{ calories:180, protein:4,    carbs:27,   fat:6,    fibre:0   }, servingSize:80,  servingLabel:'1 stick'             },
+  { id:'staples_249', name:'Shrikhand',                            per100g:{ calories:180, protein:7,    carbs:30,   fat:4,    fibre:0   }, servingSize:100, servingLabel:'1 serving'           },
+  { id:'staples_250', name:'Basundi',                              per100g:{ calories:175, protein:6,    carbs:20,   fat:8,    fibre:0   }, servingSize:150, servingLabel:'1 bowl'              },
+  { id:'staples_251', name:'Barfi / Burfi (milk)',                 per100g:{ calories:380, protein:8,    carbs:58,   fat:13,   fibre:0.5 }, servingSize:60,  servingLabel:'2 pieces'            },
+  { id:'staples_252', name:'Suji Halwa / Rava Halwa',             per100g:{ calories:225, protein:3,    carbs:35,   fat:8,    fibre:0.5 }, servingSize:100, servingLabel:'1 serving'           },
+  { id:'staples_253', name:'Gajar Halwa (carrot halwa)',           per100g:{ calories:195, protein:3.5,  carbs:29,   fat:7.5,  fibre:2   }, servingSize:100, servingLabel:'1 serving'           },
+  { id:'staples_254', name:'Rasgulla',                             per100g:{ calories:186, protein:3,    carbs:43,   fat:0.5,  fibre:0   }, servingSize:100, servingLabel:'2 pieces'            },
+  { id:'staples_255', name:'Rasmalai',                             per100g:{ calories:175, protein:5,    carbs:27,   fat:5.5,  fibre:0   }, servingSize:120, servingLabel:'2 pieces + rabri'    },
+  { id:'staples_256', name:'Kheer / Rice Pudding',                 per100g:{ calories:120, protein:3.5,  carbs:18,   fat:4,    fibre:0.2 }, servingSize:150, servingLabel:'1 bowl'              },
 ]
 
 let _seeded = false
@@ -270,6 +330,7 @@ export async function seedFoodDatabase() {
         { sentinel: 'staples_066', minId: 66  },
         { sentinel: 'staples_109', minId: 109 },
         { sentinel: 'staples_145', minId: 145 },
+        { sentinel: 'staples_207', minId: 207 },
       ]
       for (const { sentinel, minId } of STAPLE_VERSIONS) {
         if (await db.foods.get(sentinel)) continue
