@@ -67,7 +67,7 @@ export default function BatchList({ onLogged }) {
         const remoteIds = new Set(remote.map(b => b.id))
         const localHousehold = await db.batches.toArray()
         const toRemove = localHousehold
-          .filter(b => b.householdId === user.householdId && !remoteIds.has(b.id) && !b.dirty)
+          .filter(b => b.householdId === user.householdId && !remoteIds.has(b.id) && !b.dirty && !b.closed)
           .map(b => b.id)
         if (toRemove.length) await db.batches.bulkDelete(toRemove)
       }
@@ -114,6 +114,9 @@ export default function BatchList({ onLogged }) {
     const now = new Date().toISOString()
     const ok = await sbCloseBatch(batchId).then(() => true).catch(e => { console.warn('Supabase:', e); return false })
     await db.batches.update(batchId, { closed: 1, closedAt: now, dirty: ok ? 0 : 1, updatedAt: now })
+    // Remove from open list immediately — don't wait for loadBatches which may be
+    // blocked by _loadingRef if another sync is already in progress
+    setBatches(prev => prev.filter(b => b.id !== batchId))
     loadBatches()
   }
 
