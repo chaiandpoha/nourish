@@ -652,8 +652,9 @@ export async function pushLocalBatchesToHousehold(householdId, email) {
   if (!householdId) return
   try {
     const batches = await db.batches.toArray()
-    // Only push batches already marked as shared — never auto-promote personal batches
-    const shared = batches.filter(b => b.shared === 1 || b.shared === true)
+    // Only push open shared batches — closed ones are done and re-pushing them
+    // refreshes their updated_at timestamp, which causes them to reappear after sync
+    const shared = batches.filter(b => (b.shared === 1 || b.shared === true) && !b.closed)
     if (!shared.length) return
     const { sbPushAllBatches } = await import('../db/db.js')
     await sbPushAllBatches(shared, email, householdId)
