@@ -4,6 +4,7 @@ import { db, addFoodLogEntry, sbFetchBatches, sbCloseBatch, sbReopenBatch } from
 import { calcPortionMacros } from './batchCalc.js'
 import BatchBuilder from './BatchBuilder.jsx'
 import { localDate } from '../log/DayLog.jsx'
+import { applyRemoteBatches } from './batchSync.js'
 
 const sortBatches = (a, b) => {
   if (a.shared && !b.shared) return -1
@@ -40,26 +41,7 @@ export default function BatchList({ onLogged }) {
     _loadingRef.current = true
     try {
       const remote = await sbFetchBatches(user.householdId)
-      const localRecords = await db.batches.bulkGet(remote.map(b => b.id))
-      const toSave = []
-      for (let i = 0; i < remote.length; i++) {
-        const r     = remote[i]
-        const local = localRecords[i]
-        if (!local) {
-          // Not in local DB — restore it and derive closedAt from updatedAt if missing
-          toSave.push({ ...r, closedAt: r.closed ? (r.closedAt || r.updatedAt) : undefined })
-          continue
-        }
-        // Local is newer or same — skip (trust local)
-        if (local.updatedAt && r.updatedAt && r.updatedAt <= local.updatedAt) continue
-        // Never clobber local ingredients with an empty remote payload
-        const localHasIng  = Array.isArray(local.ingredients) && local.ingredients.length > 0
-        const remoteHasIng = Array.isArray(r.ingredients)     && r.ingredients.length > 0
-        if (localHasIng && !remoteHasIng) continue
-        // Remote is newer — apply it (this includes close/reopen state from other members)
-        toSave.push({ ...r, closedAt: r.closed ? (r.closedAt || r.updatedAt) : undefined })
-      }
-      if (toSave.length) await db.batches.bulkPut(toSave)
+      await applyRemoteBatches(remote)
 
       // Remove household batches deleted remotely — but never delete dirty (unsynced) batches,
       // they may not be in Supabase yet (e.g. just created, sbSaveBatch still in flight)

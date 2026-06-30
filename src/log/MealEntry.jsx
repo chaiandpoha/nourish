@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { searchFoods, getRecentFoods, getActiveBatches, seedFoodDatabase, saveFood } from "../food/FoodDB.js"
 import { useAuth } from "../auth/useAuth.jsx"
 import { addFoodLogEntry } from "../db/db.js"
+import { applyRemoteBatches } from "../batches/batchSync.js"
 import { calcMacros, calcBatchMacros, toGrams, WEIGHT_UNITS } from "../food/macroCalc.js"
 import LabelScanner from "../food/LabelScanner.jsx"
 import BarcodeScanner from "../food/BarcodeScanner.jsx"
@@ -131,20 +132,8 @@ export default function MealEntry({ date, onLogged, inline = false }) {
         sbFetchBatches(user.householdId)
       ).then(async remote => {
         if (!remote?.length) return
-        const { db } = await import('../db/db.js')
-        const localRecords = await db.batches.bulkGet(remote.map(b => b.id))
-        const toSave = remote.filter((r, i) => {
-          const local = localRecords[i]
-          if (!local) return true
-          if (local.updatedAt && r.updatedAt && r.updatedAt <= local.updatedAt) return false
-          const localHasIng  = Array.isArray(local.ingredients) && local.ingredients.length > 0
-          const remoteHasIng = Array.isArray(r.ingredients) && r.ingredients.length > 0
-          return !(localHasIng && !remoteHasIng)
-        })
-        if (toSave.length) {
-          await db.batches.bulkPut(toSave)
-          getActiveBatches(user.id, user.householdId).then(setBatches)
-        }
+        await applyRemoteBatches(remote)
+        getActiveBatches(user.id, user.householdId).then(setBatches)
       }).catch(() => {})
     }
   }, [open, user])

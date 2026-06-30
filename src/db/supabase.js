@@ -44,14 +44,9 @@ function fromRow(row) {
 
 export async function sbFetchBatches(householdId) {
   if (!supabase || !householdId) return []
-  const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
   const { data, error } = await supabase
     .from('batches').select('*')
     .eq('household_id', householdId)
-    // Only fetch open batches or ones closed within the last 7 days —
-    // avoids old closed batches getting a fresh timestamp on restore
-    .or(`closed.eq.false,updated_at.gte.${sevenDaysAgo.toISOString()}`)
     .order('created_at', { ascending: false })
   if (error) throw error
   return data.map(fromRow)
