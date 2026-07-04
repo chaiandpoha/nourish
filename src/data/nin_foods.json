@@ -4044,5 +4044,309 @@
     "servingSize": 30,
     "servingLabel": "30g handful",
     "barcode": null
+  },
+  {
+    "id": "nin_313",
+    "name": "Chow Mein, veg (street style)",
+    "per100g": { "calories": 195, "protein": 5.5, "carbs": 26, "fat": 8, "fibre": 2 },
+    "servingSize": 350,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_314",
+    "name": "Chow Mein, egg (street style)",
+    "per100g": { "calories": 215, "protein": 8.5, "carbs": 25, "fat": 9, "fibre": 1.5 },
+    "servingSize": 350,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_315",
+    "name": "Chow Mein, chicken (street style)",
+    "per100g": { "calories": 225, "protein": 11, "carbs": 24, "fat": 9.5, "fibre": 1.5 },
+    "servingSize": 350,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_316",
+    "name": "Hakka Noodles, veg",
+    "per100g": { "calories": 190, "protein": 5, "carbs": 27, "fat": 7.5, "fibre": 2 },
+    "servingSize": 300,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_317",
+    "name": "Hakka Noodles, chicken",
+    "per100g": { "calories": 220, "protein": 10.5, "carbs": 25, "fat": 9, "fibre": 1.5 },
+    "servingSize": 300,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_318",
+    "name": "Schezwan Noodles, veg",
+    "per100g": { "calories": 210, "protein": 5.5, "carbs": 27, "fat": 9, "fibre": 2.5 },
+    "servingSize": 300,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_319",
+    "name": "Schezwan Noodles, chicken",
+    "per100g": { "calories": 230, "protein": 11, "carbs": 25, "fat": 10, "fibre": 2 },
+    "servingSize": 300,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_320",
+    "name": "Chilli Garlic Noodles",
+    "per100g": { "calories": 215, "protein": 5.5, "carbs": 27, "fat": 9.5, "fibre": 2 },
+    "servingSize": 300,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_321",
+    "name": "Fried Rice, veg (street style)",
+    "per100g": { "calories": 185, "protein": 3.5, "carbs": 29, "fat": 6, "fibre": 1.5 },
+    "servingSize": 350,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_322",
+    "name": "Fried Rice, egg (street style)",
+    "per100g": { "calories": 205, "protein": 6.5, "carbs": 28, "fat": 7.5, "fibre": 1 },
+    "servingSize": 350,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_323",
+    "name": "Fried Rice, chicken (street style)",
+    "per100g": { "calories": 215, "protein": 9, "carbs": 27, "fat": 7.5, "fibre": 1 },
+    "servingSize": 350,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_324",
+    "name": "Schezwan Fried Rice, veg",
+    "per100g": { "calories": 210, "protein": 4, "carbs": 30, "fat": 8, "fibre": 1.5 },
+    "servingSize": 350,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_325",
+    "name": "Schezwan Fried Rice, chicken",
+    "per100g": { "calories": 225, "protein": 9.5, "carbs": 28, "fat": 8.5, "fibre": 1.5 },
+    "servingSize": 350,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_326",
+    "name": "Gobi Manchurian, dry",
+    "per100g": { "calories": 220, "protein": 4.5, "carbs": 23, "fat": 12, "fibre": 3 },
+    "servingSize": 200,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_327",
+    "name": "Gobi Manchurian, gravy",
+    "per100g": { "calories": 145, "protein": 3.5, "carbs": 17, "fat": 7, "fibre": 2 },
+    "servingSize": 250,
+    "servingLabel": "1 bowl",
+    "barcode": null
+  },
+  {
+    "id": "nin_328",
+    "name": "Chicken Manchurian, dry",
+    "per100g": { "calories": 230, "protein": 16, "carbs": 13, "fat": 13, "fibre": 1 },
+    "servingSize": 200,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_329",
+    "name": "Chicken Manchurian, gravy",
+    "per100g": { "calories": 160, "protein": 12, "carbs": 11, "fat": 8, "fibre": 0.8 },
+    "servingSize": 250,
+    "servingLabel": "1 bowl",
+    "barcode": null
+  },
+  {
+    "id": "nin_330",
+    "name": "Crispy Chilli Chicken, dry",
+    "per100g": { "calories": 265, "protein": 19, "carbs": 15, "fat": 15, "fibre": 0.8 },
+    "servingSize": 200,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_331",
+    "name": "Chilli Chicken, gravy",
+    "per100g": { "calories": 175, "protein": 13, "carbs": 12, "fat": 9, "fibre": 1 },
+    "servingSize": 250,
+    "servingLabel": "1 bowl",
+    "barcode": null
+  },
+  {
+    "id": "nin_332",
+    "name": "Chilli Paneer, dry",
+    "per100g": { "calories": 255, "protein": 12, "carbs": 16, "fat": 17, "fibre": 1.5 },
+    "servingSize": 200,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_333",
+    "name": "Chilli Paneer, gravy",
+    "per100g": { "calories": 180, "protein": 9, "carbs": 13, "fat": 11, "fibre": 1.2 },
+    "servingSize": 250,
+    "servingLabel": "1 bowl",
+    "barcode": null
+  },
+  {
+    "id": "nin_334",
+    "name": "Kung Pao Chicken",
+    "per100g": { "calories": 210, "protein": 16, "carbs": 10, "fat": 12, "fibre": 1.5 },
+    "servingSize": 250,
+    "servingLabel": "1 serving",
+    "barcode": null
+  },
+  {
+    "id": "nin_335",
+    "name": "Sweet and Sour Chicken",
+    "per100g": { "calories": 215, "protein": 12, "carbs": 24, "fat": 8, "fibre": 1 },
+    "servingSize": 250,
+    "servingLabel": "1 serving",
+    "barcode": null
+  },
+  {
+    "id": "nin_336",
+    "name": "Honey Chilli Potato",
+    "per100g": { "calories": 250, "protein": 3, "carbs": 36, "fat": 11, "fibre": 2.5 },
+    "servingSize": 200,
+    "servingLabel": "1 plate",
+    "barcode": null
+  },
+  {
+    "id": "nin_337",
+    "name": "Spring Roll, veg (fried)",
+    "per100g": { "calories": 295, "protein": 5, "carbs": 31, "fat": 17, "fibre": 2.5 },
+    "servingSize": 80,
+    "servingLabel": "2 rolls",
+    "barcode": null
+  },
+  {
+    "id": "nin_338",
+    "name": "Spring Roll, chicken (fried)",
+    "per100g": { "calories": 305, "protein": 9, "carbs": 28, "fat": 18, "fibre": 1.5 },
+    "servingSize": 80,
+    "servingLabel": "2 rolls",
+    "barcode": null
+  },
+  {
+    "id": "nin_339",
+    "name": "Momos, veg (steamed)",
+    "per100g": { "calories": 145, "protein": 5, "carbs": 21, "fat": 4, "fibre": 2 },
+    "servingSize": 120,
+    "servingLabel": "6 pieces",
+    "barcode": null
+  },
+  {
+    "id": "nin_340",
+    "name": "Momos, chicken (steamed)",
+    "per100g": { "calories": 170, "protein": 10, "carbs": 18, "fat": 6, "fibre": 1 },
+    "servingSize": 120,
+    "servingLabel": "6 pieces",
+    "barcode": null
+  },
+  {
+    "id": "nin_341",
+    "name": "Momos, veg (fried)",
+    "per100g": { "calories": 250, "protein": 5.5, "carbs": 25, "fat": 14, "fibre": 2 },
+    "servingSize": 120,
+    "servingLabel": "6 pieces",
+    "barcode": null
+  },
+  {
+    "id": "nin_342",
+    "name": "Momos, chicken (fried)",
+    "per100g": { "calories": 270, "protein": 10.5, "carbs": 22, "fat": 16, "fibre": 1 },
+    "servingSize": 120,
+    "servingLabel": "6 pieces",
+    "barcode": null
+  },
+  {
+    "id": "nin_343",
+    "name": "Hot and Sour Soup",
+    "per100g": { "calories": 50, "protein": 2.5, "carbs": 6.5, "fat": 1.5, "fibre": 0.5 },
+    "servingSize": 300,
+    "servingLabel": "1 bowl",
+    "barcode": null
+  },
+  {
+    "id": "nin_344",
+    "name": "Manchow Soup",
+    "per100g": { "calories": 55, "protein": 2.5, "carbs": 7, "fat": 1.8, "fibre": 0.8 },
+    "servingSize": 300,
+    "servingLabel": "1 bowl",
+    "barcode": null
+  },
+  {
+    "id": "nin_345",
+    "name": "Wonton Soup",
+    "per100g": { "calories": 70, "protein": 4, "carbs": 8, "fat": 2.5, "fibre": 0.5 },
+    "servingSize": 300,
+    "servingLabel": "1 bowl",
+    "barcode": null
+  },
+  {
+    "id": "nin_346",
+    "name": "Noodle Soup, veg Chinese",
+    "per100g": { "calories": 60, "protein": 2, "carbs": 9, "fat": 1.5, "fibre": 1 },
+    "servingSize": 350,
+    "servingLabel": "1 bowl",
+    "barcode": null
+  },
+  {
+    "id": "nin_347",
+    "name": "Lemon Chicken, Chinese style",
+    "per100g": { "calories": 215, "protein": 15, "carbs": 18, "fat": 9, "fibre": 0.5 },
+    "servingSize": 250,
+    "servingLabel": "1 serving",
+    "barcode": null
+  },
+  {
+    "id": "nin_348",
+    "name": "Garlic Chicken, Chinese style",
+    "per100g": { "calories": 210, "protein": 17, "carbs": 8, "fat": 12, "fibre": 0.5 },
+    "servingSize": 250,
+    "servingLabel": "1 serving",
+    "barcode": null
+  },
+  {
+    "id": "nin_349",
+    "name": "Chilli Garlic Prawns, Chinese style",
+    "per100g": { "calories": 185, "protein": 18, "carbs": 9, "fat": 9, "fibre": 0.5 },
+    "servingSize": 200,
+    "servingLabel": "1 serving",
+    "barcode": null
+  },
+  {
+    "id": "nin_350",
+    "name": "Schezwan Sauce",
+    "per100g": { "calories": 120, "protein": 2, "carbs": 14, "fat": 6.5, "fibre": 2 },
+    "servingSize": 30,
+    "servingLabel": "2 tbsp",
+    "barcode": null
   }
 ]
