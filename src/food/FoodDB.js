@@ -359,6 +359,12 @@ export async function seedFoodDatabase() {
           'nin_171','nin_172','nin_185','nin_191','nin_211','nin_212']
         await db.foods.bulkDelete(dupeIds)
       }
+
+      const hasNinV3 = await db.foods.get('nin_313')
+      if (!hasNinV3) {
+        const ninNew = ninFoodsData.filter(f => parseInt(f.id.split('_')[1]) >= 313)
+        await db.foods.bulkPut(ninNew.map(f => ({ ...f, source: 'nin', tags: f.tags || [] })))
+      }
       return true
     }
 
