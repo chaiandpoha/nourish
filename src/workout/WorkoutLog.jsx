@@ -103,10 +103,11 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
   const [inactivityAlert, setInactivityAlert] = useState(false)
   // New Strong-parity state
   const [exNotes,      setExNotes]      = useState({})
-  const [plateCalc,    setPlateCalc]    = useState(null)   // { exId, weight } | null
+  const [plateCalc,    setPlateCalc]    = useState(null)
   const [restDuration, setRestDuration] = useState(
     () => parseInt(localStorage.getItem('workoutRestTime')) || DEFAULT_REST
   )
+  const [lastWorkout,  setLastWorkout]  = useState(null)
 
   const startRef        = useRef(Date.now())
   const lastActivityRef = useRef(Date.now())
@@ -194,6 +195,29 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
     })
   }, [exKey])
 
+  // ── Load last workout for "Repeat" button when starting empty ─────────────
+  useEffect(() => {
+    if (!user || day || draftLogId) return
+    db.workoutLogs
+      .where('userId').equals(user.id)
+      .and(l => l.status === 'complete')
+      .toArray()
+      .then(logs => {
+        if (!logs.length) return
+        const last = logs.sort((a, b) => b.date.localeCompare(a.date))[0]
+        db.workoutSets.where('workoutLogId').equals(last.id).toArray().then(sets => {
+          const seen = new Set(), exOrder = []
+          for (const s of sets.sort((a, b) => (a.updatedAt || '').localeCompare(b.updatedAt || ''))) {
+            if (!seen.has(s.exerciseId)) {
+              seen.add(s.exerciseId)
+              exOrder.push({ id: s.exerciseId, name: s.exerciseName })
+            }
+          }
+          if (exOrder.length) setLastWorkout({ name: last.name, date: last.date, exercises: exOrder })
+        })
+      })
+  }, [user?.id])
+
   // ── Load previous session data ─────────────────────────────────────────────
   useEffect(() => {
     if (!user || !exercises.length) return
@@ -245,16 +269,20 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
         if (!pd) continue
         const cur = next[ex.id] || []
         if (cur.some(s => s.done)) continue
-        next[ex.id] = pd.allSets.map(s => ({
-          weight:     '',
-          reps:       '',
-          rpe:        '',
-          done:       false,
-          type:       s.type || 'N',
-          weightHint: String(parseFloat(s.weight) || 0),
-          repsHint:   String(parseInt(s.reps)     || 10),
-          rpeHint:    s.rpe != null && s.rpe !== '' ? String(s.rpe) : '',
-        }))
+        next[ex.id] = pd.allSets.map(s => {
+          const w = parseFloat(s.weight) || 0
+          const r = parseInt(s.reps)     || 0
+          return {
+            weight:     w > 0 ? String(w) : '',
+            reps:       r > 0 ? String(r) : '',
+            rpe:        '',
+            done:       false,
+            type:       s.type || 'N',
+            weightHint: String(w || 0),
+            repsHint:   String(r || 10),
+            rpeHint:    s.rpe != null && s.rpe !== '' ? String(s.rpe) : '',
+          }
+        })
       }
       return next
     })
@@ -329,6 +357,29 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
       ...s,
       [exId]: s[exId].map((set, i) => i === setIdx ? { ...set, [field]: value } : set)
     }))
+  }
+
+  function adjustValue(exId, setIdx, field, delta) {
+    setSets(s => {
+      const cur = s[exId][setIdx]
+      const hint = field === 'weight' ? cur.weightHint : cur.repsHint
+      const raw  = cur[field] !== '' ? cur[field] : (hint ?? '0')
+      const base = field === 'weight' ? (parseFloat(raw) || 0) : (parseInt(raw) || 0)
+      const next = Math.max(0, field === 'weight'
+        ? Math.round((base + delta) * 4) / 4
+        : Math.round(base + delta))
+      return { ...s, [exId]: s[exId].map((set, i) => i === setIdx ? { ...set, [field]: String(next) } : set) }
+    })
+  }
+
+  function repeatLastWorkout() {
+    if (!lastWorkout) return
+    const newExs = lastWorkout.exercises.map(e => {
+      const full = getExerciseById(e.id)
+      return { ...(full || {}), id: e.id, name: e.name, sets: 3, reps: 10, weight: 0 }
+    })
+    setExtraEx(newExs)
+    setLastWorkout(null)
   }
 
   function cycleSetType(exId, setIdx) {
@@ -828,38 +879,54 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
                   {/* Previous session for this set index */}
                   <span style={st.prevCell}>{prevDisplay}</span>
 
-                  {/* Weight */}
-                  <div style={{ flex:1.2, position:'relative', minWidth:0 }}>
-                    <input
-                      className="workout-num-input"
-                      style={{ ...st.numIn, ...(isDone ? st.numInDone : {}), width:'100%', boxSizing:'border-box' }}
-                      type="text" inputMode="decimal"
-                      placeholder={wPlaceholder}
-                      value={set.weight}
-                      onChange={e => update(ex.id, i, 'weight', e.target.value)}
-                      disabled={isDone}
-                    />
-                    {!isDone && (
-                      <button
-                        style={st.plateIcon}
-                        onClick={() => setPlateCalc({ exId: ex.id, weight: parseFloat(set.weight || wPlaceholder) || 0 })}
-                        title="Plate calculator"
-                      >
-                        ⚖
-                      </button>
-                    )}
-                  </div>
+                  {/* Weight — stepper when not done */}
+                  {isDone ? (
+                    <div style={{ flex:1.2, display:'flex', alignItems:'center', justifyContent:'center', minWidth:0 }}>
+                      <span style={{ ...st.numIn, ...st.numInDone, display:'block', width:'100%', textAlign:'center', boxSizing:'border-box' }}>
+                        {set.weight || wPlaceholder}
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ flex:1.2, display:'flex', alignItems:'center', gap:'2px', minWidth:0 }}>
+                      <button style={st.stepBtn} onClick={() => adjustValue(ex.id, i, 'weight', -2.5)}>−</button>
+                      <div style={{ flex:1, position:'relative', minWidth:0 }}>
+                        <input
+                          className="workout-num-input"
+                          style={{ ...st.numIn, width:'100%', boxSizing:'border-box', textAlign:'center', paddingLeft:0, paddingRight:0 }}
+                          type="text" inputMode="decimal"
+                          placeholder={wPlaceholder}
+                          value={set.weight}
+                          onChange={e => update(ex.id, i, 'weight', e.target.value)}
+                        />
+                        <button
+                          style={st.plateIcon}
+                          onClick={() => setPlateCalc({ exId: ex.id, weight: parseFloat(set.weight || wPlaceholder) || 0 })}
+                          title="Plate calculator"
+                        >⚖</button>
+                      </div>
+                      <button style={st.stepBtn} onClick={() => adjustValue(ex.id, i, 'weight', +2.5)}>+</button>
+                    </div>
+                  )}
 
-                  {/* Reps */}
-                  <input
-                    className="workout-num-input"
-                    style={{ ...st.numIn, ...(isDone ? st.numInDone : {}) }}
-                    type="text" inputMode="numeric"
-                    placeholder={rPlaceholder}
-                    value={set.reps}
-                    onChange={e => update(ex.id, i, 'reps', e.target.value)}
-                    disabled={isDone}
-                  />
+                  {/* Reps — stepper when not done */}
+                  {isDone ? (
+                    <span style={{ ...st.numIn, ...st.numInDone, flex:1, display:'block', textAlign:'center' }}>
+                      {set.reps || rPlaceholder}
+                    </span>
+                  ) : (
+                    <div style={{ flex:1, display:'flex', alignItems:'center', gap:'2px', minWidth:0 }}>
+                      <button style={st.stepBtn} onClick={() => adjustValue(ex.id, i, 'reps', -1)}>−</button>
+                      <input
+                        className="workout-num-input"
+                        style={{ ...st.numIn, flex:1, minWidth:0, textAlign:'center', paddingLeft:0, paddingRight:0, boxSizing:'border-box' }}
+                        type="text" inputMode="numeric"
+                        placeholder={rPlaceholder}
+                        value={set.reps}
+                        onChange={e => update(ex.id, i, 'reps', e.target.value)}
+                      />
+                      <button style={st.stepBtn} onClick={() => adjustValue(ex.id, i, 'reps', +1)}>+</button>
+                    </div>
+                  )}
 
                   {/* RPE */}
                   <button
@@ -906,8 +973,23 @@ export default function WorkoutLog({ programme, day, draftLogId, onFinish, onCan
 
       {exercises.length === 0 && (
         <div style={st.emptySession}>
-          <div style={st.emptyIcon}>💪</div>
-          <div style={st.emptyText}>Add your first exercise to get started</div>
+          {lastWorkout ? (
+            <>
+              <div style={st.emptyText}>Start where you left off?</div>
+              <button style={st.repeatBtn} onClick={repeatLastWorkout}>
+                ↻ {lastWorkout.name}
+              </button>
+              <div style={st.repeatMeta}>
+                {lastWorkout.date} · {lastWorkout.exercises.length} exercises
+              </div>
+              <div style={st.emptySub}>or search below to build a new session</div>
+            </>
+          ) : (
+            <>
+              <div style={st.emptyIcon}>💪</div>
+              <div style={st.emptyText}>Add your first exercise to get started</div>
+            </>
+          )}
         </div>
       )}
 
@@ -1203,7 +1285,13 @@ const st = {
   // Empty session
   emptySession:  { display:'flex', flexDirection:'column', alignItems:'center', gap:'10px', padding:'40px 16px', background:'var(--bg-surface)', border:'0.5px solid var(--border-subtle)', borderRadius:'var(--r-xl)' },
   emptyIcon:     { fontSize:'40px' },
-  emptyText:     { fontSize:'14px', color:'var(--text-tertiary)', textAlign:'center' },
+  emptyText:     { fontSize:'16px', fontWeight:'600', color:'var(--text-primary)', textAlign:'center' },
+  emptySub:      { fontSize:'13px', color:'var(--text-tertiary)', textAlign:'center' },
+  repeatBtn:     { padding:'13px 24px', background:'var(--accent)', border:'none', borderRadius:'var(--r-lg)', color:'#fff', fontSize:'15px', fontWeight:'600', cursor:'pointer', letterSpacing:'-0.01em' },
+  repeatMeta:    { fontSize:'12px', color:'var(--text-tertiary)' },
+
+  // Stepper buttons
+  stepBtn:       { width:'26px', height:'36px', flexShrink:0, background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:'var(--r-sm)', color:'var(--text-secondary)', fontSize:'16px', fontWeight:'400', cursor:'pointer', padding:0, display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 },
 
   // Footer
   addExBtn:      { padding:'15px', background:'var(--bg-surface)', border:'1px dashed var(--border-strong)', borderRadius:'var(--r-xl)', color:'var(--text-secondary)', fontSize:'15px', fontWeight:'500', cursor:'pointer', letterSpacing:'-0.01em' },
