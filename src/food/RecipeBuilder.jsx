@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '../auth/useAuth.jsx'
 import { searchFoods, saveFood, fetchHouseholdFoods } from './FoodDB.js'
 import { calcMacros } from './macroCalc.js'
 import { generateId } from '../auth/crypto.js'
@@ -14,6 +15,7 @@ function ingToGrams(gramsInput, unit, servingSize) {
 const speechSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
 
 export default function RecipeBuilder({ onSaved, onCancel, existingFood, householdId }) {
+  const { user } = useAuth()
   const [name,          setName]          = useState(existingFood?.name || '')
   const [servingLabel,  setServingLabel]  = useState(
     existingFood?.servingLabel ? existingFood.servingLabel.replace(/^\d+g\s*/, '') : ''
@@ -37,7 +39,7 @@ export default function RecipeBuilder({ onSaved, onCancel, existingFood, househo
   useEffect(() => {
     if (!search.trim()) { setSearchResults([]); return }
     const t = setTimeout(async () => {
-      const r = await searchFoods(search, 15)
+      const r = await searchFoods(search, 20, user?.id)
       setSearchResults(r)
     }, 150)
     return () => clearTimeout(t)

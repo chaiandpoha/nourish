@@ -48,7 +48,7 @@ export default function BatchBuilder({ onSave, onCancel, existingBatch }) {
 
   useEffect(() => {
     if (!query.trim() || !seeded) { setResults([]); return }
-    const t = setTimeout(async () => setResults(await searchFoods(query, 8)), 200)
+    const t = setTimeout(async () => setResults(await searchFoods(query, 20, user?.id)), 200)
     return () => clearTimeout(t)
   }, [query, seeded])
 

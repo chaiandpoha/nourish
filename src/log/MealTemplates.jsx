@@ -125,7 +125,7 @@ function CreateTemplate({ userId, onSave, onCancel }) {
     if (!search.trim()) { setResults([]); return }
     const t = setTimeout(async () => {
       const { searchFoods } = await import('../food/FoodDB.js')
-      const r = await searchFoods(search, 10)
+      const r = await searchFoods(search, 20, user?.id)
       setResults(r)
     }, 200)
     return () => clearTimeout(t)
