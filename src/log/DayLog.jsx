@@ -484,6 +484,7 @@ function FoodEntryRow({ entry, onDelete, onEdit }) {
   const [adjIngredients, setAdjIngredients] = useState([])
 
   const isBatch  = entry.source === 'batch' || !!entry.batchId
+  const isRecipe = !isBatch && entry.source === 'recipe' && !!entry.foodId
   const newGrams = parseFloat(gramsStr) || 0
   const ratio    = entry.grams > 0 ? newGrams / entry.grams : 0
 
@@ -524,6 +525,17 @@ function FoodEntryRow({ entry, onDelete, onEdit }) {
           gramsInput: String(Math.round(i.grams * scale)),
         })))
       }
+    } else if (isRecipe && entry.foodId) {
+      const { db } = await import('../db/db.js')
+      const food   = await db.foods.get(entry.foodId)
+      if (food?.ingredients?.length) {
+        const recipeTotal = food.servingSize || food.ingredients.reduce((s, i) => s + (i.grams || 0), 0)
+        const scale       = recipeTotal > 0 ? entry.grams / recipeTotal : 1
+        setAdjIngredients(food.ingredients.map(i => ({
+          ...i,
+          gramsInput: String(Math.round(i.grams * scale)),
+        })))
+      }
     }
     setMode('editing')
   }
@@ -547,8 +559,8 @@ function FoodEntryRow({ entry, onDelete, onEdit }) {
       <div style={{ ...s.entryRow, flexDirection:'column', alignItems:'stretch', gap:'10px' }}>
         <div style={s.entryName}>{entry.name}</div>
 
-        {/* Toggle between grams and ingredient adjust (batch only) */}
-        {isBatch && adjIngredients.length > 0 && (
+        {/* Toggle between grams and ingredient adjust (batch or recipe) */}
+        {(isBatch || isRecipe) && adjIngredients.length > 0 && (
           <div style={{ display:'flex', gap:'6px' }}>
             <button
               style={{ ...s.editBtn, ...((!adjMode) ? { background:'var(--accent)', color:'var(--text-inverse)' } : {}) }}

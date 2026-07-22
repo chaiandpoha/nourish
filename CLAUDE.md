@@ -75,6 +75,12 @@ Rate limits are enforced server-side by IP (not userId) using an in-memory `Map`
 
 Exercise thumbnails are loaded from musclewiki.com CDN at runtime; failures fall back to a coloured initials badge.
 
+**Set types** — Each set has a type cycled by tapping its number badge: `N` (Normal), `W` (Warmup), `D` (Drop set), `F` (Failure). Warmup sets are excluded from volume totals, PR detection, and finish-time stats. This distinction is stored on `workoutSets.type` and must be respected in any analytics or summary code.
+
+**Draft persistence** — Sets are written to `workoutSets` in real-time as each set is completed; `workoutLog` is created with `status: 'draft'` on the first set. A draft session is detected on next app open and can be resumed. Final upsert on "Finish" sets `status: 'complete'`.
+
+**PR detection** — A `sessionPRs` memo in `WorkoutLog.jsx` watches all completed Normal sets against the all-time best across all past sessions for that exercise. PRs surface a badge on the exercise header and a trophy on the set checkmark.
+
 ### Batches & Recipes
 
 `src/batches/` — A "batch" is a cooked meal made from multiple raw ingredients. `BatchBuilder.jsx` lets users add ingredients by weight, set a yield (e.g. total cooked grams), and `batchCalc.js` calculates the macros per 100g of the finished batch. Batches saved to IndexedDB (`batches` table) can be shared across the household (`shared` flag). `BatchList.jsx` shows all available batches.
@@ -116,3 +122,7 @@ Custom service worker at `src/sw.js`, injected by `vite-plugin-pwa` with `inject
 ### Tests
 
 Tests use Vitest + happy-dom + `fake-indexeddb`. Test setup is in `src/__tests__/setup.js`. Test directories: `src/db/__tests__/` (sync/restore logic) and `src/food/__tests__/` (FoodDB helpers). There is also a Playwright UAT script (`uat.mjs`) with screenshots saved to `uat-screenshots/`.
+
+### Data model
+
+Every personal record in IndexedDB has `userId`, `dirty: 0|1`, and `updatedAt` (ISO string). Key tables: `users`, `foodLogs`, `foods`, `batches`, `workoutLogs`, `workoutSets`, `programmes`, `weightLog`, `measurements`, `stepsLog`, `supplementLog`, `mealTemplates`, `reminders`, `waterLog`, `moodLog`, `bloodWork`. The current IndexedDB schema version is 11 (see `indexedDB.js`). For full field-level details and the Supabase mirror table list, see `DESIGN.md`.
