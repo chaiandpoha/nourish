@@ -365,6 +365,12 @@ export async function seedFoodDatabase() {
         const ninNew = ninFoodsData.filter(f => parseInt(f.id.split('_')[1]) >= 313)
         await db.foods.bulkPut(ninNew.map(f => ({ ...f, source: 'nin', tags: f.tags || [] })))
       }
+
+      const hasNinV4 = await db.foods.get('nin_351')
+      if (!hasNinV4) {
+        const ninNew = ninFoodsData.filter(f => parseInt(f.id.split('_')[1]) >= 351)
+        await db.foods.bulkPut(ninNew.map(f => ({ ...f, source: 'nin', tags: f.tags || [] })))
+      }
       return true
     }
 
