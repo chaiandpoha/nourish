@@ -712,12 +712,17 @@ function FoodEntryInline({ food, batch, _meal, onAdd, onBack, onEditRecipe, init
       foodId = saved.id
     }
 
+    const ingredients = adjustMode && adjIngredients.length > 0
+      ? adjIngredients.map(({ gramsInput, ...rest }) => ({ ...rest, grams: parseFloat(gramsInput) || 0 }))
+      : null
+
     onAdd({
       foodId,
       batchId: isBatch ? batch.id : null,
       name:    isManual ? name.trim() : item.name,
       grams:   totalGrams,
       source:  isBatch ? "batch" : (isManual ? (saveToFoods ? "saved" : "manual") : food.source),
+      ingredients,
       ...macros,
     })
     setSaving(false)

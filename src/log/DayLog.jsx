@@ -514,7 +514,11 @@ function FoodEntryRow({ entry, onDelete, onEdit }) {
   async function openEdit() {
     setGramsStr(String(entry.grams))
     setAdjMode(false)
-    if (isBatch && entry.batchId) {
+    if (Array.isArray(entry.ingredients) && entry.ingredients.length > 0) {
+      // A previous ingredient-level edit was saved on this entry — reuse it
+      // verbatim rather than re-deriving from the batch/recipe's current ratios.
+      setAdjIngredients(entry.ingredients.map(i => ({ ...i, gramsInput: String(i.grams) })))
+    } else if (isBatch && entry.batchId) {
       const { db } = await import('../db/db.js')
       const batch  = await db.batches.get(entry.batchId)
       if (batch?.ingredients?.length) {
@@ -543,10 +547,13 @@ function FoodEntryRow({ entry, onDelete, onEdit }) {
   function handleSave() {
     if (adjMode) {
       if (adjTotalGrams <= 0) return
-      onEdit({ grams: adjTotalGrams, ...adjMacros })
+      const ingredients = adjIngredients.map(({ gramsInput, ...rest }) => ({ ...rest, grams: parseFloat(gramsInput) || 0 }))
+      onEdit({ grams: adjTotalGrams, ingredients, ...adjMacros })
     } else {
       if (newGrams <= 0) return
-      onEdit({ grams: newGrams, ...simplePreview })
+      // Simple grams edit no longer matches any previously-saved per-ingredient
+      // split, so clear it — next ingredient edit re-derives from the batch/recipe.
+      onEdit({ grams: newGrams, ingredients: null, ...simplePreview })
     }
     setMode('collapsed')
   }
